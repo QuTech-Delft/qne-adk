@@ -1,0 +1,163 @@
+@startuml "Class diagram"
+
+skinparam linetype polyline
+skinparam linetype ortho
+skinparam backgroundcolor transparent
+
+class CommandList {
+    + app: Typer
+    + processor: CommandProcessor
+    + login(host:str, username: str, password: str)
+    + logout(host: str)
+    + applications_create(application: str, roles: str[])
+    + applications_init()
+    + applications_upload()
+    + applications_list(remote: bool)
+    + applications_delete()
+    + applications_publish()
+    + applications_validate()
+    + experiments_create(name: str, applications: str, local: bool)
+    + experiments_delete()
+    + experiments_run(block: bool)
+    + experiments_list()
+    + experiments_validate()
+    + experiments_results(all: bool, show: bool)
+}
+
+' Relay of commands
+class CommandProcessor {
+    - remote: RemoteApi
+    - local: LocalApi
+    + login(host:str, username: str, password: str)
+    + logout(host: str)
+    + applications_create(application: str, roles: str[], path: str)
+    + applications_init(path: str)
+    + applications_upload(application: str)
+    + applications_list(remote: bool)
+    + applications_delete(application: str)
+    + applications_publish(application: str)
+    + applications_validate(application: str)
+    + experiments_create(name: str, application: str, local: bool)
+    + experiments_delete(path: str)
+    - is_application_local(application: str) -> bool
+    + experiments_run(path: str, block: bool)
+    + experiments_list() -> ExperimentType[]
+    + experiments_validate(path: str) -> None
+    + experiments_results(all: bool, show: bool) -> Optional[ResultType]
+    - store_results(result[]) -> None
+}
+
+class ConfigManager {
+    - config_dir: str
+    + add_application(application: str, path: str)
+    + delete_application(application: str)
+    + get_application(application: str) -> Dict[str, str]
+    + get_applications() -> str[]
+    + application_exists(application) -> bool
+    + update_path(application: str, path: str) -> None
+}
+
+class AuthManager {
+    - config_dir: str
+    - login_function: Callable
+    - fallback_function: Callable
+    + __init__(config_dir, login_function, fallback_function)
+    + login(username: str, password: str, host: str) -> None
+    + load_token() -> str
+    - store_token(token: str) -> None
+    - fetch_token(function: Callable, payload: Dict[str, Any]) -> str
+    + delete_token(host: str) -> None
+    + set_active_host(host: str) -> None
+}
+
+class LocalApi {
+    - config_manager: ConfigManager
+    + __init__(config_manager: ConfigManager) -> None
+    + create_application(application: str, roles: str[]) -> None
+    + init_application() -> None
+    - create_application_structure(application: str, roles: str[]) -> None
+    - is_application_unique(application: str) -> bool
+    + list_applications() -> ApplicationType[]
+    + is_application_valid(application: str) -> bool
+    - is_structure_valid(application: str) -> bool
+    - is_config_valid(application: str) -> bool
+    + get_application_config(application: str) -> AppConfigType
+    + create_experiment(name: str, app_config: AppConfigType, local: bool) -> None
+    + delete_experiment(path: str) -> None
+    + run_experiment(path: str, block: bool) -> Optional[ResultType[]]
+    + get_experiment(name: str) -> ExperimentType
+    + get_results(name: str) -> ResultType[]
+    + validate_experiment(path: str) -> bool
+}
+
+class RemoteApi {
+    - config_manager: ConfigManager
+    + __init__(config_manager: ConfigManager) -> None
+    + login(username: str, password: str, host: str) -> None
+    # login_user(username: str, password: str, host: str) -> str
+    # login_anonymous() -> str
+    + logout() -> None
+    + list_applications() -> ApplicationType[]
+    + delete_application(application: str)
+    + upload_application(application: str)
+    - application_exists(application_id: int)
+    - create_application_version(application_id: int)
+    - create_application_config(application_version_id: int)
+    - create_application_source(application_version_id: int)
+    - create_application_result(application_version_id: int)
+    + delete_application(application: str)
+    + publish_application(application: str)
+    + get_application_config(application: str) -> AppConfigType
+    + delete_experiment(experiment_id) -> None
+    + list_experiments() -> None
+    + run_experiment(block: bool) -> Optional[ResultType[]]
+    + get_results(path: str, all: bool, block: bool, timeout: int) -> ResultType[]
+    - results_exists(path) -> bool
+    - get_local_results() -> ResultType[]
+}
+
+class RoundSetManager {
+    - round_set: RoundSet
+    - configuration : Dict[str, Any]
+    - asset: Asset
+    - experiment: Experiment
+    - app_source: AppSource
+    - result_list: [Result]
+    - app_dir: str
+    + process(): None
+    # run_application(): None
+    + validate_asset(path: str): bool
+    + prepare_input(app_source, asset): None
+    - {static} get_role_mapping(asset): {str, str}
+    # {static} get_selected_network(asset, role_mapping): {str, Any}
+    # create_role_file(asset, role_name): None
+    # create_network_file(asset, role_mapping): None
+    # create_roles_file(role_mapping): None
+    - clean(): None
+    + terminate(): None
+}
+
+class OutputConverter {
+    - output_dir: str
+    + __init__(round_set, log_dir, output_dir): None
+    - get_node_names: [str]
+    - {static}read_yaml_file(file_path): Any
+    - list_log_files(): [{str, str}]
+    - combine_log_files(log_files): [{str, Any}]
+    + convert(round_number, result_list): Result
+    - clean(): None
+    + terminate(): None
+}
+
+CommandProcessor <-- CommandList
+RemoteApi <-- CommandProcessor
+LocalApi <-- CommandProcessor
+
+ConfigManager <-- RemoteApi
+AuthManager <-- RemoteApi
+ConfigManager <-- LocalApi
+
+RoundSetManager <- LocalApi
+OutputConverter <-- LocalApi
+
+@enduml
