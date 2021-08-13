@@ -1,0 +1,24 @@
+@startuml "Workflow"
+
+start
+
+group Remote development
+while (draft)
+    group Local development
+    while (develop)
+        :simulate locally;
+    endwhile
+    end group
+
+    :upload remote;
+endwhile
+end group
+
+split
+    :publish;
+    kill
+split again
+    stop
+end split
+
+@enduml

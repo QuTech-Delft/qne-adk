@@ -1,0 +1,532 @@
+@startuml login
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : login(host, username, password)
+    CommandProcessor -> RemoteApi : login(username, password, host)
+        RemoteApi -> AuthManager : __init__(config_dir, login_function, anonymous_function)
+        return auth_manager
+        RemoteApi -> AuthManager : login(username, password, host)
+            AuthManager -> AuthManager : fetch_token(payload)
+            return token
+            AuthManager -> AuthManager : store_token(token)
+            return
+            AuthManager -> AuthManager : set_active_host(host)
+            return
+        return
+    return
+return
+
+@enduml
+
+@startuml logout
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : logout(host)
+    CommandProcessor -> RemoteApi : logout(host)
+        RemoteApi -> AuthManager : delete_token(host)
+        return
+    return
+return
+
+@enduml
+
+@startuml applications_create
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : applications_create(application, roles)
+    CommandProcessor -> LocalApi : create_application(application, roles)
+        LocalApi -> LocalApi : is_application_unique(application)
+            LocalApi -> ConfigManager : application_exists(application)
+            return bool
+        return bool
+        LocalApi -> LocalApi : create_application_structure(application, roles)
+            LocalApi -> ConfigManager : add_application(application, path)
+            return
+        return
+    return
+return
+
+@enduml
+
+@startuml applications_delete
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : applications_delete(application)
+    CommandProcessor -> RemoteApi : delete_application(application)
+        RemoteApi -> ConfigManager : get_application(application)
+        return application
+        RemoteApi -> AuthManager : load_token()
+            AuthManager -> AuthManager : has_token()
+            return bool
+            alt logged in
+                AuthManager -> AuthManager : get_token()
+                return token
+            else no token present
+                AuthManager -> AuthManager : fetch_token(fallback_function)
+                return token
+            end
+        return token
+        RemoteApi -> RemoteApi : action('delete')
+        return
+    return
+return
+
+@enduml
+
+@startuml applications_init
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : applications_init()
+    CommandProcessor -> LocalApi : applications_init()
+        LocalApi -> LocalApi : is_application_unique(application)
+            LocalApi -> ConfigManager : application_exists(application)
+            return bool
+        return bool
+        LocalApi -> LocalApi : create_application_structure(application, roles)
+            LocalApi -> ConfigManager : add_application(application, path)
+            return
+        return
+    return
+return
+
+@enduml
+
+@startuml applications_list
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : applications_list()
+    alt --local flag
+    CommandProcessor -> LocalApi : list_applications()
+        LocalApi -> ConfigManager : get_applications()
+        return applications
+    return applications
+    else --remote flag
+    CommandProcessor -> RemoteApi : list_applications()
+        RemoteApi -> AuthManager : load_token()
+            AuthManager -> AuthManager : has_token()
+            return bool
+            alt logged in
+                AuthManager -> AuthManager : get_token()
+                return token
+            else no token present
+                AuthManager -> AuthManager : fetch_token(fallback_function)
+                return token
+            end
+        return token
+        RemoteApi -> RemoteApi : action('list_applications')
+        return applications
+    return applications
+    end
+return applications
+
+@enduml
+
+@startuml applications_publish
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : applications_publish()
+    CommandProcessor -> RemoteApi : applications_publish()
+        RemoteApi -> AuthManager : load_token()
+            AuthManager -> AuthManager : has_token()
+            return bool
+            alt logged in
+                AuthManager -> AuthManager : get_token()
+                return token
+            else no token present
+                AuthManager -> AuthManager : fetch_token(fallback_function)
+                return token
+            end
+        return token
+        RemoteApi -> RemoteApi : action('publish_applications')
+        return
+    return
+return
+
+@enduml
+
+@startuml applications_upload
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : applications_upload()
+    CommandProcessor -> RemoteApi : upload_application(application)
+        RemoteApi -> AuthManager : load_token()
+            AuthManager -> AuthManager : has_token()
+            return bool
+            alt logged in
+                AuthManager -> AuthManager : get_token()
+                return token
+            else no token present
+                AuthManager -> AuthManager : fetch_token(fallback_function)
+                return token
+            end
+        return token
+        RemoteApi -> RemoteApi : application_exists(application_id)
+        return bool
+        RemoteApi -> RemoteApi : create_application_version(application_id)
+        return application_version_id
+        RemoteApi -> RemoteApi : create_application_config(application_version_id)
+        return
+        RemoteApi -> RemoteApi : create_application_source(application_version_id)
+        return
+        RemoteApi -> RemoteApi : create_application_result(application_version_id)
+        return
+    return
+return
+
+@enduml
+
+@startuml applications_validate
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : applications_validate()
+    CommandProcessor -> LocalApi : is_application_valid(application)
+        LocalApi -> LocalApi : is_structure_valid(application)
+        return bool
+        LocalApi -> LocalApi : is_application_unique(application)
+        return bool
+        LocalApi -> LocalApi : is_config_valid(application)
+        return bool
+    return bool
+return
+
+@enduml
+
+@startuml experiments_create
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : experiments_create(name, application, local)
+    alt local experiment
+        CommandProcessor -> LocalApi : get_application_config(application)
+        return app_config
+    else remote experiment
+        CommandProcessor -> RemoteApi : get_application_config(application)
+            RemoteApi -> AuthManager : load_token()
+                AuthManager -> AuthManager : has_token()
+                return bool
+                alt logged in
+                    AuthManager -> AuthManager : get_token()
+                    return token
+                else no token present
+                    AuthManager -> AuthManager : fetch_token(fallback_function)
+                    return token
+                end
+            return token
+            RemoteApi -> RemoteApi : action('app_config')
+            return app_config
+        return app_config
+    end
+return
+
+@enduml
+
+@startuml experiments_delete
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : experiments_delete(name, application, local)
+    CommandProcessor -> RemoteApi : delete_experiment(experiment_id)
+        RemoteApi -> AuthManager : load_token()
+            AuthManager -> AuthManager : has_token()
+            return bool
+            alt logged in
+                AuthManager -> AuthManager : get_token()
+                return token
+            else no token present
+                AuthManager -> AuthManager : fetch_token(fallback_function)
+                return token
+            end
+        return token
+        RemoteApi -> RemoteApi : action('delete_experiment')
+        return 
+    return 
+    CommandProcessor -> LocalApi : delete_experiment(path)
+    return
+return
+
+@enduml
+
+@startuml experiments_list
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : experiments_list()
+    CommandProcessor -> RemoteApi : list_experiments()
+        RemoteApi -> AuthManager : load_token()
+            AuthManager -> AuthManager : has_token()
+            return bool
+            alt logged in
+                AuthManager -> AuthManager : get_token()
+                return token
+            else no token present
+                AuthManager -> AuthManager : fetch_token(fallback_function)
+                return token
+            end
+        return token
+        RemoteApi -> RemoteApi : action('list_experiments')
+        return experiments
+    return experiments
+return experiments
+
+@enduml
+
+@startuml experiments_results
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : experiments_results(all, show)
+    alt local run
+        CommandProcessor -> LocalApi : get_results()
+            LocalApi -> OutputConverter : convert()
+            return result[]
+        return result[]
+    else remote run
+        CommandProcessor -> RemoteApi : get_results(path, all, block, timeout)
+            RemoteApi -> RemoteApi : results_exists(path)
+            return bool
+            alt already downloaded
+                RemoteApi -> RemoteApi : get_local_results()
+                return result[]
+            else not yet downloaded
+                RemoteApi -> AuthManager : load_token()
+                    AuthManager -> AuthManager : has_token()
+                    return bool
+                    alt logged in
+                        AuthManager -> AuthManager : get_token()
+                        return token
+                    else no token present
+                        AuthManager -> AuthManager : fetch_token(fallback_function)
+                        return token
+                    end
+                return token
+                RemoteApi -> RemoteApi : action('get_results')
+                return result[]
+            end
+        return result[]
+    end
+    alt store results
+        CommandProcessor -> CommandProcessor : store_results(result[])
+        return None
+    end
+return Optional[results]
+
+@enduml
+
+@startuml experiments_run
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : experiments_run(path, block)
+    alt local run
+        CommandProcessor -> LocalApi : run_experiment(path, block)
+            LocalApi -> RoundSetManager : prepare_input(app_source, asset)
+            return
+            LocalApi -> RoundSetManager : process(block)
+            return Optional[result[]]
+            LocalApi -> RoundSetManager : terminate()
+            return
+        return Optional[result[]]
+    else remote run
+        CommandProcessor -> RemoteApi : run_experiment(block)
+            RemoteApi -> AuthManager : load_token()
+                AuthManager -> AuthManager : has_token()
+                return bool
+                alt logged in
+                    AuthManager -> AuthManager : get_token()
+                    return token
+                else no token present
+                    AuthManager -> AuthManager : fetch_token(fallback_function)
+                    return token
+                end
+            return token
+            RemoteApi -> RemoteApi : action('create_experiment')
+            return experiment
+            RemoteApi -> RemoteApi : action('create_round_set')
+            return round_set
+            alt block
+                loop until results
+                    RemoteApi -> RemoteApi : action('get_results')
+                    return result[]
+                end
+            end
+        return Optional[result[]]
+    end
+    alt not None
+        CommandProcessor -> CommandProcessor : store_results(result[])
+        return None
+    end
+return Optional[results]
+
+@enduml
+
+@startuml experiments_validate
+
+autoactivate on
+autonumber
+
+participant CommandList
+participant CommandProcessor
+participant LocalApi
+participant RemoteApi
+participant ConfigManager
+participant AuthManager
+participant RoundSetManager
+participant OutputConverter
+
+CommandList -> CommandProcessor : experiments_validate(path)
+    CommandProcessor -> LocalApi : validate_experiment(path)
+        LocalApi -> RoundSetManager : validate_asset(path)
+        return bool
+    return bool
+return bool
+
+@enduml

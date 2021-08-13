@@ -1,0 +1,9 @@
+[run]
+source = ./src/cli
+command_line = -m pytest --junitxml=report.xml
+
+[report]
+show_missing = True
+; fail_under = 100
+exclude_lines =
+    if __name__ == .__main__.:
