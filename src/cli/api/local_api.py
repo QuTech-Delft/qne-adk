@@ -1,6 +1,9 @@
-from pathlib import Path
-from typing import List, Optional, Tuple
 
+from typing import List, Optional, Tuple
+from pathlib import Path
+import json
+
+import cli.utils as utils
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -14,11 +17,45 @@ class LocalApi:
     def __init__(self, config_manager: ConfigManager) -> None:
         self.__config_manager = config_manager
 
-    def create_application(self, application: str, roles: List[str], app_path: Path) -> None:
+    def create_application(self, application: str, roles: List[str], path: Path) -> None:
+
+        # code to add the application to .qne/application.json if it doesn't exist
+        app_config_file = utils.check_if_config_exists()
+
+        # Check if application already exists
         if self.__is_application_unique(application):
-            self.__create_application_structure(application, roles, app_path)
+            # code to create the local application in root dir
+            app_dir = path / "src/cli/applications" / application / "application"
+            config_dir = path / "src/cli/applications" / application / " config"
+            app_dir.mkdir(parents=True, exist_ok=True)
+            config_dir.mkdir(parents=True, exist_ok=True)
+
+            for role in roles:
+                py_file = app_dir / f"app_{role}.py"
+                with open(py_file, 'w') as _:
+                    pass
+
+            for config in ["network", "application", "result"]:
+                config_file = config_dir / f"{config}.json"
+                with open(config_file, "w") as fp:
+                    json.dump({}, fp, indent=4)
+
+            manifest_file = path / "MANIFEST.ini"
+            with open(manifest_file, "w") as fp:
+                pass
+
+            # Read json file
+            with app_config_file.open(mode="r") as fp:
+                data = fp.read()
+                apps = json.loads(data)
+
+            # Store the app path
+            apps[application] = {'path': str(path), 'application_id': 'None'}
+            with app_config_file.open(mode="w") as fp:
+                json.dump(apps, fp, indent=4)
+
         else:
-            pass
+            raise Exception('Application name is not unique.')
 
     def init_application(self, path: Path) -> None:
         # Find out application name & roles from the files in 'path'
@@ -34,6 +71,7 @@ class LocalApi:
         self.__config_manager.add_application(application, path)
 
     def __is_application_unique(self, application: str) -> bool:
+
         """
         Calls config_manager.application_exists() to check if the application name already exists in the
         .qne/application.json root file. Here, all application names are added when an application is created.

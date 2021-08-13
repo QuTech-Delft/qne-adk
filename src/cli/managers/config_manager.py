@@ -1,6 +1,9 @@
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+import logging
+import json
+
 
 from cli.utils import read_json_file
 
@@ -42,6 +45,21 @@ class ConfigManager:
         return application_list
 
     def application_exists(self, application: str) -> bool:
+        logging.info('ConfigManager executing applications_exists()')
+
+        # Check if .qne/applications.json exists
+
+
+        # Loop through .qne/applications.json to see if name exists
+        app_config_file = Path.home() / ".qne/applications.json"
+        with app_config_file.open(mode="r") as application_json:
+            data = application_json.read()
+            data = json.loads(data)
+
+        for key in data:
+            if key == application:
+                return False
+
         return True
 
     def remote_application_exists(self, application: str) ->  int:

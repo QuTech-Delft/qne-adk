@@ -27,6 +27,7 @@ def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
         logging.error('The file %s does not contain valid json. Error: %s', file, exception)
         raise MalformedJsonFile(exception) from exception
 
+
 def write_json_file(file: Path, data: Any) -> None:
     """
     Open the 'file' & write the 'data' to the 'file'
@@ -36,6 +37,7 @@ def write_json_file(file: Path, data: Any) -> None:
         data: Data to be written to file
 
     """
+
 
 def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) -> List[Dict[str, Any]]:
     """
