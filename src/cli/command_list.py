@@ -8,7 +8,7 @@ from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
-from settings import Settings
+from cli.settings import Settings
 
 app = Typer()
 applications_app = Typer()
