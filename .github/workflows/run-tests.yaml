@@ -1,0 +1,26 @@
+name: Test Python 🐍
+
+on: push
+
+jobs:
+  test:
+    name: Build and test Python 🐍
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install .[dev] --upgrade
+    - name: Test with unittest
+      run: |
+        coverage run
+        coverage report
+    - name: Static code analysis
+      run: MYPYPATH=./src mypy --strict --ignore-missing-imports -p cli
+    - name: Run pylint
+      run: pylint ./src/
