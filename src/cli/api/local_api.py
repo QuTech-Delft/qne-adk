@@ -50,7 +50,7 @@ class LocalApi:
                 apps = json.loads(data)
 
             # Store the app path
-            apps[application] = {'path': str(path), 'application_id': 'None'}
+            apps[application] = {'path': str(path)}
             with app_config_file.open(mode="w") as fp:
                 json.dump(apps, fp, indent=4)
 
