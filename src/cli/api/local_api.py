@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple
 from pathlib import Path
 import json
+
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -77,7 +78,6 @@ class LocalApi:
         self.__config_manager.add_application(application, path)
 
     def __is_application_unique(self, application: str) -> bool:
-
         """
         Calls config_manager.application_exists() to check if the application name already exists in the
         .qne/application.json root file. Here, all application names are added when an application is created.

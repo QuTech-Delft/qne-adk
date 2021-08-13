@@ -5,7 +5,6 @@ import logging
 from cli.exceptions import MalformedJsonFile
 
 
-
 def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
     """
     Open the 'file' in 'encoding' format & read the data from the file
@@ -26,7 +25,6 @@ def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
     except json.decoder.JSONDecodeError as exception:
         logging.error('The file %s does not contain valid json. Error: %s', file, exception)
         raise MalformedJsonFile(exception) from exception
-
 
 
 def write_json_file(file: Path, data: Any) -> None:
@@ -58,3 +56,4 @@ def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) 
         reordered_item = {key: item.get(key, '-') for key in desired_order}
         reordered_data.append(reordered_item)
     return reordered_data
+

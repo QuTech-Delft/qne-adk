@@ -1,10 +1,7 @@
-import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 import logging
 import json
-
-
 from cli.utils import read_json_file
 
 
@@ -77,10 +74,6 @@ class ConfigManager:
 
     def application_exists(self, application: str) -> bool:
         logging.info('ConfigManager executing applications_exists()')
-
-        # Check if application.json exists. If not, create it and return since no other application exists yet.
-        if self.__check_and_create_config():
-            return True
 
         # Loop through .qne/applications.json to see if name exists
         app_config_file = Path.home() / ".qne/applications.json"
