@@ -40,11 +40,15 @@ jobs:
         pip install
         build
         --user
+    - name: Set outputs
+      id: vars
+      run: |
+        echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+        echo "::set-output name=package_version::$(cat ./src/cli/version.py | cut -d "'" -f2)"
     - name: Override package 📦 version
       if: startsWith(github.ref, 'refs/tags') == 0
       run: |
-        echo "__version__ = '${{ github.run_id }}'" > ./src/cli/version.py
-        cat ./src/cli/version.py
+        echo "__version__ = '${{ steps.vars.outputs.package_version }}-${{ steps.vars.outputs.sha_short }}'" > ./src/cli/version.py
     - name: Build a binary wheel and a source tarball
       run: >-
         python -m
