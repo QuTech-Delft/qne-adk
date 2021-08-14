@@ -42,7 +42,9 @@ jobs:
         --user
     - name: Override package 📦 version
       if: startsWith(github.ref, 'refs/tags') == 0
-      run: echo "__version__ = '{{ github.run_id }}'" > ./src/cli/version.py
+      run: |
+        echo "__version__ = '{{ github.run_id }}'" > ./src/cli/version.py
+        cat ./src/cli/version.py
     - name: Build a binary wheel and a source tarball
       run: >-
         python -m
