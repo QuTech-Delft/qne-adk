@@ -16,10 +16,29 @@ class AuthManager:
         self.__fallback_function = fallback_function
 
     def login(self, username: str, password: str, host: str) -> None:
-        pass
+        if username is not None and password is not None and host is not None:
+            token = self.__fetch_token(self.__login_function, {'username': username, 'password': password, 'host': host})
+        else:
+            token = self.__fetch_token(self.__fallback_function, {})
+
+        self.__store_token(token)
+
+        if host is not None:
+            self.set_active_host(host)
+        else:
+            self.set_active_host(host='?')
 
     def load_token(self) -> str:
+        if self.has_token():
+            return self.__get_token()
+        else:
+            return self.__fetch_token(self.__fallback_function, {})
+
+    def __has_token(self) -> bool:
         pass
+
+    def __get_token(self) -> str:
+        return '****'
 
     def __store_token(self, token: str) -> None:
         pass
@@ -27,10 +46,13 @@ class AuthManager:
     def __fetch_token(
         self, function: TokenFetchFunctionType, payload: Dict[str, Any]
     ) -> str:
-        pass
+        return function(**payload)
 
     def delete_token(self, host: str) -> None:
         pass
 
     def set_active_host(self, host: str) -> None:
         pass
+
+    def get_active_host(self) -> str:
+        return 'HOST'
