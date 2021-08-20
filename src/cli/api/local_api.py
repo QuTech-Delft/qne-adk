@@ -78,5 +78,5 @@ class LocalApi:
 
     def validate_experiment(self, path: Path) -> bool:
         roundSetManager = RoundSetManager()
-        roundSetManager.validate_asset(path)
+        return roundSetManager.validate_asset(path)
 
