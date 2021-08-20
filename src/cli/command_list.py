@@ -1,3 +1,8 @@
+"""
+Entry point for the qne command-line.
+Creates the typer app and its commands
+"""
+
 from pathlib import Path
 from typing import List, Optional
 

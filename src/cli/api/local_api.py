@@ -1,6 +1,9 @@
+from pathlib import Path
 from typing import List, Optional
 
 from cli.managers.config_manager import ConfigManager
+from cli.managers.roundset_manager import RoundSetManager
+from cli.output_converter import OutputConverter
 from cli.types import (AppConfigType, ApplicationType, ExperimentType,
                        ResultType)
 
@@ -9,25 +12,36 @@ class LocalApi:
     def __init__(self, config_manager: ConfigManager) -> None:
         self.__config_manager = config_manager
 
-    def create_application(self, application: str, roles: List[str]) -> None:
-        pass
+    def create_application(self, application: str, roles: List[str], app_path: Path) -> None:
+        if self.__is_application_unique(application):
+            self.__create_application_structure(application, roles, app_path)
+        else:
+            pass
 
-    def init_application(self) -> None:
-        pass
+    def init_application(self, path: Path) -> None:
+        # Find out application name & roles from the files in 'path'
+        application = ''
+        roles = ['', '']
+
+        if self.__is_application_unique(application):
+            self.__create_application_structure(application, roles, path)
+
 
     def __create_application_structure(
-        self, application: str, roles: List[str]
+        self, application: str, roles: List[str], path: Path
     ) -> None:
-        pass
+        self.__config_manager.add_application(application, str(path))
 
     def __is_application_unique(self, application: str) -> bool:
-        pass
+        return True
 
     def list_applications(self) -> List[ApplicationType]:
-        pass
+        return self.__config_manager.get_applications()
 
     def is_application_valid(self, application: str) -> bool:
-        pass
+        return self.__is_structure_valid(application) and \
+               self.__is_application_unique(application) and \
+               self.__is_config_valid(application)
 
     def __is_structure_valid(self, application: str) -> bool:
         pass
@@ -47,13 +61,22 @@ class LocalApi:
         pass
 
     def run_experiment(self, path: str, block: bool) -> Optional[List[ResultType]]:
-        pass
+        roundSetManager = RoundSetManager()
+        roundSetManager.prepare_input(path)
+        roundSetManager.process()
+        roundSetManager.terminate()
+        return []
 
     def get_experiment(self, name: str) -> ExperimentType:
         pass
 
     def get_results(self, name: str) -> List[ResultType]:
-        pass
+        outputConverter = OutputConverter('log_dir', 'output_dir')
+        round_number = 1
+        result_list = []
+        return outputConverter.convert(round_number, result_list)
 
-    def validate_experiment(self, path: str) -> bool:
-        pass
+    def validate_experiment(self, path: Path) -> bool:
+        roundSetManager = RoundSetManager()
+        roundSetManager.validate_asset(path)
+
