@@ -26,7 +26,7 @@ class RemoteApi:
         pass
 
     def list_applications(self) -> List[ApplicationType]:
-        pass
+        return []
 
     def delete_application(self, application: str) -> None:
         pass

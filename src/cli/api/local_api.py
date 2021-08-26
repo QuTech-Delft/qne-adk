@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import cast, List, Optional, Tuple
+
 
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
@@ -46,8 +47,17 @@ class LocalApi:
         Args:
             application: application name
         """
-
         return not self.__config_manager.application_exists(application)
+
+    def list_applications(self) -> List[ApplicationType]:
+        """
+        Function to list the local applications
+
+        Returns:
+            A list of local applications
+        """
+        local_applications = self.__config_manager.get_applications()
+        return cast(List[ApplicationType], local_applications)
 
     # Todo: Update confluence scenario diagram since application_unique() and structure_valid() are swapped
     def is_application_valid(self, application: str) -> Tuple[bool, str]:

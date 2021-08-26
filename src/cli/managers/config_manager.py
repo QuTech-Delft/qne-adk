@@ -1,5 +1,10 @@
+import json
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+from cli.exceptions import MalformedJsonFile
+
 
 class ConfigManager:
     def __init__(self, config_dir: Path):
@@ -17,8 +22,29 @@ class ConfigManager:
     def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:
         return "key", {}
 
-    def get_applications(self) -> List[Dict[str, str]]:
-        return [{}]
+    def get_applications(self) -> List[Dict[str, Any]]:
+        """
+        Reads the applications.json config file for getting the local applications
+
+        Returns:
+            A list of applications available in the config file
+
+        Raises:
+            MalformedJsonFile: If the config file contains invalid json
+        """
+        applications_config = self.__config_dir / 'applications.json'
+        if applications_config.is_file():
+            try:
+                with open(applications_config) as fp:
+                    applications = json.load(fp)
+                    return applications
+            except json.decoder.JSONDecodeError as exception:
+                logging.error(f'The file {applications_config} does not contain valid json. Error: {exception}')
+                raise MalformedJsonFile(exception)
+        else:
+            logging.info(f'The configuration file {applications_config} was not found. '
+                         f'Maybe, you haven\'t created any local applications yet?')
+            return []
 
     def application_exists(self, application: str) -> bool:
         return True

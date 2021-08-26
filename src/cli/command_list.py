@@ -3,6 +3,7 @@ Entry point for the qne command-line.
 Creates the typer app and its commands
 """
 
+import logging
 from pathlib import Path
 from typing import List, Optional
 
@@ -29,6 +30,7 @@ local_api = LocalApi(config_manager=config_manager)
 remote_api = RemoteApi(config_manager=config_manager)
 processor = CommandProcessor(local_api=local_api, remote_api=remote_api)
 
+logging.basicConfig(level=logging.INFO)
 
 @app.command("login")
 def login(
@@ -118,7 +120,11 @@ def applications_list(
     ),
 ) -> None:
     """
-    List applications.
+    List applications available to the user.
+
+    Args:
+        remote: Boolean flag to list remote applications
+        local: Boolean flag to list local applications
     """
     if not remote and not local:
         remote = local = True
@@ -128,6 +134,8 @@ def applications_list(
     if local:
         typer.echo("List applications from disk.")
     applications = processor.applications_list(remote=remote, local=local)
+
+    typer.echo(f"There are {len(applications)} application(s).")
     for application in applications:
         typer.echo(application)
 
