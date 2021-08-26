@@ -33,18 +33,22 @@ class ConfigManager:
             MalformedJsonFile: If the config file contains invalid json
         """
         applications_config = self.__config_dir / 'applications.json'
+        application_list = []
         if applications_config.is_file():
             try:
                 with open(applications_config) as fp:
                     applications = json.load(fp)
-                    return applications
+                    for app_name, app_data in applications.items():
+                        app_data['name'] = app_name
+                        application_list.append(app_data)
+                    return application_list
             except json.decoder.JSONDecodeError as exception:
                 logging.error(f'The file {applications_config} does not contain valid json. Error: {exception}')
                 raise MalformedJsonFile(exception)
         else:
             logging.info(f'The configuration file {applications_config} was not found. '
                          f'Maybe, you haven\'t created any local applications yet?')
-            return []
+            return application_list
 
     def application_exists(self, application: str) -> bool:
         return True

@@ -23,6 +23,8 @@ class TestConfigManager(unittest.TestCase):
              patch('pathlib.Path.is_file',return_value=True):
             apps = config_manager.get_applications()
             self.assertEqual(len(apps), 2)
+            for app in apps:
+                self.assertIn('name', app)
 
     def test_get_applications_no_config(self):
         config_manager = ConfigManager(config_dir=Path('dummy'))

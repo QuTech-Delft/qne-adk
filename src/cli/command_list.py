@@ -137,7 +137,7 @@ def applications_list(
 
     typer.echo(f"There are {len(applications)} application(s).")
     for application in applications:
-        typer.echo(application)
+        typer.echo(application['name'])
 
 
 @applications_app.command("publish")

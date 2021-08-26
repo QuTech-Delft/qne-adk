@@ -54,7 +54,7 @@ class CommandProcessor:
         if local:
             app_list.extend(self.__local.list_applications())
 
-        return cast(List[ApplicationType], app_list)
+        return app_list
 
     @log_function
     def applications_delete(self, application: str) -> None:
