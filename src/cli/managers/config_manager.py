@@ -43,11 +43,11 @@ class ConfigManager:
                         application_list.append(app_data)
                     return application_list
             except json.decoder.JSONDecodeError as exception:
-                logging.error(f'The file {applications_config} does not contain valid json. Error: {exception}')
-                raise MalformedJsonFile(exception)
+                logging.error('The file %s does not contain valid json. Error: %s', applications_config, exception)
+                raise MalformedJsonFile(exception) from exception
         else:
-            logging.info(f'The configuration file {applications_config} was not found. '
-                         f'Maybe, you haven\'t created any local applications yet?')
+            logging.info('The configuration file %s was not found. '
+                         'Maybe, you haven\'t created any local applications yet?', applications_config)
             return application_list
 
     def application_exists(self, application: str) -> bool:

@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from unittest.mock import patch, mock_open
 import unittest
@@ -19,7 +18,7 @@ class TestConfigManager(unittest.TestCase):
                                               "\"application_id\": 2}" \
                             "}"
 
-        with patch('cli.managers.config_manager.open', mock_open(read_data=dummy_apps_config)) as m ,\
+        with patch('cli.managers.config_manager.open', mock_open(read_data=dummy_apps_config)),\
              patch('pathlib.Path.is_file',return_value=True):
             apps = config_manager.get_applications()
             self.assertEqual(len(apps), 2)
@@ -29,7 +28,7 @@ class TestConfigManager(unittest.TestCase):
     def test_get_applications_no_config(self):
         config_manager = ConfigManager(config_dir=Path('dummy'))
 
-        with patch('cli.managers.config_manager.open', mock_open(read_data="{}")) as m ,\
+        with patch('cli.managers.config_manager.open', mock_open(read_data="{}")),\
              patch('pathlib.Path.is_file',return_value=False):
             apps = config_manager.get_applications()
             self.assertEqual(len(apps), 0)
@@ -43,7 +42,7 @@ class TestConfigManager(unittest.TestCase):
                             "\"application_id\" 2}" \
                             "}"
 
-        with patch('cli.managers.config_manager.open', mock_open(read_data=malformed_apps_config)) as m ,\
+        with patch('cli.managers.config_manager.open', mock_open(read_data=malformed_apps_config)),\
              patch('pathlib.Path.is_file',return_value=True):
 
             self.assertRaises(MalformedJsonFile, config_manager.get_applications)

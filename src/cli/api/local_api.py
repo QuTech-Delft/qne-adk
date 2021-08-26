@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import cast, List, Optional, Tuple
 
-
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
