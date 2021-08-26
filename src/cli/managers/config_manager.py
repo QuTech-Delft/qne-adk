@@ -36,7 +36,7 @@ class ConfigManager:
         application_list = []
         if applications_config.is_file():
             try:
-                with open(applications_config) as fp:
+                with open(applications_config, encoding="utf-8") as fp:
                     applications = json.load(fp)
                     for app_name, app_data in applications.items():
                         app_data['name'] = app_name
