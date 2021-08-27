@@ -20,7 +20,6 @@ class CommandProcessor:
     def logout(self, host: str) -> None:
         self.__remote.logout(host=host)
 
-    @log_function
     def applications_create(
         self, application: str, roles: List[str], path: Path
     ) -> None:

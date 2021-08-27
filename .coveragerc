@@ -1,6 +1,6 @@
 [run]
 source = ./src/cli
-command_line = -m pytest --junitxml=report.xml
+command_line = -m pytest -s --junitxml=report.xml
 
 [report]
 show_missing = True

@@ -1,9 +1,9 @@
-import json
-import logging
 from pathlib import Path
 from typing import Any, Dict, List
-
+import json
+import logging
 from cli.exceptions import MalformedJsonFile
+
 
 
 def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
@@ -28,6 +28,7 @@ def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
         raise MalformedJsonFile(exception) from exception
 
 
+
 def write_json_file(file: Path, data: Any) -> None:
     """
     Open the 'file' & write the 'data' to the 'file'
@@ -47,6 +48,7 @@ def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) 
     Args:
         original_data: A list containing dictionaries whose keys need to be reordered
         desired_order: A list with key names, specified in the desired order
+
 
     Returns:
         A List of dictionaries where each dictionary contains keys in the desired order

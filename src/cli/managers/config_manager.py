@@ -12,8 +12,39 @@ class ConfigManager:
     def __init__(self, config_dir: Path):
         self.__config_dir = config_dir
 
-    def add_application(self, application: str, path: Path) -> None:
-        pass
+    def add_application(self, application: str, path: str) -> None:
+        """
+        Takes care of saving the application name in the .qne/application.json root file together with the application
+        path.
+
+        Args:
+            application: the application name
+            roles: a list of roles
+            path: the path where the application is stored
+
+        """
+
+        app_config_file = self.__config_dir / "applications.json"
+
+        self.__check_and_create_config()
+
+        # Read json file
+        with app_config_file.open(mode="r") as fp:
+            apps = json.load(fp)
+
+        # Store the app path
+        apps[application] = {'path': str(path)}
+        with app_config_file.open(mode="w") as fp:
+            json.dump(apps, fp, indent=4)
+
+    def __check_and_create_config(self):
+        app_config_file = Path.home() / ".qne/applications.json"
+        if not app_config_file.exists():
+            with app_config_file.open(mode="w") as fp:
+                json.dump({}, fp, indent=4)
+            return True
+        else:
+            return False
 
     def delete_application(self, application: str) -> None:
         pass
@@ -47,8 +78,9 @@ class ConfigManager:
     def application_exists(self, application: str) -> bool:
         logging.info('ConfigManager executing applications_exists()')
 
-        # Check if .qne/applications.json exists
-
+        # Check if application.json exists. If not, create it and return since no other application exists yet.
+        if self.__check_and_create_config():
+            return True
 
         # Loop through .qne/applications.json to see if name exists
         app_config_file = Path.home() / ".qne/applications.json"

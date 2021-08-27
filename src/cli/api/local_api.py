@@ -1,9 +1,6 @@
-
 from typing import List, Optional, Tuple
 from pathlib import Path
 import json
-
-import cli.utils as utils
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -11,6 +8,7 @@ from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkT
                               app_configApplicationType, assetApplicationType, assetNetworkType,
                               ExperimentType, ResultType)
 from cli.utils import read_json_file, write_json_file
+from cli.exceptions import ApplicationAlreadyExists
 
 
 class LocalApi:
@@ -18,56 +16,64 @@ class LocalApi:
         self.__config_manager = config_manager
 
     def create_application(self, application: str, roles: List[str], path: Path) -> None:
+        """
+        Creates the application by checking if the application name is unique with is_application_unique and calling
+        create_application_structure.
 
-        # code to add the application to .qne/application.json if it doesn't exist
-        app_config_file = utils.check_if_config_exists()
+        Args:
+            application: the application name
+            roles: a list of roles
+            path: the path where the application is stored
 
-        # Check if application already exists
+        Raises:
+            ApplicationAlreadyExists: Raised when application name is not unique
+        """
+
         if self.__is_application_unique(application):
-            # code to create the local application in root dir
-            app_dir = path / "src/cli/applications" / application / "application"
-            config_dir = path / "src/cli/applications" / application / " config"
-            app_dir.mkdir(parents=True, exist_ok=True)
-            config_dir.mkdir(parents=True, exist_ok=True)
-
-            for role in roles:
-                py_file = app_dir / f"app_{role}.py"
-                with open(py_file, 'w') as _:
-                    pass
-
-            for config in ["network", "application", "result"]:
-                config_file = config_dir / f"{config}.json"
-                with open(config_file, "w") as fp:
-                    json.dump({}, fp, indent=4)
-
-            manifest_file = path / "MANIFEST.ini"
-            with open(manifest_file, "w") as fp:
-                pass
-
-            # Read json file
-            with app_config_file.open(mode="r") as fp:
-                data = fp.read()
-                apps = json.loads(data)
-
-            # Store the app path
-            apps[application] = {'path': str(path)}
-            with app_config_file.open(mode="w") as fp:
-                json.dump(apps, fp, indent=4)
-
+            self.create_application_structure(application, roles, path)
         else:
-            raise Exception('Application name is not unique.')
+            raise ApplicationAlreadyExists()
 
     def init_application(self, path: Path) -> None:
         # Find out application name & roles from the files in 'path'
         application = ''
         roles = ['', '']
 
-        if self.__is_application_unique(application):
-            self.__create_application_structure(application, roles, path)
-
-    def __create_application_structure(
-        self, application: str, roles: List[str], path: Path
+    def create_application_structure(
+        self, application: str, roles: List[str], path
     ) -> None:
+        """
+        Creates the application directory structure. Each application will consist of a MANIFEST.INI and two
+        directories: application and config. In the directory application, the files network.json, application.json and
+        result.json will be generated. In the directory config, python files will be generated according to the value of
+        the list roles.
+
+        Args:
+            application: the application name
+            roles: a list of roles
+            path: the path where the application is stored
+        """
+
+        # code to create the local application in root dir
+        app_dir = path / application / "application"
+        config_dir = path / application / " config"
+        app_dir.mkdir(parents=True, exist_ok=True)
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        for role in roles:
+            py_file = app_dir / f"app_{role}.py"
+            with open(py_file, 'w') as _:
+                pass
+
+        for config in ["network", "application", "result"]:
+            config_file = config_dir / f"{config}.json"
+            with open(config_file, "w") as fp:
+                json.dump({}, fp, indent=4)
+
+        manifest_file = path / application / "MANIFEST.ini"
+        with open(manifest_file, "w") as fp:
+            pass
+
         self.__config_manager.add_application(application, path)
 
     def __is_application_unique(self, application: str) -> bool:
