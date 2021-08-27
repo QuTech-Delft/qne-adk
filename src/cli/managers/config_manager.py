@@ -8,7 +8,7 @@ class ConfigManager:
     def __init__(self, config_dir: Path):
         self.__config_dir = config_dir
 
-    def add_application(self, application: str, path: str) -> None:
+    def add_application(self, application: str, path: Path) -> None:
         """
         Takes care of saving the application name in the .qne/application.json root file together with the application
         path.
