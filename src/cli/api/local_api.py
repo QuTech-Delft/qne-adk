@@ -41,7 +41,7 @@ class LocalApi:
         roles = ['', '']
 
     def __create_application_structure(
-        self, application: str, roles: List[str], path
+        self, application: str, roles: List[str], path: Path
     ) -> None:
         """
         Creates the application directory structure. Each application will consist of a MANIFEST.INI and two

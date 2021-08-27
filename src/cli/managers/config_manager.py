@@ -22,8 +22,6 @@ class ConfigManager:
 
         app_config_file = self.__config_dir / "applications.json"
 
-        self.__check_and_create_config()
-
         # Read json file
         with app_config_file.open(mode="r") as fp:
             apps = json.load(fp)
@@ -33,7 +31,7 @@ class ConfigManager:
         with app_config_file.open(mode="w") as fp:
             json.dump(apps, fp, indent=4)
 
-    def __check_and_create_config(self):
+    def __check_and_create_config(self) -> bool:
         app_config_file = Path.home() / ".qne/applications.json"
         if not app_config_file.exists():
             with app_config_file.open(mode="w") as fp:
