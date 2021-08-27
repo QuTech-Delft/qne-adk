@@ -1,11 +1,12 @@
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, mock_open
 
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
 from cli.output_converter import OutputConverter
+from cli.exceptions import ApplicationAlreadyExists
 
 
 class TestLocalApi(unittest.TestCase):
@@ -29,8 +30,17 @@ class TestLocalApi(unittest.TestCase):
 
         self.experiment_data_local = {'meta': self.experiment_meta_local, 'asset': {}}
 
-    def test_create_application(self):
-        with patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as application_unique_mock, \
+
+    def test_create_application_already_exists_exception(self):
+        with patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=False):
+            self.assertRaises(ApplicationAlreadyExists, self.local_api.create_application, self.application, self.roles,
+                              self.path)
+
+    def test_create_application_should_succeed(self):
+        open_mock = mock_open()
+
+        with patch("cli.api.local_api.open", open_mock, create=True), \
+             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as application_unique_mock, \
              patch.object(LocalApi, "_LocalApi__create_application_structure", return_value=True) as structure_mock:
 
             self.local_api.create_application(self.application, self.roles, self.path)
@@ -38,14 +48,20 @@ class TestLocalApi(unittest.TestCase):
             application_unique_mock.assert_called_once_with(self.application)
             structure_mock.assert_called_once_with(self.application, self.roles, self.path)
 
-    def test_create_file_structure(self):
-        with patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as application_unique_mock, \
+
+    def test_create_file_structure_should_succeed(self):
+
+        with patch("cli.api.local_api.open", mock_open()) as open_mock, \
+             patch('cli.api.local_api.Path.mkdir') as mock_mkdir, \
+             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as application_unique_mock, \
              patch.object(ConfigManager, 'add_application', return_value=10) as config_manager_mock:
 
             self.local_api.create_application(self.application, self.roles, self.path)
 
             application_unique_mock.assert_called_once_with(self.application)
             config_manager_mock.assert_called_once_with(self.application, self.path)
+            self.assertEqual(open_mock.call_count, 4 + len(self.roles))
+            self.assertEqual(mock_mkdir.call_count, 2)
 
     def test__is_application_unique(self):
         with patch.object(LocalApi, "_LocalApi__create_application_structure", return_value=True) as structure_mock, \
@@ -87,8 +103,8 @@ class TestLocalApi(unittest.TestCase):
 
     def test_experiments_create(self):
         with patch.object(LocalApi, "get_network_data") as get_network_data_mock, \
-            patch.object(LocalApi, "create_asset_network") as create_network_asset_mock, \
-            patch.object(LocalApi, "create_experiment") as create_exp_mock:
+             patch.object(LocalApi, "create_asset_network") as create_network_asset_mock, \
+             patch.object(LocalApi, "create_experiment") as create_exp_mock:
 
             get_network_data_mock.return_value = {'a': 'b'}
             create_network_asset_mock.return_value = {'c': 'd'}
@@ -101,10 +117,10 @@ class TestLocalApi(unittest.TestCase):
 
     def test_create_experiment(self):
         with patch("cli.api.local_api.write_json_file") as write_mock, \
-            patch.object(LocalApi, "_LocalApi__copy_input_files_from_application") as copy_input_mock, \
-            patch.object(LocalApi, "_LocalApi__create_asset_application") as create_app_asset_mock, \
-            patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
-            patch('cli.api.local_api.Path.mkdir') as mkdir_mock:
+             patch.object(LocalApi, "_LocalApi__copy_input_files_from_application") as copy_input_mock, \
+             patch.object(LocalApi, "_LocalApi__create_asset_application") as create_app_asset_mock, \
+             patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch('cli.api.local_api.Path.mkdir') as mkdir_mock:
 
             is_dir_mock.return_value = False
             create_app_asset_mock.return_value = [{'x': 2}]
@@ -134,7 +150,7 @@ class TestLocalApi(unittest.TestCase):
 
     def test_get_application_config(self):
         with patch.object(ConfigManager, "get_application") as get_application_mock, \
-            patch("cli.api.local_api.read_json_file") as read_mock:
+             patch("cli.api.local_api.read_json_file") as read_mock:
 
             read_mock.side_effect = [[{'app': 'foo'}], {'network': 'bar'}]
             get_application_mock.return_value = {'path': 'some-path'}
@@ -145,7 +161,7 @@ class TestLocalApi(unittest.TestCase):
 
     def test_validate_experiment(self):
         with patch("cli.api.local_api.Path.is_file") as is_file_mock, \
-            patch.object(RoundSetManager, "validate_asset") as validate_asset_mock:
+             patch.object(RoundSetManager, "validate_asset") as validate_asset_mock:
 
             is_file_mock.return_value = True
             validate_asset_mock.return_value= True, 'ok'
@@ -166,18 +182,17 @@ class TestLocalApi(unittest.TestCase):
 
     def test_run_experiment(self):
         with patch.object(RoundSetManager, "prepare_input") as prepare_input_mock, \
-            patch.object(RoundSetManager, "process") as process_mock, \
-            patch.object(RoundSetManager, "terminate") as terminate_mock:
+             patch.object(RoundSetManager, "process") as process_mock, \
+             patch.object(RoundSetManager, "terminate") as terminate_mock:
 
             self.local_api.run_experiment(Path('dummy'))
             prepare_input_mock.assert_called_once_with(Path('dummy'))
             process_mock.assert_called_once()
             terminate_mock.assert_called_once()
 
-
     def test_get_results(self):
         with patch.object(OutputConverter, "convert") as convert_mock, \
-            patch.object(LocalApi, "get_experiment_rounds") as get_rounds_mock:
+             patch.object(LocalApi, "get_experiment_rounds") as get_rounds_mock:
 
             get_rounds_mock.return_value = 3
 

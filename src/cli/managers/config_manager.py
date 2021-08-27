@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
-import logging
 import json
 from cli.utils import read_json_file
 
@@ -40,8 +39,7 @@ class ConfigManager:
             with app_config_file.open(mode="w") as fp:
                 json.dump({}, fp, indent=4)
             return True
-        else:
-            return False
+        return False
 
     def delete_application(self, application: str) -> None:
         pass
@@ -73,9 +71,17 @@ class ConfigManager:
         return application_list
 
     def application_exists(self, application: str) -> bool:
-        logging.info('ConfigManager executing applications_exists()')
+        """
+        Checks if the application name already exists in .qne/application.json for unique purposes. If the file is
+        non-existing, the application won't exist and returns True. If it does exist, return False, else True.
+
+        Args:
+            application: the application name
+
+        """
 
         # Loop through .qne/applications.json to see if name exists
+
         app_config_file = Path.home() / ".qne/applications.json"
         with app_config_file.open(mode="r") as application_json:
             data = application_json.read()

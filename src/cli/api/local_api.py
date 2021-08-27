@@ -31,7 +31,7 @@ class LocalApi:
         """
 
         if self.__is_application_unique(application):
-            self.create_application_structure(application, roles, path)
+            self.__create_application_structure(application, roles, path)
         else:
             raise ApplicationAlreadyExists()
 
@@ -40,7 +40,7 @@ class LocalApi:
         application = ''
         roles = ['', '']
 
-    def create_application_structure(
+    def __create_application_structure(
         self, application: str, roles: List[str], path
     ) -> None:
         """
