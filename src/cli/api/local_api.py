@@ -63,16 +63,16 @@ class LocalApi:
 
         for role in roles:
             py_file = app_dir / f"app_{role}.py"
-            with open(py_file, 'w') as _:
+            with open(py_file, 'w', encoding="utf-8") as _:
                 pass
 
         for config in ["network", "application", "result"]:
             config_file = config_dir / f"{config}.json"
-            with open(config_file, "w") as fp:
+            with open(config_file, "w", encoding="utf-8") as fp:
                 json.dump({}, fp, indent=4)
 
         manifest_file = path / application / "MANIFEST.ini"
-        with open(manifest_file, "w") as fp:
+        with open(manifest_file, "w", encoding="utf-8") as fp:
             pass
 
         self.__config_manager.add_application(application, path)
