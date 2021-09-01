@@ -33,9 +33,9 @@ class ConfigManager:
         """
         application_info = self.get_application(application)
         if 'remote_id' in application_info:
-            return True, application_info['remote_id']
-        else:
-            return False, -1
+            return True, int(application_info['remote_id'])
+
+        return False, -1
 
     def update_path(self, application: str, path: str) -> None:
         pass
@@ -43,7 +43,7 @@ class ConfigManager:
     def update_remote_id(self, application: str, application_id: int) -> None:
         pass
 
-    def get_config_dir(self):
+    def get_config_dir(self) -> Path:
         return self.__config_dir
 
     def remote_experiment_exists(self, path: Path) -> Tuple[bool, int]:
@@ -55,9 +55,9 @@ class ConfigManager:
         """
         experiment_info = self.get_experiment(path)
         if 'experiment_id' in experiment_info['meta']:
-            return True, experiment_info['experiment_id']
-        else:
-            return False, -1
+            return True, int(experiment_info['experiment_id'])
+
+        return False, -1
 
     def get_experiment(self, path: Path) -> Dict[str, str]:
         return {}
