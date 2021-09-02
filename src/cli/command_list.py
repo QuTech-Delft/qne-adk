@@ -129,15 +129,23 @@ def applications_list(
     if not remote and not local:
         remote = local = True
 
-    if remote:
-        typer.echo("List applications from Quantum Network Explorer.")
-    if local:
-        typer.echo("List applications from disk.")
     applications = processor.applications_list(remote=remote, local=local)
 
-    typer.echo(f"There are {len(applications)} application(s).")
-    for application in applications:
-        typer.echo(application['name'])
+    if 'local' in applications:
+        if len(applications['local']) == 0:
+            typer.echo("There are no local applications available.")
+        else:
+            typer.echo(f"{len(applications['local'])} local application(s).")
+            for application in applications['local']:
+                typer.echo(application['name'])
+
+    if 'remote' in applications:
+        if len(applications['remote']) == 0:
+            typer.echo("There are no remote applications available.")
+        else:
+            typer.echo(f"{len(applications['remote'])} remote application(s).")
+            for application in applications['remote']:
+                typer.echo(application['name'])
 
 
 @applications_app.command("publish")

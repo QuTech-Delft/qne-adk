@@ -1,5 +1,10 @@
+import json
+import logging
 from pathlib import Path
 from typing import Any
+
+from cli.exceptions import MalformedJsonFile
+
 
 def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
     """
@@ -12,8 +17,15 @@ def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
     Returns:
         The data read from json file
 
+    Raises:
+        MalformedJsonFile: If the file contains invalid json
     """
-    return {}
+    try:
+        with open(file, encoding=encoding) as fp:
+            return json.load(fp)
+    except json.decoder.JSONDecodeError as exception:
+        logging.error('The file %s does not contain valid json. Error: %s',file, exception)
+        raise MalformedJsonFile(exception) from exception
 
 def write_json_file(file: Path, data: Any) -> None:
     """

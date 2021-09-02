@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import cast, List, Optional, Tuple
+from typing import cast, Dict, List, Optional, Tuple
 
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
@@ -35,7 +35,7 @@ class CommandProcessor:
         self.__remote.upload_application(application)
 
     @log_function
-    def applications_list(self, remote: bool, local: bool) -> List[ApplicationType]:
+    def applications_list(self, remote: bool, local: bool) -> Dict[str, List[ApplicationType]]:
         """
         List the applications available to the user on remote/local/both
 
@@ -44,15 +44,16 @@ class CommandProcessor:
             local: Boolean flag for listing local applications
 
         Returns:
-            A list of applications available to the user
+            A dictionary containing 'remote' & 'local' keys with
+            value as list of applications available to the user
 
         """
-        app_list = []
+        app_list = {}
         if remote:
-            app_list.extend(self.__remote.list_applications())
+            app_list['remote'] = self.__remote.list_applications()
 
         if local:
-            app_list.extend(self.__local.list_applications())
+            app_list['local'] = self.__local.list_applications()
 
         return app_list
 

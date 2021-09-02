@@ -144,3 +144,39 @@ class TestCommandProcessor(unittest.TestCase):
             is_exp_local_mock.assert_called_once_with(Path('dummy'))
             results_mock.assert_called_once_with(Path('dummy'), True)
             store_result_mock.assert_not_called()
+
+    def test_applications_list(self):
+        with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
+            patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
+
+            applications = self.processor.applications_list(remote=True, local=True)
+
+            local_list_applications_mock.assert_called_once()
+            remote_list_applications_mock.assert_called_once()
+
+            self.assertIn('local', applications)
+            self.assertIn('remote', applications)
+
+    def test_applications_list_local(self):
+        with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
+            patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
+
+            applications = self.processor.applications_list(remote=False, local=True)
+
+            local_list_applications_mock.assert_called_once()
+            remote_list_applications_mock.assert_not_called()
+
+            self.assertIn('local', applications)
+            self.assertNotIn('remote', applications)
+
+    def test_applications_list_remote(self):
+        with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
+            patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
+
+            applications = self.processor.applications_list(remote=True, local=False)
+
+            remote_list_applications_mock.assert_called_once()
+            local_list_applications_mock.assert_not_called()
+
+            self.assertIn('remote', applications)
+            self.assertNotIn('local', applications)
