@@ -24,10 +24,10 @@ class AuthManager:
 
         self.__store_token(token)
 
-        if host is not None:
-            self.set_active_host(host)
-        else:
-            self.set_active_host(host='?')
+        if host is None:
+            host = self.__get_host_from_token(token)
+
+        self.set_active_host(host)
 
     def load_token(self) -> str:
         if self.__has_token():
@@ -45,6 +45,9 @@ class AuthManager:
 
     def __store_token(self, token: str) -> None:
         pass
+
+    def __get_host_from_token(self, token: str) -> str:
+        return 'HOST'
 
     def __fetch_token(
         self, function: TokenFetchFunctionType, payload: Dict[str, Any]

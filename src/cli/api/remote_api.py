@@ -15,7 +15,7 @@ class RemoteApi:
                                                     self.__login_user, self.__login_anonymous)
 
     def login(self, username: str, password: str, host: str) -> None:
-        self.auth_manager.login(username, password, host)
+        self.auth_manager.login(username=username, password=password, host=host)
 
     def __login_user(self, username: str, password: str, host: str) -> str:
         pass

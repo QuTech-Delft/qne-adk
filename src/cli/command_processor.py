@@ -14,11 +14,11 @@ class CommandProcessor:
 
     @log_function
     def login(self, host: str, username: str, password: str) -> None:
-        self.__remote.login(host, username, password)
+        self.__remote.login(username=username, password=password, host=host)
 
     @log_function
     def logout(self, host: str) -> None:
-        self.__remote.logout(host)
+        self.__remote.logout(host=host)
 
     @log_function
     def applications_create(
