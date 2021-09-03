@@ -17,6 +17,9 @@ class TestCommandProcessor(unittest.TestCase):
         self.host = 'qutech.com'
         self.username = 'test_username'
         self.password = 'test_password'
+        self.application = 'test_application'
+        self.roles = ['role1', 'role2']
+        self.path = Path('path/to/application')
 
     def test_login(self):
         with patch.object(RemoteApi, "login") as remote_login_mock:
@@ -27,3 +30,15 @@ class TestCommandProcessor(unittest.TestCase):
         with patch.object(RemoteApi, "logout") as remote_logout_mock:
             self.processor.logout(host=self.host)
             remote_logout_mock.assert_called_once_with(host=self.host)
+
+    def test_applications_create(self):
+        with patch.object(LocalApi, "create_application") as create_application_mock:
+            self.processor.applications_create(application=self.application, roles=self.roles, path=self.path)
+            create_application_mock.assert_called_once_with(self.application, self.roles, self.path)
+
+    def test_applications_validate(self):
+        with patch.object(LocalApi, "is_application_valid") as is_application_valid_mock:
+            self.processor.applications_validate(self.application)
+            is_application_valid_mock.assert_called_once_with(self.application)
+
+

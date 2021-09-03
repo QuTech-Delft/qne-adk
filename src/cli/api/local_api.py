@@ -30,13 +30,13 @@ class LocalApi:
     def __create_application_structure(
         self, application: str, roles: List[str], path: Path
     ) -> None:
-        self.__config_manager.add_application(application, str(path))
-
-    def __is_application_unique(self, application: str) -> bool:
-        return True
+        self.__config_manager.add_application(application, path)
 
     def list_applications(self) -> List[ApplicationType]:
         return self.__config_manager.get_applications()
+
+    def __is_application_unique(self, application: str) -> bool:
+        return self.__config_manager.application_exists(application)
 
     def is_application_valid(self, application: str) -> bool:
         return self.__is_structure_valid(application) and \

@@ -1,14 +1,20 @@
-from unittest.mock import patch
 import unittest
+
+from pathlib import Path
+from unittest.mock import patch
 from typer.testing import CliRunner
 
-from cli.command_list import app
+from cli.command_list import app, applications_app
 from cli.command_processor import CommandProcessor
+from cli.managers.config_manager import ConfigManager
 
 class TestCommandList(unittest.TestCase):
 
     def setUp(self):
+        self.application = 'test_application'
+        self.roles = ["role1, role2"]
         self.runner = CliRunner()
+        self.path = Path('dummy')
 
     def test_login(self):
         with patch.object(CommandProcessor, "login") as login_mock:
@@ -29,3 +35,31 @@ class TestCommandList(unittest.TestCase):
             logout_mock.assert_called_once_with(host='qutech.com')
             self.assertEqual(logout_output.exit_code, 0)
             self.assertIn('Log out succeeded.', logout_output.stdout)
+
+    # def test_applications_create(self):
+    #     with patch("cli.command_list.Path.cwd") as mock_cwd,\
+    #          patch.object(CommandProcessor, 'applications_create') as application_create_mock:
+    #          application_create_output = self.runner.invoke(applications_app, ['applications_create', 'test_application', 'role1', 'role2'])
+    #          # applications_create()
+    #          mock_cwd.assert_called_once()
+    #          application_create_mock.assert_called_once()
+    #
+    #          # self.assertEqual(application_create_output.exit_code, 0)
+
+
+             # self.assertIn('Log in Application successfully created.', application_create_mock.stdout)
+
+    def test_applications_validate(self):
+        with patch("cli.command_list.Path.cwd") as mock_cwd, \
+             patch.object(ConfigManager, 'get_application_from_path') as get_application_from_path_mock, \
+             patch.object(CommandProcessor, 'applications_validate') as applications_validate_mock:
+
+            application_validate_output = self.runner.invoke(app, ['applications_validate'])
+            mock_cwd.assert_called_once()
+            get_application_from_path_mock.assert_called_once_with(self.path)
+            applications_validate_mock.assert_called_once_with(self.application)
+            self.assertEqual(application_validate_output.exit_code, 0)
+            self.assertIn('Application is valid.', applications_validate_mock.stdout)
+
+
+
