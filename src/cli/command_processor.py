@@ -4,7 +4,6 @@ from typing import List, Optional
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.decorators import log_function
-from cli.settings import Settings
 from cli.types import ApplicationType, ExperimentType, ResultType
 
 
@@ -15,11 +14,11 @@ class CommandProcessor:
 
     @log_function
     def login(self, host: str, username: str, password: str) -> None:
-        self.__remote.login(host, username, password)
+        self.__remote.login(username=username, password=password, host=host)
 
     @log_function
     def logout(self, host: str) -> None:
-        self.__remote.logout(host)
+        self.__remote.logout(host=host)
 
     @log_function
     def applications_create(
@@ -105,14 +104,15 @@ class CommandProcessor:
         local = True # check if the experiment is local or remote
 
         if local:
-            results = self.__local.get_results()
+            results = self.__local.get_results('name')
         else:
-            results = self.__remote.get_results(path, all_results, block=True, timeout=100)
+            results = self.__remote.get_results('path', all_results, block=True, timeout=100)
 
-        if not show:
-            self.__store_results(results)
-        else:
+        if show:
             return results
+
+        self.__store_results(results)
+        return None
 
     @log_function
     def __store_results(self, results: List[ResultType]) -> None:

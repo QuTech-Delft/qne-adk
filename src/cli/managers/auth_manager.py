@@ -17,22 +17,25 @@ class AuthManager:
 
     def login(self, username: str, password: str, host: str) -> None:
         if username is not None and password is not None and host is not None:
-            token = self.__fetch_token(self.__login_function, {'username': username, 'password': password, 'host': host})
+            token = self.__fetch_token(self.__login_function,
+                                       {'username': username, 'password': password, 'host': host})
         else:
             token = self.__fetch_token(self.__fallback_function, {})
 
         self.__store_token(token)
 
-        if host is not None:
-            self.set_active_host(host)
-        else:
-            self.set_active_host(host='?')
+        if host is None:
+            host = self.__get_host_from_token(token)
+
+        self.set_active_host(host)
 
     def load_token(self) -> str:
-        if self.has_token():
-            return self.__get_token()
+        if self.__has_token():
+            token = self.__get_token()
         else:
-            return self.__fetch_token(self.__fallback_function, {})
+            token = self.__fetch_token(self.__fallback_function, {})
+
+        return token
 
     def __has_token(self) -> bool:
         pass
@@ -43,10 +46,13 @@ class AuthManager:
     def __store_token(self, token: str) -> None:
         pass
 
+    def __get_host_from_token(self, token: str) -> str:
+        return 'HOST'
+
     def __fetch_token(
         self, function: TokenFetchFunctionType, payload: Dict[str, Any]
     ) -> str:
-        return function(**payload)
+        return function(**payload)   # type: ignore[call-arg]
 
     def delete_token(self, host: str) -> None:
         pass

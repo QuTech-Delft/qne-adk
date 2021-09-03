@@ -57,12 +57,13 @@ class LocalApi:
     ) -> None:
         pass
 
-    def delete_experiment(self, path: str) -> None:
+    def delete_experiment(self, path: Path) -> None:
         pass
 
-    def run_experiment(self, path: str, block: bool) -> Optional[List[ResultType]]:
+
+    def run_experiment(self, path: Path, block: bool) -> Optional[List[ResultType]]:
         roundSetManager = RoundSetManager()
-        roundSetManager.prepare_input(path)
+        roundSetManager.prepare_input(str(path.resolve()))
         roundSetManager.process()
         roundSetManager.terminate()
         return []
@@ -73,8 +74,10 @@ class LocalApi:
     def get_results(self, name: str) -> List[ResultType]:
         outputConverter = OutputConverter('log_dir', 'output_dir')
         round_number = 1
-        result_list = []
-        return outputConverter.convert(round_number, result_list)
+        result_list: List[ResultType] = []
+        output_result: List[ResultType] = []
+        output_result.append(outputConverter.convert(round_number, result_list))
+        return output_result
 
     def validate_experiment(self, path: Path) -> bool:
         roundSetManager = RoundSetManager()
