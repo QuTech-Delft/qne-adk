@@ -14,7 +14,6 @@ class TestCommandList(unittest.TestCase):
         self.application = 'test_application'
         self.roles = ["role1, role2"]
         self.runner = CliRunner()
-        self.path = Path('dummy')
 
     def test_login(self):
         with patch.object(CommandProcessor, "login") as login_mock:
@@ -54,12 +53,15 @@ class TestCommandList(unittest.TestCase):
              patch.object(ConfigManager, 'get_application_from_path') as get_application_from_path_mock, \
              patch.object(CommandProcessor, 'applications_validate') as applications_validate_mock:
 
-            application_validate_output = self.runner.invoke(app, ['applications_validate'])
+            mock_cwd.return_value = 'test'
+            get_application_from_path_mock.return_value = (self.application, None)
+
+            application_validate_output = self.runner.invoke(applications_app, ['validate'])
             mock_cwd.assert_called_once()
-            get_application_from_path_mock.assert_called_once_with(self.path)
-            applications_validate_mock.assert_called_once_with(self.application)
+            get_application_from_path_mock.assert_called_once_with('test')
+            applications_validate_mock.assert_called_once_with(application=self.application)
             self.assertEqual(application_validate_output.exit_code, 0)
-            self.assertIn('Application is valid.', applications_validate_mock.stdout)
+            self.assertIn('Application is valid.', application_validate_output.stdout)
 
 
 
