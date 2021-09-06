@@ -1,6 +1,5 @@
 import unittest
 
-from pathlib import Path
 from unittest.mock import patch
 from typer.testing import CliRunner
 
@@ -41,7 +40,8 @@ class TestCommandList(unittest.TestCase):
 
             mock_cwd.return_value = 'test'
 
-            application_create_output = self.runner.invoke(applications_app, ['create', 'test_application', 'role1', 'role2'])
+            application_create_output = self.runner.invoke(applications_app,
+                                                           ['create', 'test_application', 'role1', 'role2'])
             mock_cwd.assert_called_once()
             application_create_mock.assert_called_once()
             self.assertEqual(application_create_output.exit_code, 0)
@@ -61,6 +61,3 @@ class TestCommandList(unittest.TestCase):
             applications_validate_mock.assert_called_once_with(application=self.application)
             self.assertEqual(application_validate_output.exit_code, 0)
             self.assertIn('Application is valid.', application_validate_output.stdout)
-
-
-

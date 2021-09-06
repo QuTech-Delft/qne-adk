@@ -40,5 +40,3 @@ class TestCommandProcessor(unittest.TestCase):
         with patch.object(LocalApi, "is_application_valid") as is_application_valid_mock:
             self.processor.applications_validate(self.application)
             is_application_valid_mock.assert_called_once_with(self.application)
-
-

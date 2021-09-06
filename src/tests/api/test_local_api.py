@@ -6,8 +6,7 @@ from unittest.mock import patch
 from cli.managers.config_manager import ConfigManager
 from cli.api.local_api import LocalApi
 
-
-class ApplicationCreate(unittest.TestCase):
+class TestLocalApi(unittest.TestCase):
 
     def setUp(self) -> None:
         self.config_manager = ConfigManager(config_dir=Path("path/to/application"))
@@ -57,17 +56,13 @@ class ApplicationCreate(unittest.TestCase):
             is_config_valid_mock.assert_called_once_with(self.application)
 
     def test__is_structure_valid(self):
-            self.local_api.is_application_valid(application=self.application)
+        self.local_api.is_application_valid(application=self.application)
 
     def test__is_application_unique(self):
-        with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True) as is_structure_valid_mock:
-             self.local_api.is_application_valid(application=self.application)
+        with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True):
+            self.local_api.is_application_valid(application=self.application)
 
     def test__is_config_valid(self):
-        with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True) as is_structure_valid_mock,\
-             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as \
-             is_application_unique_mock:
-             self.local_api.is_application_valid(application=self.application)
-
-
-
+        with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True),\
+             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True):
+            self.local_api.is_application_valid(application=self.application)
