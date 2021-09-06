@@ -33,3 +33,12 @@ class TestRemoteApi(unittest.TestCase):
             self.remote_api.logout(host=self.host)
             get_active_host_mock.assert_not_called()
             delete_token_mock.assert_called_once_with(self.host)
+
+    def test_list_application(self):
+        with patch.object(AuthManager, "load_token") as load_token_mock, \
+            patch.object(RemoteApi, "_action") as action_mock:
+            load_token_mock.return_value = 'token'
+            self.remote_api.list_applications()
+
+            load_token_mock.assert_called_once()
+            action_mock.assert_called_once_with('listApplications', {'token': 'token'})

@@ -63,5 +63,27 @@ class TestCommandList(unittest.TestCase):
             self.assertEqual(application_validate_output.exit_code, 0)
             self.assertIn('Application is valid.', application_validate_output.stdout)
 
+    def test_application_list(self):
+        with patch.object(CommandProcessor, "applications_list") as list_mock:
+            list_mock.return_value = ['app1', 'app2']
 
+            list_output = self.runner.invoke(applications_app, ['list'])
+            self.assertEqual(list_output.exit_code, 0)
+            list_mock.assert_called_once_with(remote=True, local=True)
+            self.assertIn('app1', list_output.stdout)
+            self.assertIn('app2', list_output.stdout)
 
+            list_mock.reset_mock()
+            list_output = self.runner.invoke(applications_app, ['list', '--remote'])
+            self.assertEqual(list_output.exit_code, 0)
+            list_mock.assert_called_once_with(remote=True, local=False)
+
+            list_mock.reset_mock()
+            list_output = self.runner.invoke(applications_app, ['list', '--local'])
+            self.assertEqual(list_output.exit_code, 0)
+            list_mock.assert_called_once_with(remote=False, local=True)
+
+            list_mock.reset_mock()
+            list_output = self.runner.invoke(applications_app, ['list', '--local', '--remote'])
+            self.assertEqual(list_output.exit_code, 0)
+            list_mock.assert_called_once_with(remote=True, local=True)

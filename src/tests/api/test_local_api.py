@@ -69,5 +69,7 @@ class ApplicationCreate(unittest.TestCase):
              is_application_unique_mock:
              self.local_api.is_application_valid(application=self.application)
 
-
-
+    def test_list_applications(self):
+        with patch.object(ConfigManager, "get_applications") as get_applications_mock:
+             self.local_api.list_applications()
+             get_applications_mock.assert_called_once()

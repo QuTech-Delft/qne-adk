@@ -44,3 +44,22 @@ class TestAuthManager(unittest.TestCase):
     def test_get_active_host(self):
         host = self.auth_manager.get_active_host()
         self.assertEqual(host, 'HOST')
+
+    def test_load_token(self):
+        with patch.object(AuthManager, "_AuthManager__fetch_token") as fetch_token_mock, \
+            patch.object(AuthManager, "_AuthManager__has_token") as has_token_mock, \
+            patch.object(AuthManager, "_AuthManager__get_token") as get_token_mock:
+
+            has_token_mock.return_value = True
+            self.auth_manager.load_token()
+            get_token_mock.assert_called_once()
+            fetch_token_mock.assert_not_called()
+
+            has_token_mock.reset_mock()
+            fetch_token_mock.reset_mock()
+            get_token_mock.reset_mock()
+            has_token_mock.return_value = False
+            self.auth_manager.load_token()
+            fetch_token_mock.assert_called_once()
+            get_token_mock.assert_not_called()
+
