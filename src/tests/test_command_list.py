@@ -1,6 +1,5 @@
 import unittest
 
-from pathlib import Path
 from unittest.mock import patch
 from typer.testing import CliRunner
 
@@ -35,18 +34,18 @@ class TestCommandList(unittest.TestCase):
             self.assertEqual(logout_output.exit_code, 0)
             self.assertIn('Log out succeeded.', logout_output.stdout)
 
-    # def test_applications_create(self):
-    #     with patch("cli.command_list.Path.cwd") as mock_cwd,\
-    #          patch.object(CommandProcessor, 'applications_create') as application_create_mock:
-    #          application_create_output = self.runner.invoke(applications_app, ['applications_create', 'test_application', 'role1', 'role2'])
-    #          # applications_create()
-    #          mock_cwd.assert_called_once()
-    #          application_create_mock.assert_called_once()
-    #
-    #          # self.assertEqual(application_create_output.exit_code, 0)
+    def test_applications_create(self):
+        with patch("cli.command_list.Path.cwd") as mock_cwd,\
+             patch.object(CommandProcessor, 'applications_create') as application_create_mock:
 
+            mock_cwd.return_value = 'test'
 
-             # self.assertIn('Log in Application successfully created.', application_create_mock.stdout)
+            application_create_output = self.runner.invoke(applications_app,
+                                                           ['create', 'test_application', 'role1', 'role2'])
+            mock_cwd.assert_called_once()
+            application_create_mock.assert_called_once()
+            self.assertEqual(application_create_output.exit_code, 0)
+            self.assertIn('Application successfully created.', application_create_output.stdout)
 
     def test_applications_validate(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \

@@ -1,8 +1,6 @@
-from pathlib import Path
-from unittest.mock import patch
-
 import unittest
 
+from pathlib import Path
 from cli.managers.config_manager import ConfigManager
 
 class TestConfigManager(unittest.TestCase):

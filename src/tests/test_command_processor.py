@@ -67,4 +67,3 @@ class TestCommandProcessor(unittest.TestCase):
             remote_list_mock.assert_called_once()
             local_list_mock.assert_not_called()
             self.assertEqual(len(app_list), 2)
-
