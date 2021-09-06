@@ -69,5 +69,5 @@ class TestLocalApi(unittest.TestCase):
 
     def test_list_applications(self):
         with patch.object(ConfigManager, "get_applications") as get_applications_mock:
-             self.local_api.list_applications()
-             get_applications_mock.assert_called_once()
+            self.local_api.list_applications()
+            get_applications_mock.assert_called_once()

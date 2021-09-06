@@ -62,4 +62,3 @@ class TestAuthManager(unittest.TestCase):
             self.auth_manager.load_token()
             fetch_token_mock.assert_called_once()
             get_token_mock.assert_not_called()
-
