@@ -1,9 +1,13 @@
-import os
+import os.path
+import json
 import logging
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
 from cli.utils import read_json_file, write_json_file
 
+
+from cli.exceptions import ApplicationDoesntExist, JSONValidationError
+from cli.validators import validate_json_string
 
 class ConfigManager:
     def __init__(self, config_dir: Path):
@@ -49,7 +53,21 @@ class ConfigManager:
         return {}
 
     def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:
-        return "key", {}
+        application_path = Path.home() / ".qne/applications.json"
+
+        if not os.path.isfile(application_path):
+            raise ApplicationDoesntExist()
+
+        with open(application_path) as json_file:
+            # if validate_json_string(str(json_file)):
+            data = json.load(json_file)
+            if not data:
+                raise ApplicationDoesntExist()
+            for app in data:
+                if data[app]['path'] == str(path):
+                    return (app, data[app])
+                else:
+                    raise ApplicationDoesntExist()
 
     def get_applications(self) -> List[Dict[str, Any]]:
         """

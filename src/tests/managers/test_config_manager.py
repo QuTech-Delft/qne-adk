@@ -1,7 +1,12 @@
 from pathlib import Path
 import unittest
 from unittest.mock import patch
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
 from cli.managers.config_manager import ConfigManager
+from cli.exceptions import ApplicationDoesntExist
 
 
 class TestConfigManager(unittest.TestCase):
@@ -32,15 +37,6 @@ class TestConfigManager(unittest.TestCase):
             read_json_file_mock.assert_called_once()
             write_json_file_mock.assert_called_once()
 
-    def test_get_application_from_path(self):
-        self.config_manager.get_application_from_path(self.path)
-        with patch("cli.managers.config_manager.write_json_file") as write_json_file_mock, \
-             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
-
-            self.config_manager.add_application(application=self.application, path=self.path)
-            read_json_file_mock.assert_called_once()
-            write_json_file_mock.assert_called_once()
-
     def test_application_exists(self):
         with patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
 
@@ -64,3 +60,46 @@ class TestConfigManager(unittest.TestCase):
         with patch("cli.managers.config_manager.write_json_file") as write_json_file_mock:
             self.config_manager.create_config()
             write_json_file_mock.assert_called_once_with(self.config_manager.app_config_file, {})
+
+    def test_get_application_from_path(self):
+        with patch("cli.managers.config_manager.os.path.isfile", return_value=True), \
+             patch("cli.managers.config_manager.open") as mock_open, \
+             patch("cli.managers.config_manager.json.load") as mock_load:
+
+            mock_load.return_value = {"apptest1": {
+                                        "path": "path/to/application"
+                                         }
+                                      }
+
+            self.config_manager.get_application_from_path(Path("path/to/application"))
+
+            mock_open.assert_called_once()
+            mock_load.assert_called_once()
+
+    def test_application_does_not_exist_exception(self):
+        with patch("cli.managers.config_manager.os.path.isfile", return_value=True), \
+             patch("cli.managers.config_manager.open"), \
+             patch("cli.managers.config_manager.json.load") as mock_load:
+
+            mock_load.return_value = {'apptest1': {
+                                        'path': ''
+                                        }
+                                      }
+
+            self.assertRaises(ApplicationDoesntExist, self.config_manager.get_application_from_path,
+                              Path("path/to/application"))
+
+    def test_no_application_exists(self):
+        with patch("cli.managers.config_manager.os.path.isfile", return_value=True), \
+             patch("cli.managers.config_manager.open"), \
+             patch("cli.managers.config_manager.json.load") as mock_load:
+
+            mock_load.return_value = None
+
+            self.assertRaises(ApplicationDoesntExist, self.config_manager.get_application_from_path,
+                              Path("path/to/application"))
+
+    def test_application_file_non_existing_exception(self):
+        with patch("cli.managers.config_manager.os.path.isfile", return_value=False):
+            self.assertRaises(ApplicationDoesntExist, self.config_manager.get_application_from_path,
+                              Path("path/to/application"))

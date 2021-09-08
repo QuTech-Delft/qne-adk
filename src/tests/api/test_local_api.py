@@ -6,10 +6,11 @@ from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
 from cli.output_converter import OutputConverter
-from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
+from cli.exceptions import ApplicationDirectoryNotComplete, ApplicationFilesNonExisting, ApplicationConfigNotComplete, \
+                            ApplicationAlreadyExists, NoNetworkAvailable
 
 
-class TestLocalApi(unittest.TestCase):
+class ApplicationValidate(unittest.TestCase):
 
     def setUp(self) -> None:
         self.config_manager = ConfigManager(config_dir=Path("path/to/application"))
@@ -18,7 +19,7 @@ class TestLocalApi(unittest.TestCase):
         self.application = "test_application"
         self.roles = ["Testrole1", "Testrole2"]
         self.path = Path("path/to/application")
-
+        self.config_files = ["application.json", "network.json", "result.json"]
         self.experiment_meta_local = {
             "backend": {
                 "location": "local",
@@ -144,10 +145,10 @@ class TestLocalApi(unittest.TestCase):
             get_network_data_mock.return_value = {'a': 'b'}
             create_network_asset_mock.return_value = {'c': 'd'}
             self.local_api.experiments_create(name='name', app_config={'foo': 'bar'}, network_name='network_name',
-                                                path=Path('dummy'), application='application')
+                                              path=Path('dummy'), application='application')
             get_network_data_mock.assert_called_once_with(network_name='network_name')
             create_network_asset_mock.assert_called_once_with(network_data={'a': 'b'}, app_config={'foo': 'bar'})
-            create_exp_mock.assert_called_once_with(name='name', app_config={'foo': 'bar'}, asset_network={'c':'d'},
+            create_exp_mock.assert_called_once_with(name='name', app_config={'foo': 'bar'}, asset_network={'c': 'd'},
                                                     path=Path('dummy'), application='application')
 
     def test_create_experiment(self):
@@ -165,11 +166,11 @@ class TestLocalApi(unittest.TestCase):
 
             is_dir_mock.assert_called_once()
             self.assertEqual(mkdir_mock.call_count, 2)
-            copy_input_mock.assert_called_once_with('app_name', Path('dummy') / 'test' / 'input' )
+            copy_input_mock.assert_called_once_with('app_name', Path('dummy') / 'test' / 'input')
             create_app_asset_mock.assert_called_once_with({'foo': 'bar'})
 
             self.experiment_data_local['meta']['description'] = 'test: experiment description'
-            self.experiment_data_local['asset'] = {'network': {'a': 'b'}, 'application': [{'x': 2}] }
+            self.experiment_data_local['asset'] = {'network': {'a': 'b'}, 'application': [{'x': 2}]}
 
             write_mock.assert_called_once_with(Path('dummy') / 'test' / 'experiment.json', self.experiment_data_local)
 
@@ -199,7 +200,7 @@ class TestLocalApi(unittest.TestCase):
              patch.object(RoundSetManager, "validate_asset") as validate_asset_mock:
 
             is_file_mock.return_value = True
-            validate_asset_mock.return_value= True, 'ok'
+            validate_asset_mock.return_value = True, 'ok'
             is_valid, message = self.local_api.validate_experiment(Path('dummy'))
             is_file_mock.assert_called_once()
             validate_asset_mock.assert_called_once_with(Path('dummy'))
@@ -242,3 +243,36 @@ class TestLocalApi(unittest.TestCase):
             self.local_api.get_results(path=Path('dummy'), all_results=False)
             get_rounds_mock.assert_called_once_with(Path('dummy'))
             convert_mock.assert_called_once_with(4, [])
+
+    def test_is_application_json_valid(self):
+        with patch('cli.validators.validate_json_schema') as mock_validate_schema, \
+             patch("cli.api.local_api.os.listdir") as mock_list_dir, \
+             patch("cli.api.local_api.os.path.exists", return_value=True), \
+             patch("cli.api.local_api.os.path.isfile", return_value=True):
+
+            mock_list_dir.side_effect = [self.config_files, self.roles]
+            self.local_api.is_application_valid(self.application)
+
+            mock_validate_schema.call_count = 3
+
+    def test_application_directory_not_complete_exception(self):
+        with patch("cli.validators.validate_json_schema"), \
+             patch("cli.api.local_api.os.listdir"), \
+             patch("cli.api.local_api.os.path.exists", return_value=False):
+
+            self.assertRaises(ApplicationDirectoryNotComplete, self.local_api.is_application_valid, self.application)
+
+    def test_application_config_not_complete_exception(self):
+        with patch("cli.validators.validate_json_schema"), \
+             patch("cli.api.local_api.os.listdir"), \
+             patch("cli.api.local_api.os.path.exists", return_value=True), \
+             patch("cli.api.local_api.os.path.isfile", return_value=False):
+            self.assertRaises(ApplicationConfigNotComplete, self.local_api.is_application_valid, self.application)
+
+    def test_application_files_non_existing_exception(self):
+        with patch("cli.validators.validate_json_schema"), \
+             patch("cli.api.local_api.os.listdir"), \
+             patch("cli.api.local_api.os.path.exists", return_value=True), \
+             patch("cli.api.local_api.os.path.isfile", return_value=True):
+
+            self.assertRaises(ApplicationFilesNonExisting, self.local_api.is_application_valid, self.application)

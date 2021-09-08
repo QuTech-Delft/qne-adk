@@ -8,6 +8,7 @@ from cli.managers.config_manager import ConfigManager
 from cli.exceptions import NotEnoughRoles, InvalidPathName
 
 
+
 class TestCommandList(unittest.TestCase):
     def setUp(self):
         self.application = 'test_application'

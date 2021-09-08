@@ -2,7 +2,9 @@ from typing import List, Optional, Tuple
 from pathlib import Path
 import shutil
 from cli import utils
+import os
 
+import cli.validators as validators
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -10,7 +12,8 @@ from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkT
                               app_configApplicationType, assetApplicationType, assetNetworkType,
                               ExperimentType, ResultType)
 from cli.utils import read_json_file, write_json_file
-from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
+from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable, ApplicationDirectoryNotComplete, \
+                           ApplicationConfigNotComplete, ApplicationFilesNonExisting
 
 
 class LocalApi:
@@ -105,6 +108,7 @@ class LocalApi:
         If the application name doesn't equal one of the application names already existing in this root file, the
         application is unique. Therefore, application_unique() returns True when application_exists() returns False.
 
+
         Args:
             application: application name
         """
@@ -131,11 +135,49 @@ class LocalApi:
 
         return False, "Invalid"
 
-    def __is_structure_valid(self, application: str) -> bool:
-        pass
-
     def __is_config_valid(self, application: str) -> bool:
-        pass
+        # Validate if json string is correct and validate against json schema's
+        appconfig_path = Path("../schema/applications/appconfig.json")
+
+        config_files = ["application.json", "network.json", "result.json"]
+        for file in config_files:
+            path = "config" / Path(file)
+            with path.open(mode="r") as file_json:
+                validators.validate_json_string(file_json)
+
+                if not appconfig_path.is_file():
+                    print("File not found!")
+                else:
+                    print("File exists!")
+
+                if file == "application.json":
+                    validators.validate_json_schema(file_json, appconfig_path)
+
+        return True
+
+    def __is_structure_valid(self, application: str) -> bool:
+        # Validate that the file structure is correct
+        files_to_be_checked = ["config", "application", "MANIFEST.ini"]
+        for item in files_to_be_checked:
+            if not os.path.exists(item):
+                raise ApplicationDirectoryNotComplete()
+
+        # Check if the config folder is complete
+        config_files = ["application.json", "network.json", "result.json"]
+        for file in config_files:
+            if not os.path.isfile("config/" + file):
+                raise ApplicationConfigNotComplete()
+
+        # Check if there is at least one python file for the role
+        python_file_list = []
+        for file in os.listdir("application"):
+            if file.endswith(".py"):
+                python_file_list.append(file)
+
+        if not python_file_list:
+            raise ApplicationFilesNonExisting()
+
+        return True
 
     def get_application_config(self, application: str) -> AppConfigType:
         app_details = self.__config_manager.get_application(application)

@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "file:network.json",
+  "title": "Network",
+  "description": "Network object consisting of roles, Nodes and Channels as described by API router",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "url": {
+      "type": "string",
+      "format": "uri-reference",
+      "readOnly": true
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "slug": {
+      "type": "string",
+      "readOnly": true,
+      "pattern": "^[-a-zA-Z0-9_]+$"
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "$ref": "file:channel.json"
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "file:node.json"
+      }
+    }
+  },
+  "additionalProperties": false
+}
