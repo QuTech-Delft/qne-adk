@@ -15,6 +15,17 @@ class TestRemoteApi(unittest.TestCase):
         self.username = 'test_username'
         self.password = 'test_password'
 
+        self.experiment_meta_remote = {
+            "backend": {
+                "location": "remote",
+                "type": "netsquid",
+             },
+            "number_of_rounds": 1,
+            "description": ""
+        }
+
+        self.experiment_data_remote = {'meta': self.experiment_meta_remote, 'asset': {}}
+
     def test_login(self):
         with patch.object(AuthManager, "login") as login_mock:
             self.remote_api.login(username=self.username, password=self.password, host=self.host)
@@ -42,3 +53,17 @@ class TestRemoteApi(unittest.TestCase):
 
             load_token_mock.assert_called_once()
             action_mock.assert_called_once_with('listApplications', {'token': 'token'})
+
+    def test_create_experiment(self):
+        with patch("cli.api.remote_api.write_json_file") as write_mock:
+            self.remote_api.create_experiment('test', {'foo': 'bar'}, Path('dummy'))
+
+            self.experiment_data_remote['meta']['description'] = 'test: experiment description'
+            self.experiment_data_remote['asset'] = {'foo': 'bar'}
+
+            write_mock.assert_called_once_with(Path('dummy') / 'experiment.json', self.experiment_data_remote)
+
+    def test_get_application_config(self):
+        with patch.object(ConfigManager, "remote_application_exists") as remote_application_mock:
+            remote_application_mock.return_value = (True, 1)
+            self.remote_api.get_application_config('test')

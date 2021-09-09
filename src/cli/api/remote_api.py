@@ -5,6 +5,7 @@ from typing import Any, List, Optional, cast
 from cli.managers.config_manager import ConfigManager
 from cli.managers.auth_manager import AuthManager
 from cli.types import AppConfigType, ApplicationType, ExperimentType, ResultType
+from cli.utils import write_json_file
 
 
 class RemoteApi:
@@ -86,6 +87,22 @@ class RemoteApi:
             return cast(AppConfigType, response)
 
         return None # Application does not exist on remote
+
+    def create_experiment(
+        self, name: str, app_config: AppConfigType, path: Path
+    ) -> None:
+        experiment_json_file = path / 'experiment.json'
+        experiment_meta = {
+            "backend": {
+                "location": "remote",
+                "type": "netsquid",
+             },
+            "number_of_rounds": 1,
+            "description": f"{name}: experiment description"
+        }
+
+        experiment_data = {'meta': experiment_meta, 'asset': app_config}
+        write_json_file(experiment_json_file, experiment_data)
 
     def delete_experiment(self, path: Path) -> None:
         experiment_exists, experiment_id = self.__config_manager.remote_experiment_exists(path)

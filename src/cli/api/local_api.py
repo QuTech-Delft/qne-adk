@@ -1,11 +1,12 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple, Dict, Any
 
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
 from cli.types import (AppConfigType, ApplicationType, ExperimentType,
                        ResultType)
+from cli.utils import read_json_file, write_json_file
 
 
 class LocalApi:
@@ -38,10 +39,13 @@ class LocalApi:
     def __is_application_unique(self, application: str) -> bool:
         return self.__config_manager.application_exists(application)
 
-    def is_application_valid(self, application: str) -> bool:
-        return self.__is_structure_valid(application) and \
+    def is_application_valid(self, application: str) -> Tuple[bool, str]:
+        if self.__is_structure_valid(application) and \
                self.__is_application_unique(application) and \
-               self.__is_config_valid(application)
+               self.__is_config_valid(application):
+            return True, "Valid"
+
+        return False, "Invalid"
 
     def __is_structure_valid(self, application: str) -> bool:
         pass
@@ -50,12 +54,80 @@ class LocalApi:
         pass
 
     def get_application_config(self, application: str) -> AppConfigType:
-        pass
+        app_details = self.__config_manager.get_application(application)
+
+        app_config_path = Path(app_details['path']) / 'config'
+        application_json_path = app_config_path / 'application.json'
+        network_json_path = app_config_path / 'network.json'
+
+        application_data = read_json_file(application_json_path)
+        network_data = read_json_file(network_json_path)
+
+        app_config = {"application": application_data, "network": network_data}
+        return app_config
 
     def create_experiment(
-        self, name: str, app_config: AppConfigType, local: bool
-    ) -> None:
-        pass
+        self, name: str, app_config: AppConfigType, network: str, path: Path, application: str
+    ) -> Tuple[bool, str]:
+
+        experiment_directory = path / name
+        if experiment_directory.is_dir():
+            return False, f'Experiment directory {name} already exists.'
+
+        experiment_directory.mkdir(parents=True)
+
+        input_directory = experiment_directory / 'input'
+        input_directory.mkdir(parents=True)
+        self.__copy_input_files_from_application(application, input_directory)
+
+        experiment_json_file = experiment_directory / 'experiment.json'
+        experiment_meta = {
+            "backend": {
+                "location": "local",
+                "type": "local_netsquid"
+             },
+            "number_of_rounds": 1,
+            "description": f"{name}: experiment description"
+        }
+
+        asset_application = self.__create_asset_application(app_config)
+        asset_network = self.__create_asset_network(network, app_config)
+        asset = {"network": asset_network, "application": asset_application}
+
+        experiment_data = {'meta': experiment_meta, 'asset': asset}
+        write_json_file(experiment_json_file, experiment_data)
+
+        return True, "Success"
+
+    def __create_asset_application(self,  app_config: AppConfigType) -> List[Dict[str, Any]]:
+        return []
+
+    def __create_asset_network(self,  network: str, app_config: AppConfigType) ->  Dict[str, Any]:
+        return {}
+
+    def __copy_input_files_from_application(self,  application: str, input_directory: Path) -> None:
+        """
+        Copy the input/source files of the 'application' to the 'input_directory'
+
+        Args:
+            application: The application name for which the input files need to be copied
+            input_directory: The destination where application files need to be stored
+
+        """
+
+
+    def check_valid_network(self, network: str, app_config: AppConfigType) -> bool:
+        """
+        Check if the network name is a valid network for the Application
+
+        Args:
+            network: The network name
+            app_config: Application Configuration containing the available networks
+
+        Returns:
+            bool: True if the given network name is available in application configuration, False otherwise
+        """
+        return True
 
     def delete_experiment(self, path: Path) -> None:
         pass

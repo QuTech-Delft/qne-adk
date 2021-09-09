@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
@@ -54,15 +54,22 @@ class CommandProcessor:
         self.__remote.publish_application(application)
 
     @log_function
-    def applications_validate(self, application: str) -> None:
-        self.__local.is_application_valid(application)
+    def applications_validate(self, application: str) -> Tuple[bool, str]:
+        return self.__local.is_application_valid(application)
 
     @log_function
-    def experiments_create(self, name: str, application: str, local: bool) -> None:
+    def experiments_create(self, name: str, application: str, network: str, local: bool, path: Path) \
+        -> Tuple[bool, str]:
         if local:
-            self.__local.get_application_config(application)
-        else:
-            self.__remote.get_application_config(application)
+            app_config = self.__local.get_application_config(application)
+
+            if self.__local.check_valid_network(network, app_config):
+                return self.__local.create_experiment(name=name, app_config=app_config, network=network, path=path,
+                                                      application=application)
+
+            return False, f"The specified network '{network}' does not exist."
+
+        return False, 'Remote experiment creation is not yet enabled.'
 
     @log_function
     def experiments_delete(self, path: Path) -> None:
