@@ -4,7 +4,7 @@ from typing import Any, List, Optional, cast
 
 from cli.managers.config_manager import ConfigManager
 from cli.managers.auth_manager import AuthManager
-from cli.types import AppConfigType, ApplicationType, ExperimentType, ResultType
+from cli.type_aliases import AppConfigType, ApplicationType, ExperimentType, ResultType
 from cli.utils import write_json_file
 
 

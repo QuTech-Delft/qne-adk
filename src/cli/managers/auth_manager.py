@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
-from cli.types import (FallbackFunctionType, LoginFunctionType,
-                       TokenFetchFunctionType)
+from cli.type_aliases import (FallbackFunctionType, LoginFunctionType,
+                              TokenFetchFunctionType)
 
 
 class AuthManager:

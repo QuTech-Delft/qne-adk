@@ -4,8 +4,8 @@ from typing import List, Optional, Tuple, Dict, Any
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
-from cli.types import (AppConfigType, ApplicationType, ExperimentType,
-                       ResultType)
+from cli.type_aliases import (AppConfigType, ApplicationType, ExperimentType,
+                              ResultType)
 from cli.utils import read_json_file, write_json_file
 
 

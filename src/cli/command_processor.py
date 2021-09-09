@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.decorators import log_function
-from cli.types import ApplicationType, ExperimentType, ResultType
+from cli.type_aliases import ApplicationType, ExperimentType, ResultType
 
 
 class CommandProcessor:
