@@ -123,6 +123,7 @@ class TestLocalApi(unittest.TestCase):
             patch("cli.api.local_api.read_json_file") as read_mock:
 
             read_mock.side_effect = [[{'app': 'foo'}], {'network': 'bar'}]
+            get_application_mock.return_value = {'path': 'some-path'}
             config = self.local_api.get_application_config('test')
             get_application_mock.assert_called_once_with('test')
             self.assertEqual(read_mock.call_count, 2)
