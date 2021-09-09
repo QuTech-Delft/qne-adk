@@ -87,3 +87,18 @@ class TestCommandProcessor(unittest.TestCase):
 
         self.assertEqual(success, False)
         self.assertEqual(message, 'Remote experiment creation is not yet enabled.')
+
+    def test_experiments_validate(self):
+        with patch.object(LocalApi, "validate_experiment") as validate_exp_mock:
+            validate_exp_mock.return_value = True, 'ok'
+            success, message = self.processor.experiments_validate(path=Path('dummy'))
+            validate_exp_mock.assert_called_once_with(Path('dummy'))
+            self.assertEqual(success, True)
+            self.assertEqual(message, 'ok')
+
+            validate_exp_mock.reset_mock()
+            validate_exp_mock.return_value = False, 'experiment.json does not contain valid json'
+            success, message = self.processor.experiments_validate(path=Path('dummy'))
+            validate_exp_mock.assert_called_once_with(Path('dummy'))
+            self.assertEqual(success, False)
+            self.assertEqual(message, 'experiment.json does not contain valid json')

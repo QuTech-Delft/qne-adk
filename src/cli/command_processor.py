@@ -100,8 +100,8 @@ class CommandProcessor:
         return self.__remote.list_experiments()
 
     @log_function
-    def experiments_validate(self, path: Path) -> None:
-        self.__local.validate_experiment(path)
+    def experiments_validate(self, path: Path) -> Tuple[bool, str]:
+        return self.__local.validate_experiment(path)
 
     @log_function
     def experiments_results(

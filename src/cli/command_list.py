@@ -231,8 +231,11 @@ def experiments_validate() -> None:
     """
     cwd = Path.cwd()
     typer.echo(f"Validate experiment at '{cwd}'.")
-    processor.experiments_validate(path=cwd)
-    typer.echo("Experiment is valid.")
+    is_valid, message = processor.experiments_validate(path=cwd)
+    if is_valid:
+        typer.echo("Experiment is valid.")
+    else:
+        typer.echo("Experiment is not valid. " + message)
 
 
 @experiments_app.command("results")

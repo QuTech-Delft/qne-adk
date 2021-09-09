@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from cli.managers.config_manager import ConfigManager
+from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
 
 class TestLocalApi(unittest.TestCase):
@@ -128,3 +129,24 @@ class TestLocalApi(unittest.TestCase):
             get_application_mock.assert_called_once_with('test')
             self.assertEqual(read_mock.call_count, 2)
             self.assertDictEqual(config, {'application': [{'app': 'foo'}], 'network': {'network': 'bar'}})
+
+    def test_validate_experiment(self):
+        with patch("cli.api.local_api.Path.is_file") as is_file_mock, \
+            patch.object(RoundSetManager, "validate_asset") as validate_asset_mock:
+
+            is_file_mock.return_value = True
+            validate_asset_mock.return_value= True, 'ok'
+            is_valid, message = self.local_api.validate_experiment(Path('dummy'))
+            is_file_mock.assert_called_once()
+            validate_asset_mock.assert_called_once_with(Path('dummy'))
+            self.assertEqual(is_valid, True)
+            self.assertEqual(message, 'ok')
+
+            is_file_mock.reset_mock()
+            is_file_mock.return_value = False
+            validate_asset_mock.reset_mock()
+            is_valid, message = self.local_api.validate_experiment(Path('dummy'))
+            is_file_mock.assert_called_once()
+            self.assertEqual(is_valid, False)
+            self.assertEqual(message, 'File experiment.json not found in the current working directory')
+            validate_asset_mock.assert_not_called()

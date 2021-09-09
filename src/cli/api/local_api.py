@@ -151,6 +151,10 @@ class LocalApi:
         output_result.append(outputConverter.convert(round_number, result_list))
         return output_result
 
-    def validate_experiment(self, path: Path) -> bool:
+    def validate_experiment(self, path: Path) -> Tuple[bool, str]:
+        experiment_json = path / 'experiment.json'
+        if not experiment_json.is_file():
+            return False, 'File experiment.json not found in the current working directory'
+
         roundSetManager = RoundSetManager()
         return roundSetManager.validate_asset(path)
