@@ -12,7 +12,7 @@ class RoundSetManager:
     def validate_asset(self, path: Path) -> Tuple[bool, str]:
         return True, 'Valid'
 
-    def prepare_input(self, path: str) -> None:
+    def prepare_input(self, path: Path) -> None:
         pass
 
     def terminate(self) -> None:

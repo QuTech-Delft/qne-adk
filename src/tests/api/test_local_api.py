@@ -150,3 +150,13 @@ class TestLocalApi(unittest.TestCase):
             self.assertEqual(is_valid, False)
             self.assertEqual(message, 'File experiment.json not found in the current working directory')
             validate_asset_mock.assert_not_called()
+
+    def test_run_experiment(self):
+        with patch.object(RoundSetManager, "prepare_input") as prepare_input_mock, \
+            patch.object(RoundSetManager, "process") as process_mock, \
+            patch.object(RoundSetManager, "terminate") as terminate_mock:
+
+            self.local_api.run_experiment(Path('dummy'), True)
+            prepare_input_mock.assert_called_once_with(Path('dummy'))
+            process_mock.assert_called_once()
+            terminate_mock.assert_called_once()

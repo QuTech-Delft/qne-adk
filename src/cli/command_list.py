@@ -209,7 +209,7 @@ def experiments_delete() -> None:
 @experiments_app.command("run")
 def experiments_run(
     block: bool = typer.Option(
-        True, "--block", help="Wait for the result to be returned."
+        False, "--block", help="Wait for the result to be returned."
     )
 ) -> None:
     """

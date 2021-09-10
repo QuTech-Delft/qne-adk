@@ -83,12 +83,15 @@ class CommandProcessor:
     @log_function
     def experiments_run(self, path: Path, block: bool) -> Optional[List[ResultType]]:
 
-        local = True # check if the experiment is local or remote
+        results = None
+        is_local = self.__local.is_experiment_local(path)
 
-        if local:
+        if is_local:
             results = self.__local.run_experiment(path, block)
         else:
-            results = self.__remote.run_experiment(block)
+            pass
+            # Remote run not yet enabled
+            # results = self.__remote.run_experiment(block)
 
         if results:
             self.__store_results(results)

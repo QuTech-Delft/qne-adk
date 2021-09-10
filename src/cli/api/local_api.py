@@ -129,13 +129,26 @@ class LocalApi:
         """
         return True
 
+    def is_experiment_local(self, path: Path) -> bool:
+        """
+        Check if the experiment at the 'path' is remote or local
+
+        Args:
+            path: The location of the experiment
+
+        Returns:
+            bool: True if the experiment at given path is local, False otherwise
+        """
+        # read experiment.json and check the meta->backend->location attribute
+        return True
+
     def delete_experiment(self, path: Path) -> None:
         pass
 
 
     def run_experiment(self, path: Path, block: bool) -> Optional[List[ResultType]]:
         roundSetManager = RoundSetManager()
-        roundSetManager.prepare_input(str(path.resolve()))
+        roundSetManager.prepare_input(path)
         roundSetManager.process()
         roundSetManager.terminate()
         return []
