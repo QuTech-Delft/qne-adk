@@ -156,3 +156,20 @@ class TestCommandList(unittest.TestCase):
             exp_run_mock.assert_called_once_with(path='test', block=True)
             self.assertEqual(exp_run_output.exit_code, 0)
             self.assertIn("Experiment has run successfully.", exp_run_output.stdout)
+
+    def test_experiment_results(self):
+        with patch("cli.command_list.Path.cwd") as mock_cwd, \
+            patch.object(CommandProcessor, 'experiments_results') as exp_results_mock:
+            mock_cwd.return_value = 'test'
+            exp_results_output = self.runner.invoke(experiments_app, ['results'])
+
+            exp_results_mock.assert_called_once_with(all_results=False, show=False, path='test')
+            self.assertEqual(exp_results_output.exit_code, 0)
+            self.assertIn("Result stored successfully.", exp_results_output.stdout)
+
+            exp_results_mock.reset_mock()
+            exp_results_mock.return_value = ['r1', 'r2']
+            exp_results_output = self.runner.invoke(experiments_app, ['results', '--all', '--show'])
+            exp_results_mock.assert_called_once_with(all_results=True, show=True, path='test')
+            self.assertEqual(exp_results_output.exit_code, 0)
+            self.assertIn("r1\nr2", exp_results_output.stdout)
