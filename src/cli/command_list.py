@@ -252,7 +252,8 @@ def experiments_results(
     """
     result_noun = "results" if all_results else "result"
     typer.echo(f"Get {result_noun} for this experiment.")
-    results = processor.experiments_results(all_results=all_results, show=show)
+    cwd = Path.cwd()
+    results = processor.experiments_results(all_results=all_results, show=show, path=cwd)
     if show:
         for result in results:
             typer.echo(result)

@@ -142,6 +142,19 @@ class LocalApi:
         # read experiment.json and check the meta->backend->location attribute
         return True
 
+    def get_experiment_rounds(self, path: Path) -> int:
+        """
+        Get the number of rounds in an experiment
+
+        Args:
+            path: The location of the experiment
+
+        Returns:
+            int: Value of the number of rounds
+        """
+        # read experiment.json and check the meta->number_of_rounds attribute
+        return 1
+
     def delete_experiment(self, path: Path) -> None:
         pass
 
@@ -156,12 +169,19 @@ class LocalApi:
     def get_experiment(self, name: str) -> ExperimentType:
         pass
 
-    def get_results(self, name: str) -> List[ResultType]:
+    def get_results(self, path: Path, all_results: bool) -> List[ResultType]:
         outputConverter = OutputConverter('log_dir', 'output_dir')
-        round_number = 1
+
         result_list: List[ResultType] = []
         output_result: List[ResultType] = []
-        output_result.append(outputConverter.convert(round_number, result_list))
+
+        total_rounds = self.get_experiment_rounds(path)
+        if all_results:
+            for round_number in range(1, total_rounds + 1):
+                output_result.append(outputConverter.convert(round_number, result_list))
+        else:
+            output_result.append(outputConverter.convert(total_rounds, result_list))
+
         return output_result
 
     def validate_experiment(self, path: Path) -> Tuple[bool, str]:
