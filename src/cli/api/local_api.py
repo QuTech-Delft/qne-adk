@@ -1,6 +1,8 @@
 from typing import List, Optional, Tuple
 from pathlib import Path
 import json
+import shutil
+from cli import utils
 
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
@@ -9,7 +11,7 @@ from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkT
                               app_configApplicationType, assetApplicationType, assetNetworkType,
                               ExperimentType, ResultType)
 from cli.utils import read_json_file, write_json_file
-from cli.exceptions import ApplicationAlreadyExists
+from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
 
 
 class LocalApi:
@@ -62,17 +64,39 @@ class LocalApi:
         config_dir.mkdir(parents=True, exist_ok=True)
 
         for role in roles:
-            py_file = app_dir / f"app_{role}.py"
-            with open(py_file, 'w', encoding="utf-8") as _:
-                pass
+            with open(app_dir / f"app_{role}.py", 'w', encoding="utf-8") as py_file:
+                py_file.write(utils.get_py_dummy())
 
         for config in ["network", "application", "result"]:
-            config_file = config_dir / f"{config}.json"
-            with open(config_file, "w", encoding="utf-8") as fp:
-                json.dump({}, fp, indent=4)
+            with open(config_dir / f"{config}.json", "w", encoding="utf-8") as fp:
+                if config == "network":
 
-        manifest_file = path / application / "MANIFEST.ini"
-        with open(manifest_file, "w", encoding="utf-8") as fp:
+                    networks = {"networks": [], "roles": roles}
+                    temp_list = []
+
+                    for network in utils.get_network_nodes().items():
+                        if len(roles) <= len(network[1]):
+                            temp_list.append(network[0])
+                        networks["networks"] = temp_list
+
+                    if not networks["networks"]:
+                        # Remove already created application structure
+                        shutil.rmtree(path / application)
+                        raise NoNetworkAvailable()
+
+                    json.dump(networks, fp, indent=4)
+
+                elif config == "application":
+                    data = utils.get_dummy_application()
+                    for item in data["application"]:
+                        item["roles"] = roles
+
+                    json.dump(data, fp, indent=4)
+
+                elif config == "result":
+                    json.dump({}, fp, indent=4)
+
+        with open(path / application / "MANIFEST.ini", "w", encoding="utf-8") as fp:
             pass
 
         self.__config_manager.add_application(application, path)

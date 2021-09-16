@@ -23,18 +23,18 @@ class ConfigManager:
         app_config_file = self.__config_dir / "applications.json"
 
         # Read json file
-        with app_config_file.open(mode="r", encoding="utf-8") as fp:
+        with open(app_config_file, mode="r", encoding="utf-8") as fp:
             apps = json.load(fp)
 
         # Store the app path
         apps[application] = {'path': str(path)}
-        with app_config_file.open(mode="w", encoding="utf-8") as fp:
+        with open(app_config_file, mode="w", encoding="utf-8") as fp:
             json.dump(apps, fp, indent=4)
 
     def __check_and_create_config(self) -> bool:
         app_config_file = Path.home() / ".qne/applications.json"
         if not app_config_file.exists():
-            with app_config_file.open(mode="w", encoding="utf-8") as fp:
+            with open(app_config_file, mode="w", encoding="utf-8") as fp:
                 json.dump({}, fp, indent=4)
             return True
         return False
@@ -81,9 +81,9 @@ class ConfigManager:
         # Loop through .qne/applications.json to see if name exists
 
         app_config_file = Path.home() / ".qne/applications.json"
-        with app_config_file.open(mode="r") as application_json:
-            data = application_json.read()
-            data = json.loads(data)
+
+        with open(app_config_file, mode="r", encoding="utf-8") as application_json:
+            data = json.load(application_json)
 
         for key in data:
             if key == application:

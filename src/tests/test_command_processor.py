@@ -7,6 +7,7 @@ from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
 
+
 class TestCommandProcessor(unittest.TestCase):
 
     def setUp(self):
@@ -43,10 +44,11 @@ class TestCommandProcessor(unittest.TestCase):
             self.processor.applications_validate(self.application)
             is_application_valid_mock.assert_called_once_with(self.application)
 
+
     def test_experiments_create_local(self):
         with patch.object(LocalApi, "experiments_create") as create_exp_mock, \
-            patch.object(LocalApi, "get_application_config") as get_config_mock, \
-            patch.object(LocalApi, "is_network_available") as check_network_mock:
+             patch.object(LocalApi, "get_application_config") as get_config_mock, \
+             patch.object(LocalApi, "is_network_available") as check_network_mock:
             get_config_mock.return_value = {'foo': 'bar'}
             check_network_mock.return_value = True
             self.processor.experiments_create(name='test_exp', application='app_name', network_name='network_1',
@@ -80,8 +82,8 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_experiments_run(self):
         with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
-            patch.object(LocalApi, "run_experiment") as run_exp_mock, \
-            patch.object(CommandProcessor, '_CommandProcessor__store_results') as store_result_mock:
+             patch.object(LocalApi, "run_experiment") as run_exp_mock, \
+             patch.object(CommandProcessor, '_CommandProcessor__store_results') as store_result_mock:
 
             is_exp_local_mock.return_value = True
             run_exp_mock.return_value = ['foo']
@@ -102,8 +104,8 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_experiments_result(self):
         with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
-            patch.object(LocalApi, "get_results") as results_mock, \
-            patch.object(CommandProcessor, '_CommandProcessor__store_results') as store_result_mock:
+             patch.object(LocalApi, "get_results") as results_mock, \
+             patch.object(CommandProcessor, '_CommandProcessor__store_results') as store_result_mock:
 
             is_exp_local_mock.return_value = True
             results_mock.return_value = ['foo']
@@ -166,3 +168,4 @@ class TestCommandProcessor(unittest.TestCase):
             self.assertNotIn('local', applications)
             self.assertEqual(len(applications), 1)
             self.assertEqual(len(applications['remote']), 2)
+

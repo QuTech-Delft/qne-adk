@@ -67,7 +67,7 @@ def applications_create(
     roles: List[str] = typer.Argument(..., help="Names of the roles to be created."),
 ) -> None:
     """
-    Create new application.
+    Create new application. e.g.: qne application create application_name role1 role2
     """
     cwd = Path.cwd()
     typer.echo(f"Create application '{application}' in directory '{cwd}'.")

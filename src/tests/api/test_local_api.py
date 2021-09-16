@@ -1,12 +1,12 @@
 import unittest
 from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
 
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
 from cli.output_converter import OutputConverter
-from cli.exceptions import ApplicationAlreadyExists
+from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
 
 
 class TestLocalApi(unittest.TestCase):
@@ -30,40 +30,48 @@ class TestLocalApi(unittest.TestCase):
 
         self.experiment_data_local = {'meta': self.experiment_meta_local, 'asset': {}}
 
+    def test_create_application(self):
+        with patch.object(LocalApi, "_LocalApi__is_application_unique") as is_application_unique_mock, \
+             patch.object(LocalApi, "_LocalApi__create_application_structure") as structure_mock:
 
-    def test_create_application_already_exists_exception(self):
-        with patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=False):
-            self.assertRaises(ApplicationAlreadyExists, self.local_api.create_application, self.application, self.roles,
-                              self.path)
-
-    def test_create_application_should_succeed(self):
-        open_mock = mock_open()
-
-        with patch("cli.api.local_api.open", open_mock, create=True), \
-             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as application_unique_mock, \
-             patch.object(LocalApi, "_LocalApi__create_application_structure", return_value=True) as structure_mock:
-
+            is_application_unique_mock.return_value = True
+            structure_mock.return_value = True
             self.local_api.create_application(self.application, self.roles, self.path)
 
-            application_unique_mock.assert_called_once_with(self.application)
+            is_application_unique_mock.assert_called_once_with(self.application)
             structure_mock.assert_called_once_with(self.application, self.roles, self.path)
 
-
-    def test_create_file_structure_should_succeed(self):
-
-        with patch("cli.api.local_api.open", mock_open()) as open_mock, \
+    def test__create_application_structure(self):
+        with patch("cli.api.local_api.open") as open_mock, \
              patch('cli.api.local_api.Path.mkdir') as mock_mkdir, \
+             patch("cli.api.local_api.utils.get_network_nodes") as check_network_nodes_mock, \
+             patch("cli.api.local_api.utils.get_dummy_application") as get_dummy_application_mock, \
+             patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
+             patch("cli.api.local_api.json.dump") as json_dump_mock, \
              patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as application_unique_mock, \
              patch.object(ConfigManager, 'add_application', return_value=10) as config_manager_mock:
 
+            check_network_nodes_mock.return_value = {"dummy_network": ["network1", "network2", "network3"]}
+            get_dummy_application_mock.return_value = {'application': [{'roles': ['dummy_role']}]}
             self.local_api.create_application(self.application, self.roles, self.path)
 
             application_unique_mock.assert_called_once_with(self.application)
             config_manager_mock.assert_called_once_with(self.application, self.path)
             self.assertEqual(open_mock.call_count, 4 + len(self.roles))
             self.assertEqual(mock_mkdir.call_count, 2)
+            check_network_nodes_mock.assert_called_once()
+            get_dummy_application_mock.assert_called_once()
+            application_unique_mock.assert_called_once_with(self.application)
+            config_manager_mock.assert_called_once_with(self.application, self.path)
+            json_dump_mock.call_count = 3
 
-    def test__is_application_unique(self):
+            # Raise exception when no network available
+            check_network_nodes_mock.return_value = {}
+            self.assertRaises(NoNetworkAvailable, self.local_api.create_application, self.application, self.roles,
+                              self.path)
+            rmtree_mock.assert_called_once()
+
+    def test_is_application_unique(self):
         with patch.object(LocalApi, "_LocalApi__create_application_structure", return_value=True) as structure_mock, \
              patch.object(ConfigManager, "application_exists", return_value=True) as application_exists_mock:
 

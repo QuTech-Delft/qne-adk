@@ -8,7 +8,6 @@ from cli.managers.config_manager import ConfigManager
 
 
 class TestCommandList(unittest.TestCase):
-
     def setUp(self):
         self.application = 'test_application'
         self.roles = ["role1, role2"]
@@ -72,8 +71,8 @@ class TestCommandList(unittest.TestCase):
 
     def test_experiment_create(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
-            patch.object(CommandProcessor, 'experiments_create') as experiment_create_mock, \
-            patch.object(CommandProcessor, 'applications_validate') as app_validate_mock:
+             patch.object(CommandProcessor, 'experiments_create') as experiment_create_mock, \
+             patch.object(CommandProcessor, 'applications_validate') as app_validate_mock:
             mock_cwd.return_value = 'test'
             app_validate_mock.return_value = True, ''
             experiment_create_mock.return_value = True, ''
@@ -142,7 +141,7 @@ class TestCommandList(unittest.TestCase):
 
     def test_experiment_results(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
-            patch.object(CommandProcessor, 'experiments_results') as exp_results_mock:
+             patch.object(CommandProcessor, 'experiments_results') as exp_results_mock:
             mock_cwd.return_value = 'test'
             exp_results_output = self.runner.invoke(experiments_app, ['results'])
 
