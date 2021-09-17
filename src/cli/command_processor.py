@@ -64,6 +64,7 @@ class CommandProcessor:
             app_config = self.__local.get_application_config(application)
 
             if self.__local.check_valid_network(network, app_config):
+
                 return self.__local.create_experiment(name=name, app_config=app_config, network=network, path=path,
                                                       application=application)
 
@@ -87,7 +88,7 @@ class CommandProcessor:
         is_local = self.__local.is_experiment_local(path)
 
         if is_local:
-            results = self.__local.run_experiment(path, block)
+            results = self.__local.run_experiment(path)
         else:
             pass
             # Remote run not yet enabled

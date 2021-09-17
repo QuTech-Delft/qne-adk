@@ -42,9 +42,9 @@ class RemoteApi:
 
     def upload_application(self, application: str) -> None:
         token = self.auth_manager.load_token()
-        application_exists, application_id = self.__config_manager.remote_application_exists(application)
+        application_id = self.__config_manager.remote_application_exists(application)
 
-        if not application_exists:
+        if application_id == -1:
             application_id = self.__create_application(token, application)
             self.__config_manager.update_remote_id(application, application_id)
 
@@ -71,17 +71,17 @@ class RemoteApi:
         self._action('createApplicationResult', {'token': token, 'id': application_version_id})
 
     def publish_application(self, application: str) -> None:
-        application_exists, application_id = self.__config_manager.remote_application_exists(application)
-        if application_exists:
+        application_id = self.__config_manager.remote_application_exists(application)
+        if application_id != -1:
             token = self.auth_manager.load_token()
             self._action('publishApplication', {'token': token, 'id': application_id})
         else:
             pass # Please upload application before publishing
 
     def get_application_config(self, application: str) -> Optional[AppConfigType]:
-        application_exists, application_id = self.__config_manager.remote_application_exists(application)
+        application_id = self.__config_manager.remote_application_exists(application)
 
-        if application_exists:
+        if application_id != -1:
             token = self.auth_manager.load_token()
             response = self._action('getAppConfig', {'token': token, 'id': application_id})
             return cast(AppConfigType, response)

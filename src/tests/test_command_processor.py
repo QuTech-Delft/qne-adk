@@ -113,7 +113,7 @@ class TestCommandProcessor(unittest.TestCase):
             self.processor.experiments_run(Path('dummy'), True)
 
             is_exp_local_mock.assert_called_once_with(Path('dummy'))
-            run_exp_mock.assert_called_once_with(Path('dummy'), True)
+            run_exp_mock.assert_called_once_with(Path('dummy'))
             store_result_mock.assert_called_once_with(['foo'])
 
             is_exp_local_mock.reset_mock()
@@ -122,7 +122,7 @@ class TestCommandProcessor(unittest.TestCase):
             run_exp_mock.return_value = None
             self.processor.experiments_run(Path('dummy'), True)
             is_exp_local_mock.assert_called_once_with(Path('dummy'))
-            run_exp_mock.assert_called_once_with(Path('dummy'), True)
+            run_exp_mock.assert_called_once_with(Path('dummy'))
             store_result_mock.assert_not_called()
 
     def test_experiments_result(self):

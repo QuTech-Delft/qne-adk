@@ -4,8 +4,8 @@ from typing import List, Optional, Tuple, Dict, Any
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
-from cli.type_aliases import (AppConfigType, ApplicationType, ExperimentType,
-                              ResultType)
+from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
+                              app_configApplicationType, ExperimentType, ResultType)
 from cli.utils import read_json_file, write_json_file
 
 
@@ -60,10 +60,10 @@ class LocalApi:
         application_json_path = app_config_path / 'application.json'
         network_json_path = app_config_path / 'network.json'
 
-        application_data = read_json_file(application_json_path)
-        network_data = read_json_file(network_json_path)
+        app_config_application: app_configApplicationType = read_json_file(application_json_path)
+        app_config_network: app_configNetworkType = read_json_file(network_json_path)
 
-        app_config = {"application": application_data, "network": network_data}
+        app_config = {"application": app_config_application, "network": app_config_network}
         return app_config
 
     def create_experiment(
@@ -91,7 +91,7 @@ class LocalApi:
         }
 
         asset_application = self.__create_asset_application(app_config)
-        asset_network = self.__create_asset_network(network, app_config)
+        asset_network = self.create_asset_network(network, app_config)
         asset = {"network": asset_network, "application": asset_application}
 
         experiment_data = {'meta': experiment_meta, 'asset': asset}
@@ -102,7 +102,7 @@ class LocalApi:
     def __create_asset_application(self,  app_config: AppConfigType) -> List[Dict[str, Any]]:
         return []
 
-    def __create_asset_network(self,  network: str, app_config: AppConfigType) ->  Dict[str, Any]:
+    def create_asset_network(self,  network: str, app_config: AppConfigType) ->  Dict[str, Any]:
         return {}
 
     def __copy_input_files_from_application(self,  application: str, input_directory: Path) -> None:
@@ -159,7 +159,7 @@ class LocalApi:
         pass
 
 
-    def run_experiment(self, path: Path, block: bool) -> Optional[List[ResultType]]:
+    def run_experiment(self, path: Path) -> Optional[List[ResultType]]:
         roundSetManager = RoundSetManager()
         roundSetManager.prepare_input(path)
         roundSetManager.process()

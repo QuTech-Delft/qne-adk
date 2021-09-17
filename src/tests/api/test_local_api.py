@@ -89,7 +89,7 @@ class TestLocalApi(unittest.TestCase):
         with patch("cli.api.local_api.write_json_file") as write_mock, \
             patch.object(LocalApi, "_LocalApi__copy_input_files_from_application") as copy_input_mock, \
             patch.object(LocalApi, "_LocalApi__create_asset_application") as create_app_asset_mock, \
-            patch.object(LocalApi, "_LocalApi__create_asset_network") as create_network_asset_mock, \
+            patch.object(LocalApi, "create_asset_network") as create_network_asset_mock, \
             patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
             patch('cli.api.local_api.Path.mkdir') as mkdir_mock:
 
@@ -157,7 +157,7 @@ class TestLocalApi(unittest.TestCase):
             patch.object(RoundSetManager, "process") as process_mock, \
             patch.object(RoundSetManager, "terminate") as terminate_mock:
 
-            self.local_api.run_experiment(Path('dummy'), True)
+            self.local_api.run_experiment(Path('dummy'))
             prepare_input_mock.assert_called_once_with(Path('dummy'))
             process_mock.assert_called_once()
             terminate_mock.assert_called_once()

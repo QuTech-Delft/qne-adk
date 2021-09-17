@@ -147,15 +147,15 @@ class TestCommandList(unittest.TestCase):
 
             mock_cwd.return_value = 'test'
             exp_run_output = self.runner.invoke(experiments_app, ['run'])
-            exp_run_mock.assert_called_once_with(path='test', block=False)
-            self.assertEqual(exp_run_output.exit_code, 0)
-            self.assertIn("Experiment has been created successfully.", exp_run_output.stdout)
-
-            exp_run_mock.reset_mock()
-            exp_run_output = self.runner.invoke(experiments_app, ['run', '--block'])
             exp_run_mock.assert_called_once_with(path='test', block=True)
             self.assertEqual(exp_run_output.exit_code, 0)
             self.assertIn("Experiment has run successfully.", exp_run_output.stdout)
+
+            exp_run_mock.reset_mock()
+            exp_run_output = self.runner.invoke(experiments_app, ['run', '--block'])
+            exp_run_mock.assert_called_once_with(path='test', block=False)
+            self.assertEqual(exp_run_output.exit_code, 0)
+            self.assertIn("Experiment has been created successfully.", exp_run_output.stdout)
 
     def test_experiment_results(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
