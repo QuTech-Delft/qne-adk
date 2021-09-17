@@ -1,0 +1,15 @@
+{
+  "networks": {
+    "randstad": {
+      "name": "Randstad",
+      "slug": "randstad",
+      "channels": [
+        "amsterdam-leiden",
+        "leiden-the-hague",
+        "delft-the-hague",
+        "delft-rotterdam"
+      ]
+    }
+  }
+}
+
