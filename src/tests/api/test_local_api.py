@@ -8,6 +8,7 @@ from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
 from cli.output_converter import OutputConverter
 
+
 class TestLocalApi(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -47,15 +48,19 @@ class TestLocalApi(unittest.TestCase):
             application_unique_mock.assert_called_once_with(self.application)
             config_manager_mock.assert_called_once_with(self.application, self.path)
 
-
-    def test_is_application_unique(self):
+    def test__is_application_unique(self):
         with patch.object(LocalApi, "_LocalApi__create_application_structure", return_value=True) as structure_mock, \
              patch.object(ConfigManager, "application_exists", return_value=True) as application_exists_mock:
 
             self.local_api.create_application(self.application, self.roles, self.path)
-            structure_mock.assert_called_once_with(self.application, self.roles, self.path)
             application_exists_mock.assert_called_once_with(self.application)
 
+            structure_mock.reset_mock()
+            application_exists_mock.reset_mock()
+            application_exists_mock.return_value = False
+            self.local_api.create_application(self.application, self.roles, self.path)
+            structure_mock.assert_called_once_with(self.application, self.roles, self.path)
+            application_exists_mock.assert_called_once_with(self.application)
 
     def test_is_application_valid(self):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True) as is_structure_valid_mock, \
@@ -70,10 +75,6 @@ class TestLocalApi(unittest.TestCase):
 
     def test__is_structure_valid(self):
         self.local_api.is_application_valid(application=self.application)
-
-    def test__is_application_unique(self):
-        with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True):
-            self.local_api.is_application_valid(application=self.application)
 
     def test__is_config_valid(self):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True),\

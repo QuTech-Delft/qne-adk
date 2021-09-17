@@ -27,7 +27,6 @@ class LocalApi:
         if self.__is_application_unique(application):
             self.__create_application_structure(application, roles, path)
 
-
     def __create_application_structure(
         self, application: str, roles: List[str], path: Path
     ) -> None:
@@ -37,12 +36,26 @@ class LocalApi:
         return self.__config_manager.get_applications()
 
     def __is_application_unique(self, application: str) -> bool:
-        return self.__config_manager.application_exists(application)
+        """
+        Calls config_manager.application_exists() to check if the application name already exists in the
+        .qne/application.json root file. Here, all application names are added when an application is created.
+        If the application name doesn't equal one of the application names already existing in this root file, the
+        application is unique. Therefore, application_unique() returns True when application_exists() returns False.
 
+        Args:
+            application: application name
+        """
+
+        if not self.__config_manager.application_exists(application):
+            return True
+        else:
+            return False
+
+    # Todo: Update confluence scenario diagram since application_unique() and structure_valid() are swapped
     def is_application_valid(self, application: str) -> Tuple[bool, str]:
-        if self.__is_structure_valid(application) and \
-               self.__is_application_unique(application) and \
-               self.__is_config_valid(application):
+        if self.__is_application_unique(application) and \
+           self.__is_structure_valid(application) and \
+           self.__is_config_valid(application):
             return True, "Valid"
 
         return False, "Invalid"
@@ -185,6 +198,16 @@ class LocalApi:
         return output_result
 
     def validate_experiment(self, path: Path) -> Tuple[bool, str]:
+        # TODO: Can python and yaml files be checked for correct syntax? Are there any other validation which should
+        # TODO: be done?
+
+        """
+        Validates the experiment by checking if the structure is correct and consists of an experiment.json and
+        (when locally run) contains an input directory with the correct files. Then the content of experiment.json is
+        checked for valid JSON syntax and the yaml/python files in the input directory (local run) are also checked
+        for correct syntax. Then the experiment.json (asset) is checked against a schema validator.
+        """
+
         experiment_json = path / 'experiment.json'
         if not experiment_json.is_file():
             return False, 'File experiment.json not found in the current working directory'
