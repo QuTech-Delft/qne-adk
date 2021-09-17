@@ -46,10 +46,7 @@ class LocalApi:
             application: application name
         """
 
-        if not self.__config_manager.application_exists(application):
-            return True
-        else:
-            return False
+        return not self.__config_manager.application_exists(application)
 
     # Todo: Update confluence scenario diagram since application_unique() and structure_valid() are swapped
     def is_application_valid(self, application: str) -> Tuple[bool, str]:
