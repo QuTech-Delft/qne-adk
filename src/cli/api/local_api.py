@@ -195,14 +195,16 @@ class LocalApi:
         return output_result
 
     def validate_experiment(self, path: Path) -> Tuple[bool, str]:
-        # TODO: Can python and yaml files be checked for correct syntax? Are there any other validation which should
-        # TODO: be done?
+        # TODO: Can/should python and yaml files be checked for correct syntax?
+        # or this should be checked in application validate command?
+        # Are there any other validation which should be done?
 
         """
-        Validates the experiment by checking if the structure is correct and consists of an experiment.json and
-        (when locally run) contains an input directory with the correct files. Then the content of experiment.json is
-        checked for valid JSON syntax and the yaml/python files in the input directory (local run) are also checked
-        for correct syntax. Then the experiment.json (asset) is checked against a schema validator.
+        Validates the experiment by checking
+        - if the structure is correct and consists of an experiment.json
+        - (For local run) experiment directory contains an input directory with the correct files
+        - content of experiment.json is valid JSON syntax
+        - asset in the experiment.json validated against a schema validator.
         """
 
         experiment_json = path / 'experiment.json'
