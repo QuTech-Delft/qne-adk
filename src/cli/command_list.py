@@ -160,7 +160,7 @@ def applications_validate() -> None:
 def experiments_create(
     name: str = typer.Argument(..., help="Name of the experiment."),
     application: str = typer.Argument(..., help="Name of the application."),
-    network: str = typer.Argument(..., help="Name of the network to use."),
+    network_name: str = typer.Argument(..., help="Name of the network to use."),
     local: bool = typer.Option(
         True, "--local/--remote", help="Run the application locally."
     ),
@@ -169,12 +169,12 @@ def experiments_create(
     Create new experiment.
     """
     cwd = Path.cwd()
-    typer.echo(f"Create experiment: '{name}' with network: '{network}' for application: '{application}'.")
+    typer.echo(f"Create experiment: '{name}' with network: '{network_name}' for application: '{application}'.")
 
     is_app_valid, validation_message = processor.applications_validate(application)
 
     if is_app_valid:
-        success, message = processor.experiments_create(name=name, application=application, network=network,
+        success, message = processor.experiments_create(name=name, application=application, network_name=network_name,
                                                         local=local, path=cwd)
         if success:
             typer.echo("Experiment created successfully.")
@@ -209,7 +209,7 @@ def experiments_delete() -> None:
 @experiments_app.command("run")
 def experiments_run(
     block: bool = typer.Option(
-        True, "--block", help="Wait for the result to be returned."
+        False, "--block", help="Wait for the result to be returned."
     )
 ) -> None:
     """

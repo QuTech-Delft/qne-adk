@@ -6,6 +6,8 @@ ApplicationType = Dict[str, Any]
 AppConfigType = Dict[str, Any]
 app_configNetworkType = Dict[str, List[str]]
 app_configApplicationType = List[Dict[str, Any]]
+assetNetworkType = Dict[str, Any]
+assetApplicationType = List[Dict[str, Any]]
 
 LoginFunctionType = Callable[[str, str, str], str]
 FallbackFunctionType = Callable[[], str]

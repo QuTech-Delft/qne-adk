@@ -99,8 +99,8 @@ class TestCommandList(unittest.TestCase):
                                                                             'network_1'])
             self.assertEqual(experiment_create_output.exit_code, 0)
             self.assertIn('Experiment created successfully.', experiment_create_output.stdout)
-            experiment_create_mock.assert_called_once_with(name='test_exp', application='app_name', network='network_1',
-                                                           local=True, path='test')
+            experiment_create_mock.assert_called_once_with(name='test_exp', application='app_name',
+                                                           network_name='network_1', local=True, path='test')
 
             app_validate_mock.return_value = False, 'network.json is not a valid json.'
             experiment_create_mock.reset_mock()
@@ -118,8 +118,8 @@ class TestCommandList(unittest.TestCase):
             experiment_create_output = self.runner.invoke(experiments_app, ['create', 'test_exp', 'app_name',
                                                                             'network_1'])
             self.assertEqual(experiment_create_output.exit_code, 0)
-            experiment_create_mock.assert_called_once_with(name='test_exp', application='app_name', network='network_1',
-                                                           local=True, path='test')
+            experiment_create_mock.assert_called_once_with(name='test_exp', application='app_name',
+                                                           network_name='network_1', local=True, path='test')
             self.assertIn("Experiment could not be created. lorem ipsum issue", experiment_create_output.stdout)
 
     def test_experiment_validate(self):
@@ -147,15 +147,15 @@ class TestCommandList(unittest.TestCase):
 
             mock_cwd.return_value = 'test'
             exp_run_output = self.runner.invoke(experiments_app, ['run'])
-            exp_run_mock.assert_called_once_with(path='test', block=True)
-            self.assertEqual(exp_run_output.exit_code, 0)
-            self.assertIn("Experiment has run successfully.", exp_run_output.stdout)
-
-            exp_run_mock.reset_mock()
-            exp_run_output = self.runner.invoke(experiments_app, ['run', '--block'])
             exp_run_mock.assert_called_once_with(path='test', block=False)
             self.assertEqual(exp_run_output.exit_code, 0)
             self.assertIn("Experiment has been created successfully.", exp_run_output.stdout)
+
+            exp_run_mock.reset_mock()
+            exp_run_output = self.runner.invoke(experiments_app, ['run', '--block'])
+            exp_run_mock.assert_called_once_with(path='test', block=True)
+            self.assertEqual(exp_run_output.exit_code, 0)
+            self.assertIn("Experiment has run successfully.", exp_run_output.stdout)
 
     def test_experiment_results(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \

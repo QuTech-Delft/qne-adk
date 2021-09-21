@@ -58,17 +58,16 @@ class CommandProcessor:
         return self.__local.is_application_valid(application)
 
     @log_function
-    def experiments_create(self, name: str, application: str, network: str, local: bool, path: Path) \
+    def experiments_create(self, name: str, application: str, network_name: str, local: bool, path: Path) \
         -> Tuple[bool, str]:
         if local:
             app_config = self.__local.get_application_config(application)
 
-            if self.__local.check_valid_network(network, app_config):
+            if self.__local.is_network_available(network_name, app_config):
+                return self.__local.experiments_create(name=name, app_config=app_config, network_name=network_name,
+                                                path=path, application=application)
 
-                return self.__local.create_experiment(name=name, app_config=app_config, network=network, path=path,
-                                                      application=application)
-
-            return False, f"The specified network '{network}' does not exist."
+            return False, f"The specified network '{network_name}' does not exist."
 
         return False, 'Remote experiment creation is not yet enabled.'
 
@@ -90,9 +89,7 @@ class CommandProcessor:
         if is_local:
             results = self.__local.run_experiment(path)
         else:
-            pass
-            # Remote run not yet enabled
-            # results = self.__remote.run_experiment(block)
+            results = self.__remote.run_experiment(block)
 
         if results:
             self.__store_results(results)
@@ -117,9 +114,7 @@ class CommandProcessor:
         if is_local:
             results = self.__local.get_results(path, all_results)
         else:
-            pass
-            # Remote results not yet enabled
-            # results = self.__remote.get_results('path', all_results, block=True, timeout=100)
+            results = self.__remote.get_results('path', all_results, block=True, timeout=100)
 
         if show:
             return results

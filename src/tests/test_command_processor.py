@@ -69,21 +69,21 @@ class TestCommandProcessor(unittest.TestCase):
             self.assertEqual(len(app_list), 2)
 
     def test_experiments_create_local(self):
-        with patch.object(LocalApi, "create_experiment") as create_exp_mock, \
+        with patch.object(LocalApi, "experiments_create") as create_exp_mock, \
             patch.object(LocalApi, "get_application_config") as get_config_mock, \
-            patch.object(LocalApi, "check_valid_network") as check_network_mock:
+            patch.object(LocalApi, "is_network_available") as check_network_mock:
             get_config_mock.return_value = {'foo': 'bar'}
             check_network_mock.return_value = True
-            self.processor.experiments_create(name='test_exp', application='app_name', network='network_1',
+            self.processor.experiments_create(name='test_exp', application='app_name', network_name='network_1',
                                               local=True, path='test')
             get_config_mock.assert_called_once_with('app_name')
             check_network_mock.assert_called_once_with('network_1', {'foo': 'bar'})
             create_exp_mock.assert_called_once_with(name='test_exp', app_config={'foo': 'bar'},
-                                                    network='network_1', path='test', application='app_name')
+                                                    network_name='network_1', path='test', application='app_name')
 
     def test_experiments_create_remote(self):
         success, message = self.processor.experiments_create(name='test_exp', application='app_name',
-                                                             network='network_1', local=False, path='test')
+                                                             network_name='network_1', local=False, path='test')
 
         self.assertEqual(success, False)
         self.assertEqual(message, 'Remote experiment creation is not yet enabled.')

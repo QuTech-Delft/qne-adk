@@ -1,11 +1,12 @@
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Tuple
 
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
-                              app_configApplicationType, ExperimentType, ResultType)
+                              app_configApplicationType, assetApplicationType, assetNetworkType,
+                              ExperimentType, ResultType)
 from cli.utils import read_json_file, write_json_file
 
 
@@ -76,8 +77,48 @@ class LocalApi:
         app_config = {"application": app_config_application, "network": app_config_network}
         return app_config
 
+    def experiments_create(self, name: str, app_config: AppConfigType , network_name: str,
+                           path: Path, application:str)-> Tuple[bool, str]:
+        """
+        Create all the necessary resources for experiment creation
+         - 1. Get the network data for the specified network_name
+         - 2. Create the asset
+         - 3. Create experiment.json containing the meta data and asset information
+
+        Args:
+            name: Name of the experiment
+            app_config:
+            network_name: Name of the network to use
+            path: Location where the experiment directory is to be created
+            application: Name of the application for which to create experiment
+
+        Returns:
+            Returns (False, reason for failure) if experiment creation failed,
+            (True, Success) if experiment was created successfully
+
+        """
+        network_data: assetNetworkType = self.get_network_data(network_name=network_name)
+        asset_network: assetNetworkType = self.create_asset_network(network_data=network_data,
+                                                                    app_config=app_config)
+
+        return self.create_experiment(name=name, app_config=app_config, asset_network=asset_network, path=path,
+                                application=application)
+
+    def get_network_data(self, network_name: str)-> assetNetworkType:
+        """
+        Fetch the data for the specified network_name from the json files in networks folder
+
+        Args:
+            network_name: Name of the network whose data needs to be fetched
+
+        Returns:
+            The complete network information with channels & nodes
+
+        """
+        return {}
+
     def create_experiment(
-        self, name: str, app_config: AppConfigType, network: str, path: Path, application: str
+        self, name: str, app_config: AppConfigType, asset_network: assetNetworkType, path: Path, application: str
     ) -> Tuple[bool, str]:
 
         experiment_directory = path / name
@@ -101,7 +142,6 @@ class LocalApi:
         }
 
         asset_application = self.__create_asset_application(app_config)
-        asset_network = self.create_asset_network(network, app_config)
         asset = {"network": asset_network, "application": asset_application}
 
         experiment_data = {'meta': experiment_meta, 'asset': asset}
@@ -109,10 +149,10 @@ class LocalApi:
 
         return True, "Success"
 
-    def __create_asset_application(self,  app_config: AppConfigType) -> List[Dict[str, Any]]:
+    def __create_asset_application(self,  app_config: AppConfigType) -> assetApplicationType:
         return []
 
-    def create_asset_network(self,  network: str, app_config: AppConfigType) ->  Dict[str, Any]:
+    def create_asset_network(self,  network_data: assetNetworkType, app_config: AppConfigType) ->  assetNetworkType:
         return {}
 
     def __copy_input_files_from_application(self,  application: str, input_directory: Path) -> None:
@@ -125,13 +165,12 @@ class LocalApi:
 
         """
 
-
-    def check_valid_network(self, network: str, app_config: AppConfigType) -> bool:
+    def is_network_available(self, network_name: str, app_config: AppConfigType) -> bool:
         """
-        Check if the network name is a valid network for the Application
+        Check if the network_name is available for use in the application's app_config
 
         Args:
-            network: The network name
+            network_name: The network name
             app_config: Application Configuration containing the available networks
 
         Returns:
@@ -168,7 +207,6 @@ class LocalApi:
     def delete_experiment(self, path: Path) -> None:
         pass
 
-
     def run_experiment(self, path: Path) -> Optional[List[ResultType]]:
         roundSetManager = RoundSetManager()
         roundSetManager.prepare_input(path)
@@ -195,15 +233,13 @@ class LocalApi:
         return output_result
 
     def validate_experiment(self, path: Path) -> Tuple[bool, str]:
-        # TODO: Can/should python and yaml files be checked for correct syntax?
-        # or this should be checked in application validate command?
-        # Are there any other validation which should be done?
-
+        # TODO: Add any other validation which should be done
         """
-        Validates the experiment by checking
+        Validates the experiment by checking:
         - if the structure is correct and consists of an experiment.json
         - (For local run) experiment directory contains an input directory with the correct files
-        - content of experiment.json is valid JSON syntax
+        - (For local run) check the python & yaml files for correct syntax (possible?)
+        - content of experiment.json is valid JSON
         - asset in the experiment.json validated against a schema validator.
         """
 

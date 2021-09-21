@@ -86,28 +86,40 @@ class TestLocalApi(unittest.TestCase):
             self.local_api.list_applications()
             get_applications_mock.assert_called_once()
 
+    def test_experiments_create(self):
+        with patch.object(LocalApi, "get_network_data") as get_network_data_mock, \
+            patch.object(LocalApi, "create_asset_network") as create_network_asset_mock, \
+            patch.object(LocalApi, "create_experiment") as create_exp_mock:
+
+            get_network_data_mock.return_value = {'a': 'b'}
+            create_network_asset_mock.return_value = {'c': 'd'}
+            self.local_api.experiments_create(name='name', app_config={'foo': 'bar'}, network_name='network_name',
+                                                path=Path('dummy'), application='application')
+            get_network_data_mock.assert_called_once_with(network_name='network_name')
+            create_network_asset_mock.assert_called_once_with(network_data={'a': 'b'}, app_config={'foo': 'bar'})
+            create_exp_mock.assert_called_once_with(name='name', app_config={'foo': 'bar'}, asset_network={'c':'d'},
+                                                    path=Path('dummy'), application='application')
+
     def test_create_experiment(self):
         with patch("cli.api.local_api.write_json_file") as write_mock, \
             patch.object(LocalApi, "_LocalApi__copy_input_files_from_application") as copy_input_mock, \
             patch.object(LocalApi, "_LocalApi__create_asset_application") as create_app_asset_mock, \
-            patch.object(LocalApi, "create_asset_network") as create_network_asset_mock, \
             patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
             patch('cli.api.local_api.Path.mkdir') as mkdir_mock:
 
             is_dir_mock.return_value = False
             create_app_asset_mock.return_value = [{'x': 2}]
-            create_network_asset_mock.return_value = {'z': 'z1'}
 
-            self.local_api.create_experiment('test', {'foo': 'bar'}, 'network_1', Path('dummy'), 'app_name')
+            self.local_api.create_experiment(name='test', app_config={'foo': 'bar'}, asset_network={'a': 'b'},
+                                             path=Path('dummy'), application='app_name')
 
             is_dir_mock.assert_called_once()
             self.assertEqual(mkdir_mock.call_count, 2)
             copy_input_mock.assert_called_once_with('app_name', Path('dummy') / 'test' / 'input' )
             create_app_asset_mock.assert_called_once_with({'foo': 'bar'})
-            create_network_asset_mock.assert_called_once_with('network_1', {'foo': 'bar'})
 
             self.experiment_data_local['meta']['description'] = 'test: experiment description'
-            self.experiment_data_local['asset'] = {'network': {'z': 'z1'}, 'application': [{'x': 2}] }
+            self.experiment_data_local['asset'] = {'network': {'a': 'b'}, 'application': [{'x': 2}] }
 
             write_mock.assert_called_once_with(Path('dummy') / 'test' / 'experiment.json', self.experiment_data_local)
 
