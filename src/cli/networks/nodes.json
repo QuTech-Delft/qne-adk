@@ -1,0 +1,84 @@
+{
+  "nodes": [
+    {
+      "name": "Amsterdam",
+      "slug": "amsterdam",
+      "coordinates": {
+        "latitude": 52.3667,
+        "longitude": 4.8945
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    },
+    {
+      "name": "Delft",
+      "slug": "delft",
+      "coordinates": {
+        "latitude": 52.0116,
+        "longitude": 4.3571
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    },
+    {
+      "name": "Leiden",
+      "slug": "leiden",
+      "coordinates": {
+        "latitude": 52.1601,
+        "longitude": 4.497
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    },
+    {
+      "name": "Rotterdam",
+      "slug": "rotterdam",
+      "coordinates": {
+        "latitude": 51.9244,
+        "longitude": 4.4777
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    },
+    {
+      "name": "The Hague",
+      "slug": "the-hague",
+      "coordinates": {
+        "latitude": 52.0705,
+        "longitude": 4.3007
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    }
+  ]
+}

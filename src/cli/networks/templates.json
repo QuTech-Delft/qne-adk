@@ -1,0 +1,64 @@
+{
+  "templates": [
+    {
+      "title": "Elementary Link Fidelity",
+      "slug": "elementary-link-fidelity",
+      "values": [
+        {
+          "name": "fidelity",
+          "default_value": 1.0,
+          "minimum_value": 0.5,
+          "maximum_value": 1.0,
+          "unit": "",
+          "scale_value": 1.0
+        }
+      ],
+      "input_type": "fidelity_slider"
+    },
+    {
+      "title": "Gate Fidelity",
+      "slug": "gate-fidelity",
+      "values": [
+        {
+          "name": "gate_fidelity",
+          "default_value": 1.0,
+          "minimum_value": 0.5,
+          "maximum_value": 1.0,
+          "unit": "",
+          "scale_value": 1.0
+        }
+      ],
+      "input_type": "fidelity_slider"
+    },
+    {
+      "title": "Relaxation time",
+      "slug": "relaxation-time",
+      "values": [
+        {
+          "name": "t1",
+          "default_value": 0,
+          "minimum_value": 0,
+          "maximum_value": 1000,
+          "unit": "milliseconds",
+          "scale_value": 1.0
+        }
+      ],
+      "input_type": "time"
+    },
+    {
+      "title": "Dephasing time",
+      "slug": "dephasing-time",
+      "values": [
+        {
+          "name": "t2",
+          "default_value": 0,
+          "minimum_value": 0,
+          "maximum_value": 1000,
+          "unit": "milliseconds",
+          "scale_value": 1.0
+        }
+      ],
+      "input_type": "time"
+    }
+  ]
+}

@@ -1,13 +1,17 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from cli.managers.config_manager import ConfigManager
-from cli.types import AppConfigType, ApplicationType, ResultType
+from cli.managers.auth_manager import AuthManager
+from cli.type_aliases import AppConfigType, ApplicationType, ExperimentType, ResultType
 
 
 class RemoteApi:
     def __init__(self, config_manager: ConfigManager) -> None:
-        self.__config_manager = config_manager
+        self.__config_manager: ConfigManager = config_manager
+        config_dir = self.__config_manager.get_config_dir()
+        self.auth_manager:AuthManager = AuthManager(str(config_dir.resolve()),
+                                                    self.__login_user, self.__login_anonymous)
 
     def login(self, username: str, password: str, host: str) -> None:
         pass
@@ -18,7 +22,7 @@ class RemoteApi:
     def __login_anonymous(self) -> str:
         pass
 
-    def logout(self) -> None:
+    def logout(self, host: str) -> None:
         pass
 
     def list_applications(self) -> List[ApplicationType]:
@@ -30,31 +34,36 @@ class RemoteApi:
     def upload_application(self, application: str) -> None:
         pass
 
-    def __application_exists(self, application_id: int) -> bool:
+    def __create_application(self, token: str, application: str) -> int:
+        return 0
+
+    def __create_application_version(self, token: str, application_id: int) -> int:
+        return 0
+
+    def __create_application_config(self, token: str, application_version_id: int) -> None:
         pass
 
-    def __create_application_version(self, application_id: int) -> int:
+    def __create_application_source(self, token: str, application_version_id: int) -> None:
         pass
 
-    def __create_application_config(self, application_version_id: int) -> None:
-        pass
-
-    def __create_application_source(self, application_version_id: int) -> None:
-        pass
-
-    def __create_application_result(self, application_version_id: int) -> None:
+    def __create_application_result(self, token: str, application_version_id: int) -> None:
         pass
 
     def publish_application(self, application: str) -> None:
         pass
 
-    def get_application_config(self, application: str) -> AppConfigType:
+    def get_application_config(self, application: str) -> Optional[AppConfigType]:
         pass
 
-    def delete_experiment(self, experiment_id: int) -> None:
+    def create_experiment(
+        self, name: str, app_config: AppConfigType, path: Path
+    ) -> None:
         pass
 
-    def list_experiments(self) -> None:
+    def delete_experiment(self, path: Path) -> None:
+        pass
+
+    def list_experiments(self) -> List[ExperimentType]:
         pass
 
     def run_experiment(self, block: bool) -> Optional[List[ResultType]]:
@@ -72,3 +81,7 @@ class RemoteApi:
         self,
     ) -> List[ResultType]:
         pass
+
+    def _action(self, operation_name: str, params: Any) -> Any:
+        """Run an arbitrary action on the api-router schema."""
+        return {}

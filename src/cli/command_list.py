@@ -1,3 +1,8 @@
+"""
+Entry point for the qne command-line.
+Creates the typer app and its commands
+"""
+
 from pathlib import Path
 from typing import List, Optional
 
@@ -155,6 +160,7 @@ def applications_validate() -> None:
 def experiments_create(
     name: str = typer.Argument(..., help="Name of the experiment."),
     application: str = typer.Argument(..., help="Name of the application."),
+    network_name: str = typer.Argument(..., help="Name of the network to use."),
     local: bool = typer.Option(
         True, "--local/--remote", help="Run the application locally."
     ),
@@ -162,10 +168,21 @@ def experiments_create(
     """
     Create new experiment.
     """
-    typer.echo(f"Create experiment: '{name}' for application: '{application}'.")
-    processor.experiments_create(name=name, application=application, local=local)
-    typer.echo("Experiment created successfully.")
+    cwd = Path.cwd()
+    typer.echo(f"Create experiment: '{name}' with network: '{network_name}' for application: '{application}'.")
 
+    is_app_valid, validation_message = processor.applications_validate(application)
+
+    if is_app_valid:
+        success, message = processor.experiments_create(name=name, application=application, network_name=network_name,
+                                                        local=local, path=cwd)
+        if success:
+            typer.echo("Experiment created successfully.")
+        else:
+            typer.echo("Experiment could not be created. " + message)
+    else:
+        typer.echo(f"The application {application} is not valid. " + validation_message)
+        typer.echo("You can use the application validate command to check the application.")
 
 @experiments_app.command("list")
 def experiments_list() -> None:
@@ -192,7 +209,7 @@ def experiments_delete() -> None:
 @experiments_app.command("run")
 def experiments_run(
     block: bool = typer.Option(
-        True, "--block", help="Wait for the result to be returned."
+        False, "--block", help="Wait for the result to be returned."
     )
 ) -> None:
     """
@@ -214,8 +231,11 @@ def experiments_validate() -> None:
     """
     cwd = Path.cwd()
     typer.echo(f"Validate experiment at '{cwd}'.")
-    processor.experiments_validate(path=cwd)
-    typer.echo("Experiment is valid.")
+    is_valid, message = processor.experiments_validate(path=cwd)
+    if is_valid:
+        typer.echo("Experiment is valid.")
+    else:
+        typer.echo("Experiment is not valid. " + message)
 
 
 @experiments_app.command("results")
@@ -232,7 +252,8 @@ def experiments_results(
     """
     result_noun = "results" if all_results else "result"
     typer.echo(f"Get {result_noun} for this experiment.")
-    results = processor.experiments_results(all_results=all_results, show=show)
+    cwd = Path.cwd()
+    results = processor.experiments_results(all_results=all_results, show=show, path=cwd)
     if show:
         for result in results:
             typer.echo(result)

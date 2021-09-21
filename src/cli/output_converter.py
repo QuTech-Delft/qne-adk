@@ -1,6 +1,6 @@
 from typing import List
 
-from cli.types import ResultType
+from cli.type_aliases import ResultType
 
 
 class OutputConverter:
