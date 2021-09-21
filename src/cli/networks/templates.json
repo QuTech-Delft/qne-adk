@@ -8,7 +8,9 @@
           "name": "fidelity",
           "default_value": 1.0,
           "minimum_value": 0.5,
-          "maximum_value": 1.0
+          "maximum_value": 1.0,
+          "unit": "",
+          "scale_value": 1.0
         }
       ],
       "input_type": "fidelity_slider"
@@ -21,7 +23,9 @@
           "name": "gate_fidelity",
           "default_value": 1.0,
           "minimum_value": 0.5,
-          "maximum_value": 1.0
+          "maximum_value": 1.0,
+          "unit": "",
+          "scale_value": 1.0
         }
       ],
       "input_type": "fidelity_slider"
@@ -34,7 +38,9 @@
           "name": "t1",
           "default_value": 0,
           "minimum_value": 0,
-          "maximum_value": 1000
+          "maximum_value": 1000,
+          "unit": "milliseconds",
+          "scale_value": 1.0
         }
       ],
       "input_type": "time"
@@ -47,7 +53,9 @@
           "name": "t2",
           "default_value": 0,
           "minimum_value": 0,
-          "maximum_value": 1000
+          "maximum_value": 1000,
+          "unit": "milliseconds",
+          "scale_value": 1.0
         }
       ],
       "input_type": "time"
