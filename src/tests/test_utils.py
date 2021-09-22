@@ -2,13 +2,36 @@ from pathlib import Path
 from unittest.mock import patch, mock_open
 import unittest
 
-from cli.utils import read_json_file, reorder_data, get_network_nodes, get_dummy_application, get_py_dummy
+from cli.utils import read_json_file, write_json_file, reorder_data, get_network_nodes, get_dummy_application, \
+                      get_py_dummy, write_file
 from cli.exceptions import MalformedJsonFile
 
 class TestUtils(unittest.TestCase):
 
     def setUp(self) -> None:
-        pass
+        self.path = Path("dummy")
+
+    def test_read_json_file(self):
+        with patch("cli.utils.open") as open_mock, \
+             patch("cli.utils.json.load") as json_load_mock:
+
+            read_json_file(self.path)
+            open_mock.assert_called_once()
+            json_load_mock.assert_called_once()
+
+    def test_write_json_file(self):
+        with patch("cli.utils.open") as open_mock, \
+             patch("cli.utils.json.dump") as json_dump_mock:
+
+            write_json_file(self.path, {})
+            open_mock.assert_called_once()
+            json_dump_mock.assert_called_once()
+
+    def test_write_file(self):
+        with patch("cli.utils.open") as open_mock:
+
+            write_file(self.path, {})
+            open_mock.assert_called_once()
 
     def test_read_json_file_valid(self):
         dummy_apps_config = "{" \

@@ -5,16 +5,14 @@ class MalformedJsonFile(Exception):
 class ApplicationAlreadyExists(Exception):
     """ Raised when application name is not unique and already exists in .qne/application.json"""
 
-    def __init__(self) -> None:
-        # Call the base class constructor with the parameters it needs
-        super().__init__("Application already exists with the same name. Please delete the existing version or rename "
-                         "the current")
+    def __init__(self, application: str) -> None:
+        super().__init__(f"Application '{application}' already exists. Please delete the existing application or "
+                         f"rename the one that you are trying to create")
 
 
 class NoNetworkAvailable(Exception):
     """ Raised when there is no networks available with the amount nodes compared with the amount of roles"""
 
     def __init__(self) -> None:
-        # Call the base class constructor with the parameters it needs
-        super().__init__("No network available which contains enough nodes for every roll. Please lower the amount of "
-                         "roles given as input parameter")
+        super().__init__("No network available which contains enough nodes for all the roles. Please lower the amount "
+                         "of roles")

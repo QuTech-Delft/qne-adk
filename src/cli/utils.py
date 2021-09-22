@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 import json
 import logging
 from cli.exceptions import MalformedJsonFile
-
+from cli.settings import BASE_DIR
 
 def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
     """
@@ -27,15 +27,32 @@ def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
         raise MalformedJsonFile(exception) from exception
 
 
-def write_json_file(file: Path, data: Any) -> None:
+def write_json_file(file: Path, data: Any, encoding: str = 'utf-8') -> None:
     """
     Open the 'file' & write the 'data' to the 'file'
 
     Args:
         file: Path specifying the json file to be written to
         data: Data to be written to file
+        encoding: Encoding format in which to open the file
 
     """
+
+    with open(file, mode="w", encoding=encoding) as fp:
+        json.dump(data, fp, indent=4)
+
+def write_file(file: Path, data: Any, encoding: str = 'utf-8') -> None:
+    """
+     Open the 'file' & write the 'data' to the 'file'
+
+    Args:
+        file: Path specifying the file to be written to
+        data: Data to be written to file
+        encoding: Encoding format in which to open the file
+    """
+
+    with open(file, mode="w", encoding=encoding) as fp:
+        fp.write(data)
 
 
 def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) -> List[Dict[str, Any]]:
@@ -58,8 +75,16 @@ def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) 
     return reordered_data
 
 def get_network_nodes() -> Dict[str, List[str]]:
-    networks_file = Path.cwd() / "src/cli/networks/networks.json"
-    channels_file = Path.cwd() / "src/cli/networks/channels.json"
+    """
+    Loops trough all the networks in networks/networks.json and gets all the nodes within this network.
+
+    returns:
+    Returns a dict of networks, each having their own list including the nodes:
+    E.g.: {"randstad": ["leiden", "amsterdam", "the_hague"], "the-netherlands": ["etc..",]}
+
+    """
+    networks_file = Path(BASE_DIR) / "networks/networks.json"
+    channels_file = Path(BASE_DIR) / "networks/channels.json"
 
     # Read network and see which are available
     network_nodes: Dict[str, List[str]] = {}

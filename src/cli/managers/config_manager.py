@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
-import json
-from cli.utils import read_json_file
+from cli.utils import read_json_file, write_json_file
+import logging
+
 
 
 class ConfigManager:
@@ -23,19 +24,16 @@ class ConfigManager:
         app_config_file = self.__config_dir / "applications.json"
 
         # Read json file
-        with open(app_config_file, mode="r", encoding="utf-8") as fp:
-            apps = json.load(fp)
+        apps = read_json_file(app_config_file)
 
         # Store the app path
         apps[application] = {'path': str(path)}
-        with open(app_config_file, mode="w", encoding="utf-8") as fp:
-            json.dump(apps, fp, indent=4)
+        write_json_file(app_config_file, apps)
 
     def __check_and_create_config(self) -> bool:
         app_config_file = Path.home() / ".qne/applications.json"
         if not app_config_file.exists():
-            with open(app_config_file, mode="w", encoding="utf-8") as fp:
-                json.dump({}, fp, indent=4)
+            write_json_file(app_config_file, {})
             return True
         return False
 
@@ -78,20 +76,20 @@ class ConfigManager:
 
         """
 
-        # Loop through .qne/applications.json to see if name exists
+        if self.__check_and_create_config():
+            return False
 
         app_config_file = Path.home() / ".qne/applications.json"
 
-        with open(app_config_file, mode="r", encoding="utf-8") as application_json:
-            data = json.load(application_json)
+        data = read_json_file(app_config_file)
 
         for key in data:
             if key == application:
-                return False
+                return True
 
-        return True
+        return False
 
-    def remote_application_exists(self, application: str) ->  int:
+    def remote_application_exists(self, application: str) -> int:
         """
         Check if the application is already created on remote
         by checking the remote_id field in the config file.

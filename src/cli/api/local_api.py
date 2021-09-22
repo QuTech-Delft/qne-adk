@@ -1,6 +1,5 @@
 from typing import List, Optional, Tuple
 from pathlib import Path
-import json
 import shutil
 from cli import utils
 
@@ -35,12 +34,10 @@ class LocalApi:
         if self.__is_application_unique(application):
             self.__create_application_structure(application, roles, path)
         else:
-            raise ApplicationAlreadyExists()
+            raise ApplicationAlreadyExists(application)
 
     def init_application(self, path: Path) -> None:
-        # Find out application name & roles from the files in 'path'
-        application = ''
-        roles = ['', '']
+        pass
 
     def __create_application_structure(
         self, application: str, roles: List[str], path: Path
@@ -64,40 +61,39 @@ class LocalApi:
         config_dir.mkdir(parents=True, exist_ok=True)
 
         for role in roles:
-            with open(app_dir / f"app_{role}.py", 'w', encoding="utf-8") as py_file:
-                py_file.write(utils.get_py_dummy())
+            utils.write_file(app_dir / f"app_{role}.py", utils.get_py_dummy())
 
         for config in ["network", "application", "result"]:
-            with open(config_dir / f"{config}.json", "w", encoding="utf-8") as fp:
-                if config == "network":
+            if config == "network":
 
-                    networks = {"networks": [], "roles": roles}
-                    temp_list = []
+                networks = {"networks": [], "roles": roles}
+                temp_list = []
 
-                    for network in utils.get_network_nodes().items():
-                        if len(roles) <= len(network[1]):
-                            temp_list.append(network[0])
-                        networks["networks"] = temp_list
+                # Check if the network there are more network nodes available for this network compared to the
+                # amount of roles given by the user
+                for network in utils.get_network_nodes().items():
+                    if len(roles) <= len(network[1]):
+                        temp_list.append(network[0])
+                    networks["networks"] = temp_list
 
-                    if not networks["networks"]:
-                        # Remove already created application structure
-                        shutil.rmtree(path / application)
-                        raise NoNetworkAvailable()
+                if not networks["networks"]:
+                    # Remove already created application structure
+                    shutil.rmtree(path / application)
+                    raise NoNetworkAvailable()
 
-                    json.dump(networks, fp, indent=4)
+                utils.write_json_file(config_dir / f"{config}.json", networks)
 
-                elif config == "application":
-                    data = utils.get_dummy_application()
-                    for item in data["application"]:
-                        item["roles"] = roles
+            elif config == "application":
+                data = utils.get_dummy_application()
+                for item in data["application"]:
+                    item["roles"] = roles
 
-                    json.dump(data, fp, indent=4)
+                utils.write_json_file(config_dir / f"{config}.json", data)
 
-                elif config == "result":
-                    json.dump({}, fp, indent=4)
+            elif config == "result":
+                utils.write_json_file(config_dir / f"{config}.json", {})
 
-        with open(path / application / "MANIFEST.ini", "w", encoding="utf-8") as fp:
-            pass
+        utils.write_file(path / application / "MANIFEST.ini", "")
 
         self.__config_manager.add_application(application, path)
 

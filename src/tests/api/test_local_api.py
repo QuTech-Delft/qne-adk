@@ -48,6 +48,8 @@ class TestLocalApi(unittest.TestCase):
              patch("cli.api.local_api.utils.get_dummy_application") as get_dummy_application_mock, \
              patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
              patch("cli.api.local_api.json.dump") as json_dump_mock, \
+             patch("cli.api.local_api.utils.write_json_file") as write_json_file_mock, \
+             patch("cli.api.local_api.utils.write_file") as write_file_mock, \
              patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as application_unique_mock, \
              patch.object(ConfigManager, 'add_application', return_value=10) as config_manager_mock:
 
@@ -57,8 +59,10 @@ class TestLocalApi(unittest.TestCase):
 
             application_unique_mock.assert_called_once_with(self.application)
             config_manager_mock.assert_called_once_with(self.application, self.path)
-            self.assertEqual(open_mock.call_count, 4 + len(self.roles))
+            self.assertEqual(write_file_mock.call_count, 1 + len(self.roles))
             self.assertEqual(mock_mkdir.call_count, 2)
+            write_json_file_mock.call_count = 3
+            write_file_mock.call_count = 2
             check_network_nodes_mock.assert_called_once()
             get_dummy_application_mock.assert_called_once()
             application_unique_mock.assert_called_once_with(self.application)
@@ -73,9 +77,11 @@ class TestLocalApi(unittest.TestCase):
 
     def test_is_application_unique(self):
         with patch.object(LocalApi, "_LocalApi__create_application_structure", return_value=True) as structure_mock, \
-             patch.object(ConfigManager, "application_exists", return_value=True) as application_exists_mock:
+             patch.object(ConfigManager, "application_exists") as application_exists_mock:
 
-            self.local_api.create_application(self.application, self.roles, self.path)
+            application_exists_mock.return_value = True
+            self.assertRaises(ApplicationAlreadyExists, self.local_api.create_application, self.application, self.roles,
+                                                                                          self.path)
             application_exists_mock.assert_called_once_with(self.application)
 
             structure_mock.reset_mock()
@@ -97,7 +103,11 @@ class TestLocalApi(unittest.TestCase):
             is_config_valid_mock.assert_called_once_with(self.application)
 
     def test__is_structure_valid(self):
-        self.local_api.is_application_valid(application=self.application)
+        with patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as \
+             is_application_unique_mock:
+            self.local_api.is_application_valid(application=self.application)
+            is_application_unique_mock.assert_called_once_with(self.application)
+
 
     def test__is_config_valid(self):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True),\
