@@ -42,12 +42,10 @@ class TestLocalApi(unittest.TestCase):
             structure_mock.assert_called_once_with(self.application, self.roles, self.path)
 
     def test__create_application_structure(self):
-        with patch("cli.api.local_api.open") as open_mock, \
-             patch('cli.api.local_api.Path.mkdir') as mock_mkdir, \
+        with patch('cli.api.local_api.Path.mkdir') as mock_mkdir, \
              patch("cli.api.local_api.utils.get_network_nodes") as check_network_nodes_mock, \
              patch("cli.api.local_api.utils.get_dummy_application") as get_dummy_application_mock, \
              patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
-             patch("cli.api.local_api.json.dump") as json_dump_mock, \
              patch("cli.api.local_api.utils.write_json_file") as write_json_file_mock, \
              patch("cli.api.local_api.utils.write_file") as write_file_mock, \
              patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as application_unique_mock, \
@@ -67,7 +65,6 @@ class TestLocalApi(unittest.TestCase):
             get_dummy_application_mock.assert_called_once()
             application_unique_mock.assert_called_once_with(self.application)
             config_manager_mock.assert_called_once_with(self.application, self.path)
-            json_dump_mock.call_count = 3
 
             # Raise exception when no network available
             check_network_nodes_mock.return_value = {}
