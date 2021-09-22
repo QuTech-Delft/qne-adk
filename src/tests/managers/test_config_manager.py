@@ -68,15 +68,15 @@ class TestConfigManager(unittest.TestCase):
     def test__check_and_create_config(self):
         with patch("cli.utils.write_json_file") as write_json_file_mock, \
              patch("cli.utils.read_json_file") as read_json_file_mock, \
-             patch("cli.managers.config_manager.Path.exists") as mock_exists:
+             patch("cli.managers.config_manager.Path.is_file") as mock_is_file:
 
-            mock_exists.return_value = False
+            mock_is_file.return_value = False
             self.config_manager.application_exists(self.application)
-            mock_exists.assert_called_once()
+            mock_is_file.assert_called_once()
             write_json_file_mock.assert_called_once()
 
-            mock_exists.reset_mock()
-            mock_exists.return_value = True
+            mock_is_file.reset_mock()
+            mock_is_file.return_value = True
             self.config_manager.application_exists(self.application)
-            mock_exists.assert_called_once()
+            mock_is_file.assert_called_once()
             read_json_file_mock.assert_called_once()

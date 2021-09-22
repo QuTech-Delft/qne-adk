@@ -32,7 +32,8 @@ class ConfigManager:
 
     def __check_and_create_config(self) -> bool:
         app_config_file = Path.home() / ".qne/applications.json"
-        if not app_config_file.exists():
+
+        if not app_config_file.is_file():
             write_json_file(app_config_file, {})
             return True
         return False
