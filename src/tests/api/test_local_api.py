@@ -222,4 +222,3 @@ class TestLocalApi(unittest.TestCase):
             self.local_api.get_results(path=Path('dummy'), all_results=False)
             get_rounds_mock.assert_called_once_with(Path('dummy'))
             convert_mock.assert_called_once_with(4, [])
-            
