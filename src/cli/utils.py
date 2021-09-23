@@ -24,7 +24,7 @@ def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
         with open(file, encoding=encoding) as fp:
             return json.load(fp)
     except json.decoder.JSONDecodeError as exception:
-        logging.error('The file %s does not contain valid json. Error: %s',file, exception)
+        logging.error('The file %s does not contain valid json. Error: %s', file, exception)
         raise MalformedJsonFile(exception) from exception
 
 def write_json_file(file: Path, data: Any) -> None:

@@ -35,10 +35,10 @@ class ConfigManager:
             for app_name, app_data in applications.items():
                 app_data['name'] = app_name
                 application_list.append(app_data)
-            return application_list
-
-        logging.info('The configuration file %s was not found. '
+        else:
+            logging.info('The configuration file %s was not found. '
                      'Maybe, you haven\'t created any local applications yet?', applications_config)
+
         return application_list
 
     def application_exists(self, application: str) -> bool:
