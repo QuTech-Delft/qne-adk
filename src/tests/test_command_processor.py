@@ -43,31 +43,6 @@ class TestCommandProcessor(unittest.TestCase):
             self.processor.applications_validate(self.application)
             is_application_valid_mock.assert_called_once_with(self.application)
 
-    def test_applications_list(self):
-        with patch.object(RemoteApi, "list_applications") as remote_list_mock, \
-         patch.object(LocalApi, "list_applications") as local_list_mock:
-            remote_list_mock.return_value = self.remote_List
-            local_list_mock.return_value = self.local_list
-
-            app_list = self.processor.applications_list(remote=True, local=True)
-            remote_list_mock.assert_called_once()
-            local_list_mock.assert_called_once()
-            self.assertEqual(len(app_list), 5)
-
-            remote_list_mock.reset_mock()
-            local_list_mock.reset_mock()
-            app_list = self.processor.applications_list(remote=False, local=True)
-            remote_list_mock.assert_not_called()
-            local_list_mock.assert_called_once()
-            self.assertEqual(len(app_list), 3)
-
-            remote_list_mock.reset_mock()
-            local_list_mock.reset_mock()
-            app_list = self.processor.applications_list(remote=True, local=False)
-            remote_list_mock.assert_called_once()
-            local_list_mock.assert_not_called()
-            self.assertEqual(len(app_list), 2)
-
     def test_experiments_create_local(self):
         with patch.object(LocalApi, "experiments_create") as create_exp_mock, \
             patch.object(LocalApi, "get_application_config") as get_config_mock, \
@@ -149,6 +124,8 @@ class TestCommandProcessor(unittest.TestCase):
         with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
             patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
 
+            remote_list_applications_mock.return_value = self.remote_List
+            local_list_applications_mock.return_value = self.local_list
             applications = self.processor.applications_list(remote=True, local=True)
 
             local_list_applications_mock.assert_called_once()
@@ -156,11 +133,15 @@ class TestCommandProcessor(unittest.TestCase):
 
             self.assertIn('local', applications)
             self.assertIn('remote', applications)
+            self.assertEqual(len(applications), 2)
+            self.assertEqual(len(applications['local']), 3)
+            self.assertEqual(len(applications['remote']), 2)
 
     def test_applications_list_local(self):
         with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
             patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
 
+            local_list_applications_mock.return_value = self.local_list
             applications = self.processor.applications_list(remote=False, local=True)
 
             local_list_applications_mock.assert_called_once()
@@ -168,11 +149,14 @@ class TestCommandProcessor(unittest.TestCase):
 
             self.assertIn('local', applications)
             self.assertNotIn('remote', applications)
+            self.assertEqual(len(applications), 1)
+            self.assertEqual(len(applications['local']), 3)
 
     def test_applications_list_remote(self):
         with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
             patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
 
+            remote_list_applications_mock.return_value = self.remote_List
             applications = self.processor.applications_list(remote=True, local=False)
 
             remote_list_applications_mock.assert_called_once()
@@ -180,3 +164,5 @@ class TestCommandProcessor(unittest.TestCase):
 
             self.assertIn('remote', applications)
             self.assertNotIn('local', applications)
+            self.assertEqual(len(applications), 1)
+            self.assertEqual(len(applications['remote']), 2)

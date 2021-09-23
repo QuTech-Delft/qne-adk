@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import cast, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi

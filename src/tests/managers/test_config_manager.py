@@ -3,7 +3,6 @@ from unittest.mock import patch
 import unittest
 
 from cli.managers.config_manager import ConfigManager
-from cli.settings import Settings
 
 
 class TestConfigManager(unittest.TestCase):

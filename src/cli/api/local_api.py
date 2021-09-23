@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import cast, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
@@ -32,9 +32,6 @@ class LocalApi:
         self, application: str, roles: List[str], path: Path
     ) -> None:
         self.__config_manager.add_application(application, path)
-
-    def list_applications(self) -> List[ApplicationType]:
-        return self.__config_manager.get_applications()
 
     def __is_application_unique(self, application: str) -> bool:
         """
