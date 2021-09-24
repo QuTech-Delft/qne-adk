@@ -6,6 +6,7 @@ Creates the typer app and its commands
 import logging
 from pathlib import Path
 from typing import List, Optional
+from tabulate import tabulate
 
 import typer
 from typer import Typer
@@ -15,6 +16,7 @@ from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
 from cli.settings import Settings
+from cli.utils import reorder_data
 
 app = Typer()
 applications_app = Typer()
@@ -113,10 +115,10 @@ def applications_upload() -> None:
 @applications_app.command("list")
 def applications_list(
     remote: Optional[bool] = typer.Option(
-        False, "--remote", help="Only list remote applications."
+        False, "--remote", help="List remote applications."
     ),
     local: Optional[bool] = typer.Option(
-        False, "--local", help="Only list local applications."
+        False, "--local", help="List local applications."
     ),
 ) -> None:
     """
@@ -136,16 +138,19 @@ def applications_list(
             typer.echo("There are no local applications available.")
         else:
             typer.echo(f"{len(applications['local'])} local application(s).")
-            for application in applications['local']:
-                typer.echo(application['name'])
+            desired_order_columns = ['name', 'application_id', 'path']
+            local_app_list = reorder_data(applications['local'], desired_order_columns)
+            typer.echo(tabulate(local_app_list, headers='keys'))
+            typer.echo()
 
     if 'remote' in applications:
         if len(applications['remote']) == 0:
             typer.echo("There are no remote applications available.")
         else:
             typer.echo(f"{len(applications['remote'])} remote application(s).")
-            for application in applications['remote']:
-                typer.echo(application['name'])
+            desired_order_columns = ['name', 'application_id', 'path']
+            remote_app_list = reorder_data(applications['remote'], desired_order_columns)
+            typer.echo(tabulate(remote_app_list, headers='keys'))
 
 
 @applications_app.command("publish")

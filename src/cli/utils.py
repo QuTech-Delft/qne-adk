@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List
 
 from cli.exceptions import MalformedJsonFile
 
@@ -36,3 +36,21 @@ def write_json_file(file: Path, data: Any) -> None:
         data: Data to be written to file
 
     """
+
+def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) -> List[Dict[str, Any]]:
+    """
+    Reorder keys in each dictionary of the original_data so that they are in the order
+    specified in the desired_order parameter
+
+    Args:
+        original_data: A list containing dictionaries whose keys need to be reordered
+        desired_order: A list with key names, specified in the desired order
+
+    Returns:
+        A List of dictionaries where each dictionary contains keys in the desired order
+    """
+    reordered_data = []
+    for item in original_data:
+        reordered_item = {key: item.get(key, '-') for key in desired_order}
+        reordered_data.append(reordered_item)
+    return reordered_data

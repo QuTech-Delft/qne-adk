@@ -47,10 +47,10 @@ class LocalApi:
 
     def list_applications(self) -> List[ApplicationType]:
         """
-        Function to list the local applications
+        Function to list the applications
 
         Returns:
-            A list of local applications
+            A list of applications
         """
         local_applications = self.__config_manager.get_applications()
         return local_applications
