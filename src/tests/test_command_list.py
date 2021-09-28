@@ -1,5 +1,4 @@
 import unittest
-
 from unittest.mock import patch
 from typer.testing import CliRunner
 
@@ -7,12 +6,21 @@ from cli.command_list import app, applications_app, experiments_app
 from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
 
+
 class TestCommandList(unittest.TestCase):
 
     def setUp(self):
         self.application = 'test_application'
         self.roles = ["role1, role2"]
         self.runner = CliRunner()
+        self.app_dict_1 = {'remote': [], 'local': []}
+        self.app_dict_2 = {'remote': [{'name': 'foo'}, {'name': 'bar'}], 'local': []}
+        self.app_dict_3 = {'remote': [], 'local': [{'name': 'foo'}]}
+        self.app_dict_4 = {'remote': [{'name': 'bar'}], 'local': [{'name': 'foo'}]}
+        self.app_dict_5 = {'local': []}
+        self.app_dict_6 = {'local': [{'name': 'foo'}, {'name': 'bar'}]}
+        self.app_dict_7 = {'remote': []}
+        self.app_dict_8 = {'remote': [{'name': 'foo'}, {'name': 'bar'}]}
 
     def test_login(self):
         with patch.object(CommandProcessor, "login") as login_mock:
@@ -61,31 +69,6 @@ class TestCommandList(unittest.TestCase):
             applications_validate_mock.assert_called_once_with(application=self.application)
             self.assertEqual(application_validate_output.exit_code, 0)
             self.assertIn('Application is valid.', application_validate_output.stdout)
-
-    def test_application_list(self):
-        with patch.object(CommandProcessor, "applications_list") as list_mock:
-            list_mock.return_value = ['app1', 'app2']
-
-            list_output = self.runner.invoke(applications_app, ['list'])
-            self.assertEqual(list_output.exit_code, 0)
-            list_mock.assert_called_once_with(remote=True, local=True)
-            self.assertIn('app1', list_output.stdout)
-            self.assertIn('app2', list_output.stdout)
-
-            list_mock.reset_mock()
-            list_output = self.runner.invoke(applications_app, ['list', '--remote'])
-            self.assertEqual(list_output.exit_code, 0)
-            list_mock.assert_called_once_with(remote=True, local=False)
-
-            list_mock.reset_mock()
-            list_output = self.runner.invoke(applications_app, ['list', '--local'])
-            self.assertEqual(list_output.exit_code, 0)
-            list_mock.assert_called_once_with(remote=False, local=True)
-
-            list_mock.reset_mock()
-            list_output = self.runner.invoke(applications_app, ['list', '--local', '--remote'])
-            self.assertEqual(list_output.exit_code, 0)
-            list_mock.assert_called_once_with(remote=True, local=True)
 
     def test_experiment_create(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
@@ -173,3 +156,65 @@ class TestCommandList(unittest.TestCase):
             exp_results_mock.assert_called_once_with(all_results=True, show=True, path='test')
             self.assertEqual(exp_results_output.exit_code, 0)
             self.assertIn("r1\nr2", exp_results_output.stdout)
+
+    def test_applications_list(self):
+        with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
+            list_applications_mock.side_effect = [self.app_dict_1, self.app_dict_2,
+                                                  self.app_dict_3, self.app_dict_4]
+
+            result_both = self.runner.invoke(applications_app, ['list'])
+            self.assertEqual(result_both.exit_code, 0)
+            self.assertIn('There are no local applications available.', result_both.stdout)
+            self.assertIn('There are no remote applications available.', result_both.stdout)
+
+            result_both = self.runner.invoke(applications_app, ['list'])
+            self.assertEqual(result_both.exit_code, 0)
+            self.assertIn('There are no local applications available.', result_both.stdout)
+            self.assertIn('2 remote application(s).', result_both.stdout)
+            self.assertIn('foo',result_both.stdout)
+            self.assertIn('bar', result_both.stdout)
+
+            result_both = self.runner.invoke(applications_app, ['list'])
+            self.assertEqual(result_both.exit_code, 0)
+            self.assertIn('1 local application(s).', result_both.stdout)
+            self.assertIn('foo', result_both.stdout)
+            self.assertIn('There are no remote applications available.', result_both.stdout)
+
+            result_both = self.runner.invoke(applications_app, ['list'])
+            self.assertEqual(result_both.exit_code, 0)
+            self.assertIn('1 local application(s).', result_both.stdout)
+            self.assertIn('1 remote application(s).', result_both.stdout)
+            self.assertIn('foo',result_both.stdout)
+            self.assertIn('bar', result_both.stdout)
+
+    def test_applications_list_local(self):
+        with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
+            list_applications_mock.side_effect = [self.app_dict_5, self.app_dict_6]
+
+            result_local = self.runner.invoke(applications_app, ['list', '--local'])
+            self.assertEqual(result_local.exit_code, 0)
+            self.assertIn('There are no local applications available.', result_local.stdout)
+            self.assertNotIn('remote', result_local.stdout)
+
+            result_local = self.runner.invoke(applications_app, ['list', '--local'])
+            self.assertEqual(result_local.exit_code, 0)
+            self.assertIn('2 local application(s).', result_local.stdout)
+            self.assertIn('foo', result_local.stdout)
+            self.assertIn('bar', result_local.stdout)
+            self.assertNotIn('remote', result_local.stdout)
+
+    def test_applications_list_remote(self):
+        with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
+            list_applications_mock.side_effect = [self.app_dict_7, self.app_dict_8]
+
+            result_remote = self.runner.invoke(applications_app, ['list', '--remote'])
+            self.assertEqual(result_remote.exit_code, 0)
+            self.assertIn('There are no remote applications available.', result_remote.stdout)
+            self.assertNotIn('local', result_remote.stdout)
+
+            result_remote = self.runner.invoke(applications_app, ['list', '--remote'])
+            self.assertEqual(result_remote.exit_code, 0)
+            self.assertIn('2 remote application(s).', result_remote.stdout)
+            self.assertIn('foo', result_remote.stdout)
+            self.assertIn('bar', result_remote.stdout)
+            self.assertNotIn('local', result_remote.stdout)

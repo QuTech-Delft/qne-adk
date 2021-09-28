@@ -1,5 +1,9 @@
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+from cli.utils import read_json_file
+
 
 class ConfigManager:
     def __init__(self, config_dir: Path):
@@ -17,8 +21,25 @@ class ConfigManager:
     def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:
         return "key", {}
 
-    def get_applications(self) -> List[Dict[str, str]]:
-        return [{}]
+    def get_applications(self) -> List[Dict[str, Any]]:
+        """
+        Reads the applications.json config file for getting the local applications
+
+        Returns:
+            A list of applications available in the config file
+        """
+        applications_config = self.__config_dir / 'applications.json'
+        application_list = []
+        if applications_config.is_file():
+            applications = read_json_file(applications_config)
+            for app_name, app_data in applications.items():
+                app_data['name'] = app_name
+                application_list.append(app_data)
+        else:
+            logging.info('The configuration file %s was not found. '
+                     'Maybe, you haven\'t created any local applications yet?', applications_config)
+
+        return application_list
 
     def application_exists(self, application: str) -> bool:
         return True

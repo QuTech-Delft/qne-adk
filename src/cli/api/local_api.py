@@ -33,9 +33,6 @@ class LocalApi:
     ) -> None:
         self.__config_manager.add_application(application, path)
 
-    def list_applications(self) -> List[ApplicationType]:
-        return self.__config_manager.get_applications()
-
     def __is_application_unique(self, application: str) -> bool:
         """
         Calls config_manager.application_exists() to check if the application name already exists in the
@@ -46,8 +43,17 @@ class LocalApi:
         Args:
             application: application name
         """
-
         return not self.__config_manager.application_exists(application)
+
+    def list_applications(self) -> List[ApplicationType]:
+        """
+        Function to list the applications
+
+        Returns:
+            A list of applications
+        """
+        local_applications = self.__config_manager.get_applications()
+        return local_applications
 
     # Todo: Update confluence scenario diagram since application_unique() and structure_valid() are swapped
     def is_application_valid(self, application: str) -> Tuple[bool, str]:

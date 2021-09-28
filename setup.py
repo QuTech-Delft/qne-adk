@@ -62,9 +62,9 @@ setup(
     ],
     license="Apache 2.0",
     packages=find_packages(where="src", exclude=["*tests*"]),
-    install_requires=["typer[all]", "netqasm", "pydantic"],
+    install_requires=["typer[all]", "netqasm", "pydantic", "tabulate"],
     extras_require={
-        "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort"],
+        "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort", "types-tabulate"],
         "rtd": [
             "sphinx",
             "sphinx_rtd_theme",
