@@ -51,6 +51,12 @@ class TestLocalApi(unittest.TestCase):
             check_config_exists_mock.assert_called_once()
             create_config_mock.assert_called_once()
 
+            # Raise ApplicationAlreadyExists when application is not unique
+            is_application_unique_mock.return_value = False, None
+            self.assertRaises(ApplicationAlreadyExists, self.local_api.create_application, self.application, self.roles,
+                              self.path)
+
+
     def test__create_application_structure(self):
         with patch('cli.api.local_api.Path.mkdir') as mock_mkdir, \
              patch("cli.api.local_api.utils.get_network_nodes") as check_network_nodes_mock, \
@@ -85,8 +91,10 @@ class TestLocalApi(unittest.TestCase):
 
     def test_is_application_unique(self):
         with patch.object(LocalApi, "_LocalApi__create_application_structure", return_value=True) as structure_mock, \
+             patch.object(ConfigManager, "check_config_exists") as check_config_exists_mock, \
              patch.object(ConfigManager, "application_exists") as application_exists_mock:
 
+            check_config_exists_mock.return_value = True
             application_exists_mock.return_value = True, self.path
             self.assertRaises(ApplicationAlreadyExists, self.local_api.create_application, self.application, self.roles,
                               self.path)
