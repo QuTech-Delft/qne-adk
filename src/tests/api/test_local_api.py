@@ -32,14 +32,24 @@ class TestLocalApi(unittest.TestCase):
 
     def test_create_application(self):
         with patch.object(LocalApi, "_LocalApi__is_application_unique") as is_application_unique_mock, \
+             patch.object(ConfigManager, "check_config_exists") as check_config_exists_mock, \
+             patch.object(ConfigManager, "create_config") as create_config_mock, \
              patch.object(LocalApi, "_LocalApi__create_application_structure") as structure_mock:
 
-            is_application_unique_mock.return_value = True
+            check_config_exists_mock.return_value = True
+            is_application_unique_mock.return_value = True, self.path
             structure_mock.return_value = True
             self.local_api.create_application(self.application, self.roles, self.path)
 
             is_application_unique_mock.assert_called_once_with(self.application)
             structure_mock.assert_called_once_with(self.application, self.roles, self.path)
+
+            # create_config should be called when check_config_exists returns false
+            check_config_exists_mock.reset_mock()
+            check_config_exists_mock.return_value = False
+            self.local_api.create_application(self.application, self.roles, self.path)
+            check_config_exists_mock.assert_called_once()
+            create_config_mock.assert_called_once()
 
     def test__create_application_structure(self):
         with patch('cli.api.local_api.Path.mkdir') as mock_mkdir, \
@@ -53,6 +63,7 @@ class TestLocalApi(unittest.TestCase):
 
             check_network_nodes_mock.return_value = {"dummy_network": ["network1", "network2", "network3"]}
             get_dummy_application_mock.return_value = {'application': [{'roles': ['dummy_role']}]}
+            application_unique_mock.return_value = True, self.path
             self.local_api.create_application(self.application, self.roles, self.path)
 
             application_unique_mock.assert_called_once_with(self.application)
@@ -76,14 +87,14 @@ class TestLocalApi(unittest.TestCase):
         with patch.object(LocalApi, "_LocalApi__create_application_structure", return_value=True) as structure_mock, \
              patch.object(ConfigManager, "application_exists") as application_exists_mock:
 
-            application_exists_mock.return_value = True
+            application_exists_mock.return_value = True, self.path
             self.assertRaises(ApplicationAlreadyExists, self.local_api.create_application, self.application, self.roles,
-                                                                                          self.path)
+                              self.path)
             application_exists_mock.assert_called_once_with(self.application)
 
             structure_mock.reset_mock()
             application_exists_mock.reset_mock()
-            application_exists_mock.return_value = False
+            application_exists_mock.return_value = False, None
             self.local_api.create_application(self.application, self.roles, self.path)
             structure_mock.assert_called_once_with(self.application, self.roles, self.path)
             application_exists_mock.assert_called_once_with(self.application)

@@ -46,37 +46,25 @@ class TestConfigManager(unittest.TestCase):
             write_json_file_mock.assert_called_once()
 
     def test_application_exists(self):
-        with patch("cli.utils.read_json_file") as read_json_file_mock, \
-             patch.object(ConfigManager, "_ConfigManager__check_and_create_config") as check_and_create_config_mock:
+        with patch("cli.utils.read_json_file") as read_json_file_mock:
 
-            # Return True because application equals key value
-            check_and_create_config_mock.return_value = False
-            read_json_file_mock.return_value = {"test_application": "test_application"}
+            # Return True when application equals key value
+            read_json_file_mock.return_value = {"test_application": {"path": "path"}}
             self.assertTrue(self.config_manager.application_exists(application=self.application))
-            check_and_create_config_mock.assert_called_once()
             read_json_file_mock.assert_called_once()
-
-            # Return False when __check_and_create_config returns True
-            check_and_create_config_mock.return_value = True
-            self.assertFalse(self.config_manager.application_exists(application=self.application))
 
             # Return False when key is not in application
-            check_and_create_config_mock.return_value = False
+            read_json_file_mock.reset_mock()
             read_json_file_mock.return_value = {}
-            self.assertFalse(self.config_manager.application_exists(application=self.application))
+            self.assertEqual(self.config_manager.application_exists(application=self.application), (False, None))
 
-    def test__check_and_create_config(self):
-        with patch("cli.utils.write_json_file") as write_json_file_mock, \
-             patch("cli.utils.read_json_file") as read_json_file_mock, \
-             patch("cli.managers.config_manager.Path.is_file") as mock_is_file:
+    def test_check_config_exists(self):
+        with patch("cli.managers.config_manager.Path.is_file") as mock_is_file:
 
-            mock_is_file.return_value = False
-            self.config_manager.application_exists(self.application)
+            self.config_manager.check_config_exists()
             mock_is_file.assert_called_once()
-            write_json_file_mock.assert_called_once()
 
-            mock_is_file.reset_mock()
-            mock_is_file.return_value = True
-            self.config_manager.application_exists(self.application)
-            mock_is_file.assert_called_once()
-            read_json_file_mock.assert_called_once()
+    def test_create_config(self):
+        with patch("cli.utils.write_json_file") as write_json_file_mock:
+            self.config_manager.create_config()
+            write_json_file_mock.assert_called_once_with(self.config_manager.app_config_file, {})

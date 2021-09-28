@@ -10,12 +10,14 @@ class TestUtils(unittest.TestCase):
 
     def setUp(self) -> None:
         self.path = Path("dummy")
+        self.roles = ["role1", "role2"]
 
     def test_read_json_file(self):
         with patch("cli.utils.open") as open_mock, \
              patch("cli.utils.json.load") as json_load_mock:
 
-            read_json_file(self.path)
+            json_load_mock.return_value = {"correct": "json"}
+            self.assertEqual(read_json_file(self.path), {"correct": "json"})
             open_mock.assert_called_once()
             json_load_mock.assert_called_once()
 
@@ -159,7 +161,7 @@ class TestUtils(unittest.TestCase):
             json_load_mock.call_count = 2
 
     def test_get_dummy_application(self):
-        get_dummy_application()
+        get_dummy_application(self.roles)
 
     def test_get_py_dummy(self):
         get_py_dummy()

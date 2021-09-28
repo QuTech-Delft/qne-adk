@@ -4,6 +4,8 @@ import json
 import logging
 from cli.exceptions import MalformedJsonFile
 from cli.settings import BASE_DIR
+from cli.exceptions import JSONLoadInvalid
+
 
 def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
     """
@@ -19,6 +21,7 @@ def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
     Raises:
         MalformedJsonFile: If the file contains invalid json
     """
+
     try:
         with open(file, encoding=encoding) as fp:
             return json.load(fp)
@@ -39,7 +42,7 @@ def write_json_file(file: Path, data: Any, encoding: str = 'utf-8') -> None:
     """
 
     with open(file, mode="w", encoding=encoding) as fp:
-        json.dump(data, fp, indent=4)
+        json.dump(data, fp, indent=2)
 
 def write_file(file: Path, data: Any, encoding: str = 'utf-8') -> None:
     """
@@ -88,48 +91,44 @@ def get_network_nodes() -> Dict[str, List[str]]:
 
     # Read network and see which are available
     network_nodes: Dict[str, List[str]] = {}
-    with open(networks_file, "r", encoding="utf-8") as networks_fp:
-        data_networks = json.load(networks_fp)
-        with open(channels_file, "r", encoding="utf-8") as channels_fp:
-            data_channels = json.load(channels_fp)
-            for network in data_networks["networks"]:
-                for channel in data_channels["channels"]:
-                    if channel["slug"] in data_networks["networks"][network]["channels"]:
-                        if data_networks["networks"][network]["slug"] not in network_nodes:
-                            network_nodes[data_networks["networks"][network]["slug"]] = []
-                        lst = network_nodes[data_networks["networks"][network]["slug"]]
-                        if channel["node1"] not in lst:
-                            lst.append(channel["node1"])
-                        if channel["node2"] not in lst:
-                            lst.append(channel["node2"])
-                        network_nodes[data_networks["networks"][network]["slug"]] = lst
+
+    data_networks = read_json_file(networks_file)
+    data_channels = read_json_file(channels_file)
+
+    for network in data_networks["networks"]:
+        for channel in data_channels["channels"]:
+            if channel["slug"] in data_networks["networks"][network]["channels"]:
+                if data_networks["networks"][network]["slug"] not in network_nodes:
+                    network_nodes[data_networks["networks"][network]["slug"]] = []
+                lst = network_nodes[data_networks["networks"][network]["slug"]]
+                if channel["node1"] not in lst:
+                    lst.append(channel["node1"])
+                if channel["node2"] not in lst:
+                    lst.append(channel["node2"])
 
     return network_nodes
 
 
-def get_dummy_application() -> Dict[str, Any]:
+def get_dummy_application(roles: List[Any]) -> Dict[str, Any]:
     dummy_application = {
-        "application": [
+      "application": [
+        {
+          "title": "Title for this application",
+          "description": "Description of this application",
+          "values": [
             {
-                "title": "Title for this input parameter",
-                "slug": "slug_for_this_input",
-                "description": "Description of this input",
-                "values": [
-                    {
-                        "name": "x",
-                        "default_value": 0,
-                        "minimum_value": 0,
-                        "maximum_value": 1,
-                        "unit": "",
-                        "scale_value": 1.0
-                    }
-                ],
-                "input_type": "number",
-                "roles": [
-                    "role1_given_in_command"
-                ]
+              "name": "x",
+              "default_value": 0,
+              "minimum_value": 0,
+              "maximum_value": 1,
+              "unit": "",
+              "scale_value": 1.0
             }
-        ]
+          ],
+          "input_type": "number",
+          "roles": roles
+        }
+      ]
     }
 
     return dummy_application

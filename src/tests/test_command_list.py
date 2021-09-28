@@ -5,6 +5,7 @@ from typer.testing import CliRunner
 from cli.command_list import app, applications_app, experiments_app
 from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
+from cli.exceptions import NotEnoughRoles, InvalidApplicationName, InvalidRoleName
 
 
 class TestCommandList(unittest.TestCase):
@@ -41,6 +42,18 @@ class TestCommandList(unittest.TestCase):
             self.assertEqual(logout_output.exit_code, 0)
             self.assertIn('Log out succeeded.', logout_output.stdout)
 
+    #
+    # if len(roles) == 1:
+    #     raise NotEnoughRoles()
+    #
+    # invalid_chars = ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
+    # if any(char in application for char in invalid_chars):
+    #     raise InvalidApplicationName(application)
+    #
+    # for role in roles:
+    #     if any(char in role for char in invalid_chars):
+    #         raise InvalidRoleName(role)
+
     def test_applications_create(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd,\
              patch.object(CommandProcessor, 'applications_create') as application_create_mock:
@@ -53,6 +66,32 @@ class TestCommandList(unittest.TestCase):
             application_create_mock.assert_called_once()
             self.assertEqual(application_create_output.exit_code, 0)
             self.assertIn('Application successfully created.', application_create_output.stdout)
+
+            # Raise NotEnoughRoles when only one or less roles are given
+            self.runner.invoke(applications_app, ['create', 'test_application', 'role1'])
+            self.assertRaises(NotEnoughRoles)
+
+            # Raise InvalidApplicationName when the application name is invalid contains ['/', '\\', '*', ':', '?',
+            # '"', '<', '>', '|']
+            self.runner.invoke(applications_app, ['create', 'test_application/2', 'role1', 'role2'])
+            self.assertRaises(InvalidApplicationName)
+
+            self.runner.invoke(applications_app, ['create', 'test*application', 'role1', 'role2'])
+            self.assertRaises(InvalidApplicationName)
+
+            self.runner.invoke(applications_app, ['create', 'test\\application', 'role1', 'role2'])
+            self.assertRaises(InvalidApplicationName)
+
+            # Raise InvalidRoleName when one of the roles contains ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
+            self.runner.invoke(applications_app, ['create', 'test_application', 'role/1', 'role2'])
+            self.assertRaises(InvalidRoleName)
+
+            self.runner.invoke(applications_app, ['create', 'test_application', 'role1', 'role/2'])
+            self.assertRaises(InvalidRoleName)
+
+            self.runner.invoke(applications_app, ['create', 'test_application', 'role*1', 'role2'])
+            self.assertRaises(InvalidRoleName)
+
 
     def test_applications_validate(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \

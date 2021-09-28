@@ -31,10 +31,14 @@ class LocalApi:
             ApplicationAlreadyExists: Raised when application name is not unique
         """
 
-        if self.__is_application_unique(application):
+        if not self.__config_manager.check_config_exists():
+            self.__config_manager.create_config()
+
+        is_unique, existing_app_path = self.__is_application_unique(application)
+        if is_unique:
             self.__create_application_structure(application, roles, path)
         else:
-            raise ApplicationAlreadyExists(application)
+            raise ApplicationAlreadyExists(application, existing_app_path)
 
     def init_application(self, path: Path) -> None:
         pass
@@ -55,7 +59,7 @@ class LocalApi:
         """
 
         # code to create the local application in root dir
-        app_dir = path / application / "src"
+        app_dir = Path(path, application, "src")
         config_dir = path / application / "config"
         app_dir.mkdir(parents=True, exist_ok=True)
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -63,41 +67,38 @@ class LocalApi:
         for role in roles:
             utils.write_file(app_dir / f"app_{role}.py", utils.get_py_dummy())
 
-        for config in ["network", "application", "result"]:
-            if config == "network":
+        # Network.json configuration
+        networks = {"networks": [], "roles": roles}
+        temp_list = []
 
-                networks = {"networks": [], "roles": roles}
-                temp_list = []
+        # Check if the network there are more network nodes available for this network compared to the
+        # amount of roles given by the user
+        for network in utils.get_network_nodes().items():
+            if len(roles) <= len(network[1]):
+                temp_list.append(network[0])
 
-                # Check if the network there are more network nodes available for this network compared to the
-                # amount of roles given by the user
-                for network in utils.get_network_nodes().items():
-                    if len(roles) <= len(network[1]):
-                        temp_list.append(network[0])
-                    networks["networks"] = temp_list
+        networks["networks"] = temp_list
 
-                if not networks["networks"]:
-                    # Remove already created application structure
-                    shutil.rmtree(path / application)
-                    raise NoNetworkAvailable()
+        # Remove already created application structure
+        if not networks["networks"]:
+            shutil.rmtree(path / application)
+            raise NoNetworkAvailable()
 
-                utils.write_json_file(config_dir / f"{config}.json", networks)
+        utils.write_json_file(config_dir / "network.json", networks)
 
-            elif config == "application":
-                data = utils.get_dummy_application()
-                for item in data["application"]:
-                    item["roles"] = roles
+        # Application.json configuration
+        data = utils.get_dummy_application(roles)
+        utils.write_json_file(config_dir / "application.json", data)
 
-                utils.write_json_file(config_dir / f"{config}.json", data)
+        # Result.json configuration
+        utils.write_json_file(config_dir / "result.json", {})
 
-            elif config == "result":
-                utils.write_json_file(config_dir / f"{config}.json", {})
-
+        # Manifest.ini configuration
         utils.write_file(path / application / "MANIFEST.ini", "")
 
         self.__config_manager.add_application(application, path)
 
-    def __is_application_unique(self, application: str) -> bool:
+    def __is_application_unique(self, application: str) -> Tuple[bool, str]:
         """
         Calls config_manager.application_exists() to check if the application name already exists in the
         .qne/application.json root file. Here, all application names are added when an application is created.
@@ -107,7 +108,9 @@ class LocalApi:
         Args:
             application: application name
         """
-        return not self.__config_manager.application_exists(application)
+
+        is_unique, path = self.__config_manager.application_exists(application)
+        return not is_unique, path
 
     def list_applications(self) -> List[ApplicationType]:
         """

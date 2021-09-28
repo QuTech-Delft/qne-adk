@@ -17,6 +17,7 @@ from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
 from cli.settings import Settings
 from cli.utils import reorder_data
+from cli.exceptions import NotEnoughRoles, InvalidApplicationName, InvalidRoleName
 
 app = Typer()
 applications_app = Typer()
@@ -69,6 +70,21 @@ def applications_create(
     """
     Create new application. e.g.: qne application create application_name role1 role2
     """
+
+    if len(roles) <= 1:
+        raise NotEnoughRoles()
+
+    invalid_chars = ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
+    if any(char in application for char in invalid_chars):
+        raise InvalidApplicationName(application)
+
+    for role in roles:
+        if any(char in role for char in invalid_chars):
+            raise InvalidRoleName(role)
+
+    # Lowercase roles
+    roles = [role.lower() for role in roles]
+
     cwd = Path.cwd()
     typer.echo(f"Create application '{application}' in directory '{cwd}'.")
     processor.applications_create(application=application, roles=roles, path=cwd)

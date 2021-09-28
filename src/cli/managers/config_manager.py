@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
 from cli.utils import read_json_file, write_json_file
@@ -8,6 +9,7 @@ import logging
 class ConfigManager:
     def __init__(self, config_dir: Path):
         self.__config_dir = config_dir
+        self.app_config_file = self.__config_dir / "applications.json"
 
     def add_application(self, application: str, path: Path) -> None:
         """
@@ -21,22 +23,26 @@ class ConfigManager:
 
         """
 
-        app_config_file = self.__config_dir / "applications.json"
-
         # Read json file
-        apps = read_json_file(app_config_file)
+        apps = read_json_file(self.app_config_file)
 
         # Store the app path
-        apps[application] = {'path': str(path)}
-        write_json_file(app_config_file, apps)
+        apps[application] = {'path': os.path.join(str(path), application) + "/"}
+        write_json_file(self.app_config_file, apps)
 
-    def __check_and_create_config(self) -> bool:
-        app_config_file = Path.home() / ".qne/applications.json"
+    def check_config_exists(self) -> bool:
+        """ Checks if the application.json config file exists in the .qne/ root directory. Returns True when it does
+        exist, False if not.
 
-        if not app_config_file.is_file():
-            write_json_file(app_config_file, {})
-            return True
-        return False
+        return:
+        bool: True if 'app_config_file' exists, False if not
+
+        """
+        return self.app_config_file.is_file()
+
+    def create_config(self) -> None:
+        """ Creates the application.json config file in the .qne/ root directory"""
+        write_json_file(self.app_config_file, {})
 
     def delete_application(self, application: str) -> None:
         pass
@@ -67,28 +73,23 @@ class ConfigManager:
 
         return application_list
 
-    def application_exists(self, application: str) -> bool:
+    def application_exists(self, application: str) -> Tuple[bool, Any]:
         """
-        Checks if the application name already exists in .qne/application.json for unique purposes. If the file is
-        non-existing, the application won't exist and returns True. If it does exist, return False, else True.
+        Checks if the application name already exists in .qne/application.json for unique purposes. Returns True when
+        the application does exists. Else, return False.
 
         Args:
             application: the application name
 
         """
 
-        if self.__check_and_create_config():
-            return False
-
-        app_config_file = Path.home() / ".qne/applications.json"
-
-        data = read_json_file(app_config_file)
+        data = read_json_file(self.app_config_file)
 
         for key in data:
             if key == application:
-                return True
+                return True, data[key]['path']
 
-        return False
+        return False, None
 
     def remote_application_exists(self, application: str) -> int:
         """
