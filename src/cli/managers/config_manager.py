@@ -1,9 +1,8 @@
 import os
+import logging
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
 from cli.utils import read_json_file, write_json_file
-import logging
-
 
 
 class ConfigManager:

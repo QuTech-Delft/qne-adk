@@ -1,8 +1,6 @@
 from pathlib import Path
-from unittest.mock import patch
 import unittest
 from unittest.mock import patch
-
 from cli.managers.config_manager import ConfigManager
 
 
@@ -11,7 +9,7 @@ class TestConfigManager(unittest.TestCase):
         self.path = Path("dummy")
         self.config_manager = ConfigManager(config_dir=self.path)
         self.application = 'test_application'
-        dummy_apps_config_dict = { "app_1" : {}, "app_2" : {} }
+        dummy_apps_config_dict = {"app_1": {}, "app_2": {}}
 
         with patch('pathlib.Path.is_file',return_value=True), \
              patch('cli.managers.config_manager.read_json_file',return_value=dummy_apps_config_dict):
@@ -27,26 +25,24 @@ class TestConfigManager(unittest.TestCase):
             self.assertEqual(len(apps), 0)
 
     def test_add_application(self):
-        with patch("cli.managers.config_manager.open", create=True) as mock_open, \
-             patch("cli.utils.write_json_file") as write_json_file_mock, \
-             patch("cli.utils.read_json_file") as read_json_file_mock:
+        with patch("cli.managers.config_manager.write_json_file") as write_json_file_mock, \
+             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
 
-            self.config_manager.add_application(application="application", path=Path('path/to/application'))
-            mock_open.call_count = 2
+            self.config_manager.add_application(application=self.application, path=self.path)
             read_json_file_mock.assert_called_once()
             write_json_file_mock.assert_called_once()
 
     def test_get_application_from_path(self):
         self.config_manager.get_application_from_path(self.path)
-        with patch("cli.utils.write_json_file") as write_json_file_mock, \
-             patch("cli.utils.read_json_file") as read_json_file_mock:
+        with patch("cli.managers.config_manager.write_json_file") as write_json_file_mock, \
+             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
 
-            self.config_manager.add_application(application="application", path=Path('path/to/application'))
+            self.config_manager.add_application(application=self.application, path=self.path)
             read_json_file_mock.assert_called_once()
             write_json_file_mock.assert_called_once()
 
     def test_application_exists(self):
-        with patch("cli.utils.read_json_file") as read_json_file_mock:
+        with patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
 
             # Return True when application equals key value
             read_json_file_mock.return_value = {"test_application": {"path": "path"}}
@@ -65,6 +61,6 @@ class TestConfigManager(unittest.TestCase):
             mock_is_file.assert_called_once()
 
     def test_create_config(self):
-        with patch("cli.utils.write_json_file") as write_json_file_mock:
+        with patch("cli.managers.config_manager.write_json_file") as write_json_file_mock:
             self.config_manager.create_config()
             write_json_file_mock.assert_called_once_with(self.config_manager.app_config_file, {})

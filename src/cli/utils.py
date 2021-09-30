@@ -4,7 +4,6 @@ import json
 import logging
 from cli.exceptions import MalformedJsonFile
 from cli.settings import BASE_DIR
-from cli.exceptions import JSONLoadInvalid
 
 
 def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:

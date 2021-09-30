@@ -168,5 +168,3 @@ class TestCommandProcessor(unittest.TestCase):
             self.assertNotIn('local', applications)
             self.assertEqual(len(applications), 1)
             self.assertEqual(len(applications['remote']), 2)
-
-

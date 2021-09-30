@@ -42,18 +42,6 @@ class TestCommandList(unittest.TestCase):
             self.assertEqual(logout_output.exit_code, 0)
             self.assertIn('Log out succeeded.', logout_output.stdout)
 
-    #
-    # if len(roles) == 1:
-    #     raise NotEnoughRoles()
-    #
-    # invalid_chars = ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
-    # if any(char in application for char in invalid_chars):
-    #     raise InvalidApplicationName(application)
-    #
-    # for role in roles:
-    #     if any(char in role for char in invalid_chars):
-    #         raise InvalidRoleName(role)
-
     def test_applications_create(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd,\
              patch.object(CommandProcessor, 'applications_create') as application_create_mock:

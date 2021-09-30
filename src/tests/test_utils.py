@@ -6,20 +6,12 @@ from cli.utils import read_json_file, write_json_file, reorder_data, get_network
                       get_py_dummy, write_file
 from cli.exceptions import MalformedJsonFile
 
+
 class TestUtils(unittest.TestCase):
 
     def setUp(self) -> None:
         self.path = Path("dummy")
         self.roles = ["role1", "role2"]
-
-    def test_read_json_file(self):
-        with patch("cli.utils.open") as open_mock, \
-             patch("cli.utils.json.load") as json_load_mock:
-
-            json_load_mock.return_value = {"correct": "json"}
-            self.assertEqual(read_json_file(self.path), {"correct": "json"})
-            open_mock.assert_called_once()
-            json_load_mock.assert_called_once()
 
     def test_write_json_file(self):
         with patch("cli.utils.open") as open_mock, \
@@ -74,7 +66,6 @@ class TestUtils(unittest.TestCase):
             for i, key in enumerate(desired_order):
                 self.assertIn(key, item)
                 self.assertEqual(key_list[i], key)
-
 
     def test_get_network_nodes(self):
         with patch("cli.utils.Path.cwd") as cwd_mock, \
