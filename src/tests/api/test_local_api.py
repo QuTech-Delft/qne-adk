@@ -56,7 +56,6 @@ class TestLocalApi(unittest.TestCase):
             self.assertRaises(ApplicationAlreadyExists, self.local_api.create_application, self.application, self.roles,
                               self.path)
 
-
     def test__create_application_structure(self):
         with patch('cli.api.local_api.Path.mkdir') as mock_mkdir, \
              patch("cli.api.local_api.utils.get_network_nodes") as check_network_nodes_mock, \
@@ -65,8 +64,10 @@ class TestLocalApi(unittest.TestCase):
              patch("cli.api.local_api.utils.write_json_file") as write_json_file_mock, \
              patch("cli.api.local_api.utils.write_file") as write_file_mock, \
              patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as application_unique_mock, \
-             patch.object(ConfigManager, 'add_application', return_value=10) as config_manager_mock:
+             patch.object(ConfigManager, "check_config_exists") as check_config_exists_mock, \
+             patch.object(ConfigManager, 'add_application') as config_manager_mock:
 
+            check_config_exists_mock.return_value = True
             check_network_nodes_mock.return_value = {"dummy_network": ["network1", "network2", "network3"]}
             get_dummy_application_mock.return_value = {'application': [{'roles': ['dummy_role']}]}
             application_unique_mock.return_value = True, self.path
