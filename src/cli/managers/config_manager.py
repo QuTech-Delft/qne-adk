@@ -4,10 +4,9 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
 from cli.utils import read_json_file, write_json_file
-
-
 from cli.exceptions import ApplicationDoesntExist, JSONValidationError
 from cli.validators import validate_json_string
+
 
 class ConfigManager:
     def __init__(self, config_dir: Path):
@@ -64,7 +63,9 @@ class ConfigManager:
             if not data:
                 raise ApplicationDoesntExist()
             for app in data:
-                if data[app]['path'] == str(path):
+                print(data[app]['path'])
+                print(str(path))
+                if data[app]['path'] == str(path) + "/":
                     return (app, data[app])
                 else:
                     raise ApplicationDoesntExist()

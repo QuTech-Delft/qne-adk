@@ -1,10 +1,11 @@
+import os
+import cli.validators as validators
+import shutil
+
 from typing import List, Optional, Tuple
 from pathlib import Path
-import shutil
 from cli import utils
-import os
 
-import cli.validators as validators
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -14,6 +15,7 @@ from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkT
 from cli.utils import read_json_file, write_json_file
 from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable, ApplicationDirectoryNotComplete, \
                            ApplicationConfigNotComplete, ApplicationFilesNonExisting
+from cli.settings import BASE_DIR
 
 
 class LocalApi:
@@ -137,8 +139,8 @@ class LocalApi:
 
     def __is_config_valid(self, application: str) -> bool:
         # Validate if json string is correct and validate against json schema's
-        appconfig_path = Path("../schema/applications/appconfig.json")
-
+        appconfig_path = Path(BASE_DIR + "/schema/applications/application_schema.json")
+        print(appconfig_path)
         config_files = ["application.json", "network.json", "result.json"]
         for file in config_files:
             path = "config" / Path(file)
@@ -157,7 +159,7 @@ class LocalApi:
 
     def __is_structure_valid(self, application: str) -> bool:
         # Validate that the file structure is correct
-        files_to_be_checked = ["config", "application", "MANIFEST.ini"]
+        files_to_be_checked = ["config", "src", "MANIFEST.ini"]
         for item in files_to_be_checked:
             if not os.path.exists(item):
                 raise ApplicationDirectoryNotComplete()
@@ -170,7 +172,7 @@ class LocalApi:
 
         # Check if there is at least one python file for the role
         python_file_list = []
-        for file in os.listdir("application"):
+        for file in os.listdir("src"):
             if file.endswith(".py"):
                 python_file_list.append(file)
 
