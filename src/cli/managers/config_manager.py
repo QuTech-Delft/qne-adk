@@ -26,7 +26,7 @@ class ConfigManager:
         apps = read_json_file(self.app_config_file)
 
         # Store the app path
-        apps[application] = {'path': os.path.join(os.path.join(str(path), application), '')}
+        apps[application] = {'path': os.path.join(str(path), application, '')}
         write_json_file(self.app_config_file, apps)
 
     def check_config_exists(self) -> bool:

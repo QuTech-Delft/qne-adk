@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 import json
 import logging
-from cli.exceptions import MalformedJsonFile
+from cli.exceptions import MalformedJsonFile, InvalidPathName
 from cli.settings import BASE_DIR
 
 
@@ -137,3 +137,12 @@ def get_py_dummy() -> str:
     dummy_main = 'def main():\n    # Put your code here\n    return {}\n\n\nif __name__ == "__main__": \n    main()\n'
 
     return dummy_main
+
+
+def validate_path_name(obj: str, name: str) -> None:
+    """ Checks if the name of a certain object, can be used as part of a path.
+    An Exception is raised when name contains an incompatible character.
+    """
+    invalid_chars = ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
+    if any(char in name for char in invalid_chars):
+        raise InvalidPathName(obj)

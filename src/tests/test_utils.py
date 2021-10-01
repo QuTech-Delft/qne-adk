@@ -3,8 +3,8 @@ from unittest.mock import patch, mock_open
 import unittest
 
 from cli.utils import read_json_file, write_json_file, reorder_data, get_network_nodes, get_dummy_application, \
-                      get_py_dummy, write_file
-from cli.exceptions import MalformedJsonFile
+                      get_py_dummy, write_file, validate_path_name
+from cli.exceptions import MalformedJsonFile, InvalidPathName
 
 
 class TestUtils(unittest.TestCase):
@@ -12,6 +12,7 @@ class TestUtils(unittest.TestCase):
     def setUp(self) -> None:
         self.path = Path("dummy")
         self.roles = ["role1", "role2"]
+        self.invalid_name = "invalid/name"
 
     def test_write_json_file(self):
         with patch("cli.utils.open") as open_mock, \
@@ -156,3 +157,6 @@ class TestUtils(unittest.TestCase):
 
     def test_get_py_dummy(self):
         get_py_dummy()
+
+    def test_validate_path_name(self):
+        self.assertRaises(InvalidPathName, validate_path_name, "object", self.invalid_name)

@@ -30,10 +30,10 @@ class JSONLoadInvalid(Exception):
         super().__init__(f"Trying to load invalid JSON. File trying to load: '{path}'")
 
 
-class InvalidName(Exception):
+class InvalidPathName(Exception):
     """ Raised when one of the following characters are used in an input name ['/', '\', '*', ':', '?', '"', '<', '>',
     '|']"""
 
-    def __init__(self, name: str) -> None:
-        super().__init__(f"'{name}' can't contain any of the following characters: ['/', '\\', '*',"
+    def __init__(self, obj: str) -> None:
+        super().__init__(f"{obj} name can't contain any of the following characters: ['/', '\\', '*',"
                          f" ':', '?', '\"', '<', '>', '|']")

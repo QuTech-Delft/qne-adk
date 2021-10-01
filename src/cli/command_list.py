@@ -16,8 +16,8 @@ from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
 from cli.settings import Settings
-from cli.utils import reorder_data
-from cli.exceptions import NotEnoughRoles, InvalidName
+from cli.utils import reorder_data, validate_path_name
+from cli.exceptions import NotEnoughRoles
 
 app = Typer()
 applications_app = Typer()
@@ -74,13 +74,9 @@ def applications_create(
     if len(roles) <= 1:
         raise NotEnoughRoles()
 
-    invalid_chars = ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
-    if any(char in application for char in invalid_chars):
-        raise InvalidName(application)
-
+    validate_path_name("Application", application)
     for role in roles:
-        if any(char in role for char in invalid_chars):
-            raise InvalidName(role)
+        validate_path_name("Role", role)
 
     # Lowercase roles
     roles = [role.lower() for role in roles]
