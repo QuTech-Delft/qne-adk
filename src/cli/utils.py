@@ -134,6 +134,6 @@ def get_dummy_application(roles: List[Any]) -> Dict[str, Any]:
 
 
 def get_py_dummy() -> str:
-    dummy_main = 'def main():\n    # Put your code here\n    pass\n\n\nif __name__ == "__main__": \n    main()\n'
+    dummy_main = 'def main():\n    # Put your code here\n    return {}\n\n\nif __name__ == "__main__": \n    main()\n'
 
     return dummy_main

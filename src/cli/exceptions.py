@@ -5,7 +5,6 @@ class MalformedJsonFile(Exception):
 class ApplicationAlreadyExists(Exception):
     """ Raised when application name is not unique and already exists in .qne/application.json"""
 
-    # TODO: Can't they use application delete command instead of giving the path location?
     def __init__(self, application: str, path: str) -> None:
         super().__init__(f"Application '{application}' already exists. Application location: '{path}'")
 
@@ -21,7 +20,7 @@ class NotEnoughRoles(Exception):
     """ Raised when only one role is given"""
 
     def __init__(self) -> None:
-        super().__init__("The amount of roles must be higher than one")
+        super().__init__("The number of roles must be higher than one")
 
 
 class JSONLoadInvalid(Exception):
@@ -31,19 +30,10 @@ class JSONLoadInvalid(Exception):
         super().__init__(f"Trying to load invalid JSON. File trying to load: '{path}'")
 
 
-class InvalidApplicationName(Exception):
-    """ Raised when one of the following characters are used in the application name ['/', '\', '*', ':', '?', '"',
-        '<', '>', '|']"""
-
-    def __init__(self, application: str) -> None:
-        super().__init__(f"The application '{application}' cannot consist of the following characters: ['/', '\\', '*',"
-                         f" ':', '?', '\"', '<', '>', '|']")
-
-
-class InvalidRoleName(Exception):
-    """ Raised when one of the following characters are used in a role name ['/', '\', '*', ':', '?', '"', '<', '>',
+class InvalidName(Exception):
+    """ Raised when one of the following characters are used in an input name ['/', '\', '*', ':', '?', '"', '<', '>',
     '|']"""
 
-    def __init__(self, role: str) -> None:
-        super().__init__(f"Role name '{role}' cannot consist of the following characters: ['/', '\\', '*', ':', '?', "
-                         f"'\"', '<', '>', '|']")
+    def __init__(self, name: str) -> None:
+        super().__init__(f"'{name}' can't contain any of the following characters: ['/', '\\', '*',"
+                         f" ':', '?', '\"', '<', '>', '|']")

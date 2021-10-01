@@ -26,16 +26,15 @@ class ConfigManager:
         apps = read_json_file(self.app_config_file)
 
         # Store the app path
-        apps[application] = {'path': os.path.join(str(path), application) + "/"}
+        apps[application] = {'path': os.path.join(os.path.join(str(path), application), '')}
         write_json_file(self.app_config_file, apps)
 
     def check_config_exists(self) -> bool:
         """ Checks if the application.json config file exists in the .qne/ root directory. Returns True when it does
         exist, False if not.
 
-        return:
-        bool: True if 'app_config_file' exists, False if not
-
+        Returns:
+            True if app_config_file exists, False otherwise
         """
         return self.app_config_file.is_file()
 

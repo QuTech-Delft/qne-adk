@@ -59,7 +59,7 @@ class LocalApi:
         """
 
         # code to create the local application in root dir
-        app_dir = Path(path, application, "src")
+        app_dir = path / application / "src"
         config_dir = path / application / "config"
         app_dir.mkdir(parents=True, exist_ok=True)
         config_dir.mkdir(parents=True, exist_ok=True)

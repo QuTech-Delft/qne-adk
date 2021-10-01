@@ -17,7 +17,7 @@ from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
 from cli.settings import Settings
 from cli.utils import reorder_data
-from cli.exceptions import NotEnoughRoles, InvalidApplicationName, InvalidRoleName
+from cli.exceptions import NotEnoughRoles, InvalidName
 
 app = Typer()
 applications_app = Typer()
@@ -76,11 +76,11 @@ def applications_create(
 
     invalid_chars = ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
     if any(char in application for char in invalid_chars):
-        raise InvalidApplicationName(application)
+        raise InvalidName(application)
 
     for role in roles:
         if any(char in role for char in invalid_chars):
-            raise InvalidRoleName(role)
+            raise InvalidName(role)
 
     # Lowercase roles
     roles = [role.lower() for role in roles]
