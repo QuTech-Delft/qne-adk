@@ -23,10 +23,8 @@ def validate_json_schema(instance, file):
             json_schema = json.load(json_file)
             print(json_schema)
             if platform.system() == 'Windows':
-                print("in windows")
                 path = os.path.dirname(file)
                 json_schema_full_path = os.path.realpath(path).replace('\\', '/')
-                print(json_schema_full_path)
                 resolver = RefResolver(base_uri=f'file:///{json_schema_full_path}/', referrer=json_schema)
             else:
                 json_schema_full_path = os.path.realpath(file)

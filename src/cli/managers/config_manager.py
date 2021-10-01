@@ -63,12 +63,10 @@ class ConfigManager:
             if not data:
                 raise ApplicationDoesntExist()
             for app in data:
-                print(data[app]['path'])
-                print(str(path))
-                if data[app]['path'] == str(path) + "/":
-                    return (app, data[app])
-                else:
-                    raise ApplicationDoesntExist()
+                if data[app]['path'] == os.path.join(str(path) + "/"):
+                    return app, data[app]
+
+            raise ApplicationDoesntExist()
 
     def get_applications(self) -> List[Dict[str, Any]]:
         """
