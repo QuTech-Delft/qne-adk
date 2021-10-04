@@ -1,6 +1,9 @@
-from pathlib import Path
-from typing import Any, Dict, List
 import json
+import os
+from pathlib import Path
+import shutil
+from typing import Any, Dict, List
+
 from cli.exceptions import MalformedJsonFile, InvalidPathName
 from cli.settings import BASE_DIR
 
@@ -142,3 +145,134 @@ def validate_path_name(obj: str, name: str) -> None:
     invalid_chars = ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
     if any(char in name for char in invalid_chars):
         raise InvalidPathName(obj)
+
+def get_network_slug(network_name: str) -> str:
+    """
+    Get the slug associated with the network based on the name of the network
+
+    Args:
+        network_name: Name of the network
+
+    Returns:
+        The slug for the given network
+    """
+    return ''
+
+
+def get_network_name(network_slug: str) -> str:
+    """
+    Get the name associated with the network based on the slug of the network
+
+    Args:
+        network_slug: Slug of the network
+
+    Returns:
+        The Name for the given network
+    """
+    return ''
+
+
+def get_channels_for_network(network_slug: str) -> List[str]:
+    """
+    Get the list of channels available in the network
+
+    Args:
+        network_slug: Slug of the network
+
+    Returns:
+        List of channels
+    """
+    return [
+        "amsterdam-leiden",
+        "leiden-the-hague",
+        "delft-the-hague",
+        "delft-rotterdam"
+      ]
+
+
+def get_channel_info(channel_slug: str) -> Dict[str, Any]:
+    """
+    Get the channel information containing node & parameter information
+
+    Args:
+        channel_slug: Slug of the channel
+
+    Returns:
+        Channel information containing node & parameter information
+    """
+    return {
+      "slug": "amsterdam-leiden",
+      "node1": "amsterdam",
+      "node2": "leiden",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    }
+
+def get_node_info(node_slug: str) -> Dict[str, Any]:
+    """
+    Get the node information containing node parameters & qubit information
+
+    Args:
+        node_slug: Slug of the Node
+
+    Returns:
+        Node information containing node parameters & information
+    """
+    return {
+      "name": "Amsterdam",
+      "slug": "amsterdam",
+      "coordinates": {
+        "latitude": 52.3667,
+        "longitude": 4.8945
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    }
+
+def get_templates() -> Dict[str, Dict[str, Any]]:
+    """
+    Get all the templates information
+
+    Returns:
+        A dictionary containing key as template slug and value as template information
+    """
+    return {
+        "elementary-link-fidelity" : {
+              "title": "Elementary Link Fidelity",
+              "slug": "elementary-link-fidelity",
+              "values": [
+                {
+                  "name": "fidelity",
+                  "default_value": 1.0,
+                  "minimum_value": 0.5,
+                  "maximum_value": 1.0,
+                  "unit": "",
+                  "scale_value": 1.0
+                }
+              ],
+              "input_type": "fidelity_slider"
+            }
+    }
+
+
+def copy_files(source_dir: Path, destination_dir: Path) -> None:
+    """
+    Copy all the files from source directory to destination directory
+    No sub directories are copied
+
+    Args:
+        source_dir: directory from where files need to be copied
+        destination_dir: directory where files need to be copied to
+
+    """
+    for file_name in os.listdir(source_dir):
+        full_file_name = os.path.join(source_dir, file_name)
+        if os.path.isfile(full_file_name):
+            shutil.copy(full_file_name, destination_dir)

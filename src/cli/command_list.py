@@ -146,7 +146,7 @@ def applications_list(
 
     applications = processor.applications_list(remote=remote, local=local)
 
-    if 'local' in applications:
+    if local:
         if len(applications['local']) == 0:
             typer.echo("There are no local applications available.")
         else:
@@ -156,7 +156,7 @@ def applications_list(
             typer.echo(tabulate(local_app_list, headers='keys'))
             typer.echo()
 
-    if 'remote' in applications:
+    if remote:
         if len(applications['remote']) == 0:
             typer.echo("There are no remote applications available.")
         else:

@@ -11,9 +11,10 @@ from cli.output_converter import OutputConverter
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
                               app_configApplicationType, assetApplicationType, assetNetworkType,
                               ExperimentType, ResultType, ErrorDictType)
-from cli.utils import read_json_file, write_json_file
-from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
 from cli.settings import BASE_DIR
+from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
+from cli.utils import read_json_file, write_json_file, get_network_slug, get_channels_for_network, get_channel_info, \
+    get_network_nodes, get_node_info, copy_files, get_templates
 
 
 class LocalApi:
@@ -152,6 +153,19 @@ class LocalApi:
 
         return error_dict
 
+    def get_application_config(self, application: str) -> AppConfigType:
+        """
+        Get the configuration containing input, network and roles information for the application
+
+        Args:
+            application: Name of the application for which to get the configuration
+
+        Returns:
+            A dictionary containing application configuration information
+
+        """
+        app_details = self.__config_manager.get_application(application)
+
     def __is_config_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
         # Validate if json string is correct and validate against json schema's
         app_schema_path = Path(BASE_DIR) / "schema/applications"
@@ -237,7 +251,7 @@ class LocalApi:
 
         Args:
             name: Name of the experiment
-            app_config:
+            app_config: A dictionary containing application configuration information
             network_name: Name of the network to use
             path: Location where the experiment directory is to be created
             application: Name of the application for which to create experiment
@@ -265,7 +279,29 @@ class LocalApi:
             The complete network information with channels & nodes
 
         """
-        return {}
+
+        all_network_nodes = get_network_nodes()
+        channels_list = []
+        nodes_list = []
+
+        network_slug = get_network_slug(network_name)
+
+        if network_slug:
+            channels = get_channels_for_network(network_slug=network_slug)
+            for channel in channels:
+                channel_info = get_channel_info(channel)
+                channels_list.append(channel_info)
+
+            if network_slug in all_network_nodes:
+                for node_slug in all_network_nodes[network_slug]:
+                    nodes_list.append(get_node_info(node_slug=node_slug))
+
+        return {
+            "name": network_name,
+            "slug": network_slug,
+            "channels": channels_list,
+            "nodes": nodes_list,
+        }
 
     def create_experiment(
         self, name: str, app_config: AppConfigType, asset_network: assetNetworkType, path: Path, application: str
@@ -300,10 +336,90 @@ class LocalApi:
         return True, "Success"
 
     def __create_asset_application(self,  app_config: AppConfigType) -> assetApplicationType:
-        return []
+        """
+        Prepare the asset by filling the application input parameters with default values
 
-    def create_asset_network(self,  network_data: assetNetworkType, app_config: AppConfigType) ->  assetNetworkType:
-        return {}
+        Args:
+            app_config: A dictionary containing application configuration information
+
+        Returns:
+            Filled Application input parameters with default values
+
+        """
+        input_list = []
+        if "application" in app_config:
+            for input in app_config["application"]:
+                item = {
+                    "slug": input["slug"],
+                    "roles": input["roles"],
+                    "values": []
+                }
+                for value in input["values"]:
+                    value_item = {
+                        "name": value["name"],
+                        "value": value["default_value"],
+                        "scale_value": value["scale_value"]
+                    }
+                    item["values"].append(value_item)
+
+            input_list.append(item)
+
+        return input_list
+
+    def create_asset_network(self,  network_data: assetNetworkType, app_config: AppConfigType) -> assetNetworkType:
+        """
+        Prepare the asset by filling the network parameters with default values
+
+        Args:
+            app_config: A dictionary containing application configuration information
+
+        Returns:
+            Filled Network parameters with default values
+
+        """
+        # {
+        #     "name": network_name,
+        #     "slug": network_slug,
+        #     "channels": channels_list,
+        #     "nodes": nodes_list,
+        # }
+        templates = get_templates()
+        node_list = network_data["nodes"]
+        channel_list = network_data["channels"]
+
+        # Fill roles information
+        network_data["roles"] = {}
+        if "network" in app_config:
+            if "roles" in app_config["network"]:
+                role_list = app_config["network"]["roles"]
+                for index, role in enumerate(role_list):
+                    network_data["roles"][role] = node_list[index]["slug"]
+
+        # Fill channel info (parameters)
+        for channel in channel_list:
+            channel["filled_parameters"] = []
+            for param in channel["parameters"]:
+                filled_parameter_item = {
+                    "slug": param,
+                    "values": []
+                }
+                template_data_value = templates[param]["values"]
+                for val in template_data_value:
+                    item = {
+                        "name": val["name"],
+                        "value": val["default_value"],
+                        "scale_value": val["scale_value"]
+                    }
+                    filled_parameter_item["values"].append(item)
+
+                channel["filled_parameters"].append(filled_parameter_item)
+
+            channel["parameters"] = channel["filled_parameters"]
+            del channel["filled_parameters"]
+
+        # Fill Nodes info(Parameters)
+
+        return network_data
 
     def __copy_input_files_from_application(self,  application: str, input_directory: Path) -> None:
         """
@@ -314,6 +430,11 @@ class LocalApi:
             input_directory: The destination where application files need to be stored
 
         """
+        application_exists, app_path = self.__config_manager.application_exists(application=application)
+        app_path = Path(app_path)
+        if application_exists:
+            copy_files(app_path / "config", input_directory)
+            copy_files(app_path / "src", input_directory)
 
     def is_network_available(self, network_name: str, app_config: AppConfigType) -> bool:
         """
@@ -326,7 +447,13 @@ class LocalApi:
         Returns:
             bool: True if the given network name is available in application configuration, False otherwise
         """
-        return True
+        network_slug = get_network_slug(network_name)
+        if network_slug:
+            if "network" in app_config:
+                if network_slug in app_config["network"]:
+                    return True
+
+        return False
 
     def is_experiment_local(self, path: Path) -> bool:
         """
