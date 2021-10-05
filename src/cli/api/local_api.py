@@ -1,20 +1,20 @@
 import os
-import shutil
-
-from typing import List, Optional, Tuple
 from pathlib import Path
+import shutil
+from typing import Any, Dict, List, Optional, Tuple
+
 from cli import utils
-from cli.validators import validate_json_file, validate_json_schema
+from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
+from cli.settings import BASE_DIR
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
                               app_configApplicationType, assetApplicationType, assetNetworkType,
                               ExperimentType, ResultType, ErrorDictType)
-from cli.settings import BASE_DIR
-from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
 from cli.utils import read_json_file, write_json_file, get_network_slug, get_channels_for_network, get_channel_info, \
     get_network_nodes, get_node_info, copy_files, get_templates
+from cli.validators import validate_json_file, validate_json_schema
 
 
 class LocalApi:
@@ -288,9 +288,10 @@ class LocalApi:
 
         if network_slug:
             channels = get_channels_for_network(network_slug=network_slug)
-            for channel in channels:
-                channel_info = get_channel_info(channel)
-                channels_list.append(channel_info)
+            if channels:
+                for channel_slug in channels:
+                    channel_info = get_channel_info(channel_slug=channel_slug)
+                    channels_list.append(channel_info)
 
             if network_slug in all_network_nodes:
                 for node_slug in all_network_nodes[network_slug]:
@@ -348,13 +349,13 @@ class LocalApi:
         """
         input_list = []
         if "application" in app_config:
-            for input in app_config["application"]:
+            for input_param in app_config["application"]:
                 item = {
-                    "slug": input["slug"],
-                    "roles": input["roles"],
+                    "slug": input_param["slug"],
+                    "roles": input_param["roles"],
                     "values": []
                 }
-                for value in input["values"]:
+                for value in input_param["values"]:
                     value_item = {
                         "name": value["name"],
                         "value": value["default_value"],
@@ -366,23 +367,18 @@ class LocalApi:
 
         return input_list
 
-    def create_asset_network(self,  network_data: assetNetworkType, app_config: AppConfigType) -> assetNetworkType:
+    def create_asset_network(self, network_data: assetNetworkType, app_config: AppConfigType) -> assetNetworkType:
         """
         Prepare the asset by filling the network parameters with default values
 
         Args:
+            network_data: Network information containing channels and nodes list
             app_config: A dictionary containing application configuration information
 
         Returns:
             Filled Network parameters with default values
 
         """
-        # {
-        #     "name": network_name,
-        #     "slug": network_slug,
-        #     "channels": channels_list,
-        #     "nodes": nodes_list,
-        # }
         templates = get_templates()
         node_list = network_data["nodes"]
         channel_list = network_data["channels"]
@@ -391,35 +387,73 @@ class LocalApi:
         network_data["roles"] = {}
         if "network" in app_config:
             if "roles" in app_config["network"]:
-                role_list = app_config["network"]["roles"]
-                for index, role in enumerate(role_list):
+                for index, role in enumerate(app_config["network"]["roles"]):
                     network_data["roles"][role] = node_list[index]["slug"]
 
-        # Fill channel info (parameters)
+        # Fill channel information (parameters)
         for channel in channel_list:
             channel["filled_parameters"] = []
             for param in channel["parameters"]:
-                filled_parameter_item = {
-                    "slug": param,
-                    "values": []
-                }
-                template_data_value = templates[param]["values"]
-                for val in template_data_value:
-                    item = {
-                        "name": val["name"],
-                        "value": val["default_value"],
-                        "scale_value": val["scale_value"]
-                    }
-                    filled_parameter_item["values"].append(item)
-
+                filled_parameter_item = self.__get_filled_template_parameter(param=param, templates=templates)
                 channel["filled_parameters"].append(filled_parameter_item)
 
             channel["parameters"] = channel["filled_parameters"]
             del channel["filled_parameters"]
 
-        # Fill Nodes info(Parameters)
+        # Fill Nodes information (parameters)
+        for node in node_list:
+            node["filled_node_parameters"] = []
+            for param in node["node_parameters"]:
+                filled_parameter_item = self.__get_filled_template_parameter(param=param, templates=templates)
+                node["filled_node_parameters"].append(filled_parameter_item)
+
+            node["node_parameters"] = node["filled_node_parameters"]
+            del node["filled_node_parameters"]
+
+            number_of_qubits = node["number_of_qubits"]
+            node["qubits"] = []
+            for qubit_number in range(0, number_of_qubits):
+                qubit_item: Dict[str, Any] = {
+                    "qubit_id": qubit_number,
+                    "qubit_parameters": []
+                }
+                for param in node["qubit_parameters"]:
+                    filled_parameter_item = self.__get_filled_template_parameter(param=param, templates=templates)
+                    qubit_item["qubit_parameters"].append(filled_parameter_item)
+
+                node["qubits"].append(qubit_item)
+
+            del node["number_of_qubits"]
+            del node["qubit_parameters"]
 
         return network_data
+
+    def __get_filled_template_parameter(self, param: str, templates: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Prepare the template parameter by filling it with default values
+
+        Args:
+            param: Name of the template parameter
+            templates: A dictionary containing information for all template parameters
+
+        Returns:
+            Filled Template parameter with default values
+
+        """
+        filled_parameter_item: Dict[str, Any] = {
+            "slug": param,
+            "values": []
+        }
+        template_data_value = templates[param]["values"]
+        for val in template_data_value:
+            item = {
+                "name": val["name"],
+                "value": val["default_value"],
+                "scale_value": val["scale_value"]
+            }
+            filled_parameter_item["values"].append(item)
+
+        return filled_parameter_item
 
     def __copy_input_files_from_application(self,  application: str, input_directory: Path) -> None:
         """
@@ -450,8 +484,9 @@ class LocalApi:
         network_slug = get_network_slug(network_name)
         if network_slug:
             if "network" in app_config:
-                if network_slug in app_config["network"]:
-                    return True
+                if "networks" in app_config["network"]:
+                    if network_slug in app_config["network"]["networks"]:
+                        return True
 
         return False
 

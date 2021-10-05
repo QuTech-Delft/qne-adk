@@ -58,6 +58,21 @@ class TestCommandProcessor(unittest.TestCase):
             create_exp_mock.assert_called_once_with(name='test_exp', app_config={'foo': 'bar'},
                                                     network_name='network_1', path='test', application='app_name')
 
+            create_exp_mock.reset_mock()
+            get_config_mock.reset_mock()
+            get_config_mock.return_value = {'foo': 'bar'}
+            check_network_mock.reset_mock()
+            check_network_mock.return_value = False
+            experiment_created, message = self.processor.experiments_create(name='test_exp', application='app_name',
+                                                                            network_name='network_1', local=True,
+                                                                            path='test')
+            get_config_mock.assert_called_once_with('app_name')
+            check_network_mock.assert_called_once_with('network_1', {'foo': 'bar'})
+            create_exp_mock.assert_not_called()
+            self.assertFalse(experiment_created)
+            self.assertIn("The specified network 'network_1' does not exist.", message)
+
+
     def test_experiments_create_remote(self):
         success, message = self.processor.experiments_create(name='test_exp', application='app_name',
                                                              network_name='network_1', local=False, path='test')

@@ -2,10 +2,11 @@ import json
 import os
 from pathlib import Path
 import shutil
-from typing import Any, Dict, List
+from typing import Any, cast, Dict, List, Optional
 
 from cli.exceptions import MalformedJsonFile, InvalidPathName
 from cli.settings import BASE_DIR
+from cli.type_aliases import ChannelData, NetworkData, NodeData
 
 
 def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
@@ -146,7 +147,18 @@ def validate_path_name(obj: str, name: str) -> None:
     if any(char in name for char in invalid_chars):
         raise InvalidPathName(obj)
 
-def get_network_slug(network_name: str) -> str:
+def get_all_networks_data() -> NetworkData:
+    """
+    Get all the networks data from networks json file
+
+    Returns:
+
+    """
+    networks_file = Path(BASE_DIR) / "networks/networks.json"
+    network_data: NetworkData = read_json_file(networks_file)
+    return network_data
+
+def get_network_slug(network_name: str) -> Optional[str]:
     """
     Get the slug associated with the network based on the name of the network
 
@@ -156,10 +168,15 @@ def get_network_slug(network_name: str) -> str:
     Returns:
         The slug for the given network
     """
-    return ''
+    networks_data = get_all_networks_data()
 
+    for network, data in networks_data["networks"].items():
+        if data["name"] == network_name:
+            return network
 
-def get_network_name(network_slug: str) -> str:
+    return None
+
+def get_network_name(network_slug: str) -> Optional[str]:
     """
     Get the name associated with the network based on the slug of the network
 
@@ -169,10 +186,15 @@ def get_network_name(network_slug: str) -> str:
     Returns:
         The Name for the given network
     """
-    return ''
+    networks_data = get_all_networks_data()
 
+    for network, data in networks_data["networks"].items():
+        if network == network_slug:
+            return str(data["name"])
 
-def get_channels_for_network(network_slug: str) -> List[str]:
+    return None
+
+def get_channels_for_network(network_slug: str) -> Optional[List[str]]:
     """
     Get the list of channels available in the network
 
@@ -182,15 +204,14 @@ def get_channels_for_network(network_slug: str) -> List[str]:
     Returns:
         List of channels
     """
-    return [
-        "amsterdam-leiden",
-        "leiden-the-hague",
-        "delft-the-hague",
-        "delft-rotterdam"
-      ]
+    networks_data = get_all_networks_data()
+    for network, data in networks_data["networks"].items():
+        if network == network_slug:
+            return cast(List[str], data["channels"])
 
+    return None
 
-def get_channel_info(channel_slug: str) -> Dict[str, Any]:
+def get_channel_info(channel_slug: str) -> Optional[Dict[str, Any]]:
     """
     Get the channel information containing node & parameter information
 
@@ -200,16 +221,16 @@ def get_channel_info(channel_slug: str) -> Dict[str, Any]:
     Returns:
         Channel information containing node & parameter information
     """
-    return {
-      "slug": "amsterdam-leiden",
-      "node1": "amsterdam",
-      "node2": "leiden",
-      "parameters": [
-        "elementary-link-fidelity"
-      ]
-    }
+    channels_file = Path(BASE_DIR) / "networks/channels.json"
+    channels_data: ChannelData = read_json_file(channels_file)
 
-def get_node_info(node_slug: str) -> Dict[str, Any]:
+    for channel in channels_data["channels"]:
+        if channel["slug"] == channel_slug:
+            return channel
+
+    return None
+
+def get_node_info(node_slug: str) -> Optional[Dict[str, Any]]:
     """
     Get the node information containing node parameters & qubit information
 
@@ -219,22 +240,14 @@ def get_node_info(node_slug: str) -> Dict[str, Any]:
     Returns:
         Node information containing node parameters & information
     """
-    return {
-      "name": "Amsterdam",
-      "slug": "amsterdam",
-      "coordinates": {
-        "latitude": 52.3667,
-        "longitude": 4.8945
-      },
-      "node_parameters": [
-        "gate-fidelity"
-      ],
-      "number_of_qubits": 3,
-      "qubit_parameters": [
-        "relaxation-time",
-        "dephasing-time"
-      ]
-    }
+    nodes_file = Path(BASE_DIR) / "networks/nodes.json"
+    nodes_data: NodeData = read_json_file(nodes_file)
+
+    for node in nodes_data["nodes"]:
+        if node["slug"] == node_slug:
+            return node
+
+    return None
 
 def get_templates() -> Dict[str, Dict[str, Any]]:
     """
@@ -243,29 +256,14 @@ def get_templates() -> Dict[str, Dict[str, Any]]:
     Returns:
         A dictionary containing key as template slug and value as template information
     """
-    return {
-        "elementary-link-fidelity" : {
-              "title": "Elementary Link Fidelity",
-              "slug": "elementary-link-fidelity",
-              "values": [
-                {
-                  "name": "fidelity",
-                  "default_value": 1.0,
-                  "minimum_value": 0.5,
-                  "maximum_value": 1.0,
-                  "unit": "",
-                  "scale_value": 1.0
-                }
-              ],
-              "input_type": "fidelity_slider"
-            }
-    }
-
+    templates_file = Path(BASE_DIR) / "networks/templates.json"
+    templates_data = read_json_file(templates_file)
+    return {template["slug"]: template for template in templates_data["templates"]}
 
 def copy_files(source_dir: Path, destination_dir: Path) -> None:
     """
-    Copy all the files from source directory to destination directory
-    No sub directories are copied
+    Copy all the files from source directory to destination directory.
+    No sub directories are copied.
 
     Args:
         source_dir: directory from where files need to be copied

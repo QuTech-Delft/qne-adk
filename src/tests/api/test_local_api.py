@@ -1,6 +1,6 @@
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
@@ -312,3 +312,118 @@ class ApplicationValidate(unittest.TestCase):
             self.local_api.get_results(path=Path('dummy'), all_results=False)
             get_rounds_mock.assert_called_once_with(Path('dummy'))
             convert_mock.assert_called_once_with(4, [])
+
+    def test_is_network_available(self):
+        with patch("cli.api.local_api.get_network_slug") as get_network_slug_mock:
+            get_network_slug_mock.return_value = 'network-slug-1'
+            mock_app_config = {'application': [{'app': 'foo'}],
+                               'network': {'networks': ['network-slug-2', 'network-slug-1']}}
+            network_available = self.local_api.is_network_available('network name', mock_app_config)
+
+            get_network_slug_mock.assert_called_once_with('network name')
+            self.assertTrue(network_available)
+
+            get_network_slug_mock.reset_mock()
+            get_network_slug_mock.return_value = 'network-slug-unknown'
+            network_available = self.local_api.is_network_available('network name 1', mock_app_config)
+
+            get_network_slug_mock.assert_called_once_with('network name 1')
+            self.assertFalse(network_available)
+
+    def test_get_network_data(self):
+        with patch("cli.api.local_api.get_network_nodes") as get_network_nodes_mock, \
+         patch("cli.api.local_api.get_network_slug") as get_network_slug_mock, \
+         patch("cli.api.local_api.get_channels_for_network") as get_channels_for_network_mock, \
+         patch("cli.api.local_api.get_channel_info") as get_channel_info_mock, \
+         patch("cli.api.local_api.get_node_info") as get_node_info_mock:
+            channel_info_list = [{"slug": "c1-slug"},{"slug": "c2-slug"},{"slug": "c3-slug"}]
+            node_info_list = [{"slug": "n1-slug"}, {"slug": "n2-slug"}, {"slug": "n3-slug"}]
+
+            get_network_nodes_mock.return_value = {"network-slug-1": ["n1", "n2", "n3"]}
+            get_network_slug_mock.return_value = 'network-slug-1'
+            get_channels_for_network_mock.return_value = ['c1', 'c2', 'c3']
+            get_channel_info_mock.side_effect = channel_info_list
+            get_node_info_mock.side_effect = node_info_list
+
+            data = self.local_api.get_network_data('Network 1')
+            get_network_slug_mock.assert_called_once_with('Network 1')
+            get_channels_for_network_mock.assert_called_once_with(network_slug='network-slug-1')
+            get_channel_info_mock.assert_has_calls([call(channel_slug='c1'), call(channel_slug='c2'),
+                                                    call(channel_slug='c3')])
+            get_node_info_mock.assert_has_calls([call(node_slug='n1'), call(node_slug='n2'), call(node_slug='n3')])
+
+            self.assertEqual(data['name'], 'Network 1')
+            self.assertEqual(data['slug'], 'network-slug-1')
+            self.assertEqual(data['channels'], channel_info_list)
+            self.assertEqual(data['nodes'], node_info_list)
+
+    def test_create_asset_network(self):
+        with patch("cli.api.local_api.get_templates") as get_templates_mock, \
+         patch.object(LocalApi, "_LocalApi__get_filled_template_parameter") as get_filled_parameter_mock:
+            channel_info_list = [{"slug": "c1-slug", "parameters": ["c-param-1", "c-param-4"]},
+                                 {"slug": "c2-slug", "parameters": ["c-param-3"]},
+                                 {"slug": "c3-slug", "parameters": ["c-param-2"]}]
+            node_info_list = [{"slug": "n1-slug", "node_parameters": ["n-param-1", "n-param-4"], "number_of_qubits": 2,
+                                "qubit_parameters": ["q-param-1","q-param-2"]},
+                              {"slug": "n2-slug", "node_parameters": ["n-param-3"], "number_of_qubits": 1,
+                                "qubit_parameters": ["q-param-3"]},
+                              {"slug": "n3-slug", "node_parameters": ["n-param-2"], "number_of_qubits": 1,
+                                "qubit_parameters": ["q-param-4"]}]
+            mock_network_data = {
+                        "name": 'Network 1',
+                        "slug": 'network-slug-1',
+                        "channels": channel_info_list,
+                        "nodes": node_info_list,
+            }
+            mock_app_config = {'application': [{'app': 'foo'}],
+                               'network': {'networks': ['network-slug-2', 'network-slug-1'],
+                                           'roles': ['role1', 'role2']}
+                               }
+            get_templates_return_value = {}
+            get_templates_mock.return_value = get_templates_return_value
+            filled_parameter_item = {
+                "slug": 'param-name',
+                "values": []
+            }
+            get_filled_parameter_mock.return_value = filled_parameter_item
+
+            asset_network = self.local_api.create_asset_network(network_data=mock_network_data,
+                                                                app_config=mock_app_config)
+
+            # Check Roles data
+            self.assertIn('roles', asset_network)
+            self.assertIn('role1', asset_network['roles'])
+            self.assertIn('role2', asset_network['roles'])
+
+            # Check calls to get_filled_parameter_mock
+            channel_calls_for_filled_parameter_mock = [call(param='c-param-1', templates=get_templates_return_value),
+                                               call(param='c-param-4', templates=get_templates_return_value),
+                                               call(param='c-param-3', templates=get_templates_return_value),
+                                               call(param='c-param-2', templates=get_templates_return_value),]
+            node_calls_for_filled_parameter_mock = [call(param='n-param-1', templates=get_templates_return_value),
+                                               call(param='n-param-4', templates=get_templates_return_value),
+                                               call(param='q-param-1', templates=get_templates_return_value),
+                                               call(param='q-param-2', templates=get_templates_return_value),
+                                               call(param='q-param-1', templates=get_templates_return_value),
+                                               call(param='q-param-2', templates=get_templates_return_value),
+                                               call(param='n-param-3', templates=get_templates_return_value),
+                                               call(param='q-param-3', templates=get_templates_return_value),
+                                               call(param='n-param-2', templates=get_templates_return_value),
+                                               call(param='q-param-4', templates=get_templates_return_value),]
+            get_filled_parameter_mock.assert_has_calls(channel_calls_for_filled_parameter_mock +
+                                                       node_calls_for_filled_parameter_mock)
+
+            # Check Channels data
+            self.assertIn('channels', asset_network)
+            for channel in asset_network['channels']:
+                self.assertIn('parameters', channel)
+                self.assertNotIn('filled_parameters', channel)
+
+            # Check Nodes data
+            self.assertIn('nodes', asset_network)
+            for node in asset_network['nodes']:
+                self.assertIn('node_parameters', node)
+                self.assertIn('qubits', node)
+                self.assertNotIn('number_of_qubits', node)
+                self.assertNotIn('qubit_parameters', node)
+                self.assertNotIn('filled_node_parameters', node)
