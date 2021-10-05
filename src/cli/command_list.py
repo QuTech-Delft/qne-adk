@@ -16,7 +16,8 @@ from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
 from cli.settings import Settings
-from cli.utils import reorder_data
+from cli.utils import reorder_data, validate_path_name
+from cli.exceptions import NotEnoughRoles
 
 app = Typer()
 applications_app = Typer()
@@ -67,8 +68,19 @@ def applications_create(
     roles: List[str] = typer.Argument(..., help="Names of the roles to be created."),
 ) -> None:
     """
-    Create new application.
+    Create new application. e.g.: qne application create application_name role1 role2
     """
+
+    if len(roles) <= 1:
+        raise NotEnoughRoles()
+
+    validate_path_name("Application", application)
+    for role in roles:
+        validate_path_name("Role", role)
+
+    # Lowercase roles
+    roles = [role.lower() for role in roles]
+
     cwd = Path.cwd()
     typer.echo(f"Create application '{application}' in directory '{cwd}'.")
     processor.applications_create(application=application, roles=roles, path=cwd)

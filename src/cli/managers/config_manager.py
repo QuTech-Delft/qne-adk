@@ -1,16 +1,46 @@
+import os
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
-
-from cli.utils import read_json_file
+from typing import Dict, List, Tuple, Any
+from cli.utils import read_json_file, write_json_file
 
 
 class ConfigManager:
     def __init__(self, config_dir: Path):
         self.__config_dir = config_dir
+        self.app_config_file = self.__config_dir / "applications.json"
 
     def add_application(self, application: str, path: Path) -> None:
-        pass
+        """
+        Takes care of saving the application name in the .qne/application.json root file together with the application
+        path.
+
+        Args:
+            application: the application name
+            roles: a list of roles
+            path: the path where the application is stored
+
+        """
+
+        # Read json file
+        apps = read_json_file(self.app_config_file)
+
+        # Store the app path
+        apps[application] = {'path': os.path.join(str(path), application, '')}
+        write_json_file(self.app_config_file, apps)
+
+    def check_config_exists(self) -> bool:
+        """ Checks if the application.json config file exists in the .qne/ root directory. Returns True when it does
+        exist, False if not.
+
+        Returns:
+            True if app_config_file exists, False otherwise
+        """
+        return self.app_config_file.is_file()
+
+    def create_config(self) -> None:
+        """ Creates the application.json config file in the .qne/ root directory"""
+        write_json_file(self.app_config_file, {})
 
     def delete_application(self, application: str) -> None:
         pass
@@ -41,10 +71,25 @@ class ConfigManager:
 
         return application_list
 
-    def application_exists(self, application: str) -> bool:
-        return True
+    def application_exists(self, application: str) -> Tuple[bool, Any]:
+        """
+        Checks if the application name already exists in .qne/application.json for unique purposes. Returns True when
+        the application does exists. Else, return False.
 
-    def remote_application_exists(self, application: str) ->  int:
+        Args:
+            application: the application name
+
+        """
+
+        data = read_json_file(self.app_config_file)
+
+        for key in data:
+            if key == application:
+                return True, data[key]['path']
+
+        return False, None
+
+    def remote_application_exists(self, application: str) -> int:
         """
         Check if the application is already created on remote
         by checking the remote_id field in the config file.

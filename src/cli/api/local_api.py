@@ -1,5 +1,7 @@
-from pathlib import Path
 from typing import List, Optional, Tuple
+from pathlib import Path
+import shutil
+from cli import utils
 
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
@@ -8,32 +10,95 @@ from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkT
                               app_configApplicationType, assetApplicationType, assetNetworkType,
                               ExperimentType, ResultType)
 from cli.utils import read_json_file, write_json_file
+from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
 
 
 class LocalApi:
     def __init__(self, config_manager: ConfigManager) -> None:
         self.__config_manager = config_manager
 
-    def create_application(self, application: str, roles: List[str], app_path: Path) -> None:
-        if self.__is_application_unique(application):
-            self.__create_application_structure(application, roles, app_path)
+    def create_application(self, application: str, roles: List[str], path: Path) -> None:
+        """
+        Creates the application by checking if the application name is unique with is_application_unique and calling
+        create_application_structure.
+
+        Args:
+            application: the application name
+            roles: a list of roles
+            path: the path where the application is stored
+
+        Raises:
+            ApplicationAlreadyExists: Raised when application name is not unique
+        """
+
+        if not self.__config_manager.check_config_exists():
+            self.__config_manager.create_config()
+
+        is_unique, existing_app_path = self.__is_application_unique(application)
+        if is_unique:
+            self.__create_application_structure(application, roles, path)
         else:
-            pass
+            raise ApplicationAlreadyExists(application, existing_app_path)
 
     def init_application(self, path: Path) -> None:
-        # Find out application name & roles from the files in 'path'
-        application = ''
-        roles = ['', '']
-
-        if self.__is_application_unique(application):
-            self.__create_application_structure(application, roles, path)
+        pass
 
     def __create_application_structure(
         self, application: str, roles: List[str], path: Path
     ) -> None:
+        """
+        Creates the application directory structure. Each application will consist of a MANIFEST.INI and two
+        directories: application and config. In the directory application, the files network.json, application.json and
+        result.json will be generated. In the directory config, python files will be generated according to the value of
+        the list roles.
+
+        Args:
+            application: the application name
+            roles: a list of roles
+            path: the path where the application is stored
+        """
+
+        # code to create the local application in root dir
+        app_dir = path / application / "src"
+        config_dir = path / application / "config"
+        app_dir.mkdir(parents=True, exist_ok=True)
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        for role in roles:
+            utils.write_file(app_dir / f"app_{role}.py", utils.get_py_dummy())
+
+        # Network.json configuration
+        networks = {"networks": [], "roles": roles}
+        temp_list = []
+
+        # Check if the network there are more network nodes available for this network compared to the
+        # amount of roles given by the user
+        for network in utils.get_network_nodes().items():
+            if len(roles) <= len(network[1]):
+                temp_list.append(network[0])
+
+        networks["networks"] = temp_list
+
+        # Remove already created application structure
+        if not networks["networks"]:
+            shutil.rmtree(path / application)
+            raise NoNetworkAvailable()
+
+        utils.write_json_file(config_dir / "network.json", networks)
+
+        # Application.json configuration
+        data = utils.get_dummy_application(roles)
+        utils.write_json_file(config_dir / "application.json", data)
+
+        # Result.json configuration
+        utils.write_json_file(config_dir / "result.json", {})
+
+        # Manifest.ini configuration
+        utils.write_file(path / application / "MANIFEST.ini", "")
+
         self.__config_manager.add_application(application, path)
 
-    def __is_application_unique(self, application: str) -> bool:
+    def __is_application_unique(self, application: str) -> Tuple[bool, str]:
         """
         Calls config_manager.application_exists() to check if the application name already exists in the
         .qne/application.json root file. Here, all application names are added when an application is created.
@@ -43,7 +108,9 @@ class LocalApi:
         Args:
             application: application name
         """
-        return not self.__config_manager.application_exists(application)
+
+        is_unique, path = self.__config_manager.application_exists(application)
+        return not is_unique, path
 
     def list_applications(self) -> List[ApplicationType]:
         """

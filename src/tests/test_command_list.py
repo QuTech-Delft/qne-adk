@@ -2,13 +2,13 @@ import unittest
 from unittest.mock import patch
 from typer.testing import CliRunner
 
-from cli.command_list import app, applications_app, experiments_app
+from cli.command_list import app, applications_app, experiments_app, applications_create
 from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
+from cli.exceptions import NotEnoughRoles, InvalidPathName
 
 
 class TestCommandList(unittest.TestCase):
-
     def setUp(self):
         self.application = 'test_application'
         self.roles = ["role1, role2"]
@@ -43,7 +43,8 @@ class TestCommandList(unittest.TestCase):
             self.assertIn('Log out succeeded.', logout_output.stdout)
 
     def test_applications_create(self):
-        with patch("cli.command_list.Path.cwd") as mock_cwd,\
+        with patch("cli.command_list.Path.cwd") as mock_cwd, \
+             patch("cli.utils.validate_path_name") as mock_validate_path_name, \
              patch.object(CommandProcessor, 'applications_create') as application_create_mock:
 
             mock_cwd.return_value = 'test'
@@ -52,8 +53,24 @@ class TestCommandList(unittest.TestCase):
                                                            ['create', 'test_application', 'role1', 'role2'])
             mock_cwd.assert_called_once()
             application_create_mock.assert_called_once()
+            mock_validate_path_name.call_count = 3
             self.assertEqual(application_create_output.exit_code, 0)
             self.assertIn('Application successfully created.', application_create_output.stdout)
+
+            # Raise NotEnoughRoles when only one or less roles are given
+            self.assertRaises(NotEnoughRoles, applications_create, 'test_application', ['role1'])
+
+            # Raise InvalidApplicationName when the application name is invalid contains ['/', '\\', '*', ':', '?',
+            # '"', '<', '>', '|']
+            self.assertRaises(InvalidPathName, applications_create, 'test_application/2', ['role1', 'role2'])
+            self.assertRaises(InvalidPathName, applications_create, 'test*application', ['role1', 'role2'])
+            self.assertRaises(InvalidPathName, applications_create, 'test\\application', ['role1', 'role2'])
+
+            # Raise InvalidRoleName when one of the roles contains ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
+            self.assertRaises(InvalidPathName, applications_create, 'test_application', ['role/1', 'role2'])
+            self.assertRaises(InvalidPathName, applications_create, 'test_application', ['role1', 'role/2'])
+            self.assertRaises(InvalidPathName, applications_create, 'test_application', ['rol/e1', 'role2'])
+
 
     def test_applications_validate(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
@@ -72,8 +89,8 @@ class TestCommandList(unittest.TestCase):
 
     def test_experiment_create(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
-            patch.object(CommandProcessor, 'experiments_create') as experiment_create_mock, \
-            patch.object(CommandProcessor, 'applications_validate') as app_validate_mock:
+             patch.object(CommandProcessor, 'experiments_create') as experiment_create_mock, \
+             patch.object(CommandProcessor, 'applications_validate') as app_validate_mock:
             mock_cwd.return_value = 'test'
             app_validate_mock.return_value = True, ''
             experiment_create_mock.return_value = True, ''
@@ -142,7 +159,7 @@ class TestCommandList(unittest.TestCase):
 
     def test_experiment_results(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
-            patch.object(CommandProcessor, 'experiments_results') as exp_results_mock:
+             patch.object(CommandProcessor, 'experiments_results') as exp_results_mock:
             mock_cwd.return_value = 'test'
             exp_results_output = self.runner.invoke(experiments_app, ['results'])
 
