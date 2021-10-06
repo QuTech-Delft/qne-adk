@@ -43,18 +43,24 @@ class SchemaValidationError(Exception):
 class JSONValidationError(Exception):
     """Raised when JSON string is not valid"""
 
-    def __init__(self, message="The JSON file you are trying to load has invalid syntax"):
-        self.message = message
-        super().__init__(self.message)
+    def __init__(self, error, instance_path):
+        super().__init__(f"The JSON file you are trying to load has invalid syntax: {instance_path} {error}")
+
+
+class JSONSchemaValidationError(Exception):
+    """Raised when the JSON file is invalid when validation against a the schema file"""
+
+    def __init__(self, error, schema_path):
+        super().__init__(f"Failed when validating against schema file. {schema_path} {error.message}")
+
 
 
 class ApplicationDoesntExist(Exception):
     """Raised when application name doesn't exist in .qne/application.json"""
 
-    def __init__(self, message="Application directory not found. Please make sure you are in your application directory "
-                               "before validating or first create your application"):
-        self.message = message
-        super().__init__(self.message)
+    def __init__(self):
+        super().__init__("Application directory not found. Please make sure you are in your application directory "
+                         "before validating or first create your application")
 
 
 class ApplicationDirectoryNotComplete(Exception):
@@ -80,8 +86,8 @@ class ApplicationFilesNonExisting(Exception):
     """Raised when the the 'application_name'/application directory is not complete. Should contain at least one Python
         file"""
 
-    def __init__(self, message="Are you sure the application directory is complete? Should contain at least one Python "
-                               "file"):
+    def __init__(self, message="Are you sure the application directory is complete? Should contain at least two Python "
+                               "files"):
         self.message = message
         super().__init__(self.message)
 

@@ -1,11 +1,10 @@
 import os
-import cli.validators as validators
 import shutil
 
 from typing import List, Optional, Tuple
 from pathlib import Path
 from cli import utils
-
+from cli.validators import validate_json
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -21,6 +20,8 @@ from cli.settings import BASE_DIR
 class LocalApi:
     def __init__(self, config_manager: ConfigManager) -> None:
         self.__config_manager = config_manager
+        self.app_config = Path.cwd() / "config"
+        self.app_source = Path.cwd() / "src"
 
     def create_application(self, application: str, roles: List[str], path: Path) -> None:
         """
@@ -139,21 +140,12 @@ class LocalApi:
 
     def __is_config_valid(self, application: str) -> bool:
         # Validate if json string is correct and validate against json schema's
-        appconfig_path = Path(BASE_DIR + "/schema/applications/application_schema.json")
-        print(appconfig_path)
-        config_files = ["application.json", "network.json", "result.json"]
-        for file in config_files:
-            path = "config" / Path(file)
-            with path.open(mode="r") as file_json:
-                validators.validate_json_string(file_json)
+        schema_app_path = Path(BASE_DIR + "/schema/applications")
+        config_path = Path.cwd() / "config"
 
-                if not appconfig_path.is_file():
-                    print("File not found!")
-                else:
-                    print("File exists!")
-
-                if file == "application.json":
-                    validators.validate_json_schema(file_json, appconfig_path)
+        validate_json(config_path / "application.json", schema_app_path / "appconfig_app.json")
+        validate_json(config_path / "network.json", schema_app_path / "appconfig_network.json")
+        validate_json(config_path / "network.json", schema_app_path / "appconfig_result.json")
 
         return True
 
@@ -167,16 +159,16 @@ class LocalApi:
         # Check if the config folder is complete
         config_files = ["application.json", "network.json", "result.json"]
         for file in config_files:
-            if not os.path.isfile("config/" + file):
+            if not os.path.isfile(self.app_config / file):
                 raise ApplicationConfigNotComplete()
 
-        # Check if there is at least one python file for the role
-        python_file_list = []
-        for file in os.listdir("src"):
+        # Check if there is are at least two python files in application/src
+        count = 0
+        for file in os.listdir(self.app_source):
             if file.endswith(".py"):
-                python_file_list.append(file)
+                count += 1
 
-        if not python_file_list:
+        if count < 2:
             raise ApplicationFilesNonExisting()
 
         return True
@@ -195,7 +187,7 @@ class LocalApi:
         return app_config
 
     def experiments_create(self, name: str, app_config: AppConfigType , network_name: str,
-                           path: Path, application:str)-> Tuple[bool, str]:
+                           path: Path, application: str) -> Tuple[bool, str]:
         """
         Create all the necessary resources for experiment creation
          - 1. Get the network data for the specified network_name
