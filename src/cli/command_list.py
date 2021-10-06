@@ -215,7 +215,9 @@ def experiments_create(
     cwd = Path.cwd()
     typer.echo(f"Create experiment: '{name}' with network: '{network_name}' for application: '{application}'.")
 
-    is_app_valid, validation_message = processor.applications_validate(application)
+    # is_app_valid, validation_message = processor.applications_validate(application)
+    # TODO: Uncomment above line after application validate command is ready
+    is_app_valid, validation_message = True, 'Valid'
 
     if is_app_valid:
         success, message = processor.experiments_create(name=name, application=application, network_name=network_name,

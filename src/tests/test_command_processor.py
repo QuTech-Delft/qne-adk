@@ -72,6 +72,14 @@ class TestCommandProcessor(unittest.TestCase):
             self.assertFalse(experiment_created)
             self.assertIn("The specified network 'network_1' does not exist.", message)
 
+            get_config_mock.reset_mock()
+            get_config_mock.return_value = None
+            experiment_created, message = self.processor.experiments_create(name='test_exp', application='app_name',
+                                                                            network_name='network_1', local=True,
+                                                                            path='test')
+            self.assertFalse(experiment_created)
+            self.assertIn("Application 'app_name' was not found.", message)
+
 
     def test_experiments_create_remote(self):
         success, message = self.processor.experiments_create(name='test_exp', application='app_name',

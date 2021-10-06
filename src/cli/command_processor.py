@@ -73,12 +73,14 @@ class CommandProcessor:
         -> Tuple[bool, str]:
         if local:
             app_config = self.__local.get_application_config(application)
+            if app_config:
+                if self.__local.is_network_available(network_name, app_config):
+                    return self.__local.experiments_create(name=name, app_config=app_config, network_name=network_name,
+                                                    path=path, application=application)
 
-            if self.__local.is_network_available(network_name, app_config):
-                return self.__local.experiments_create(name=name, app_config=app_config, network_name=network_name,
-                                                path=path, application=application)
+                return False, f"The specified network '{network_name}' does not exist."
 
-            return False, f"The specified network '{network_name}' does not exist."
+            return False, f"Application '{application}' was not found."
 
         return False, 'Remote experiment creation is not yet enabled.'
 

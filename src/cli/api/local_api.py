@@ -153,7 +153,7 @@ class LocalApi:
 
         return error_dict
 
-    def get_application_config(self, application: str) -> AppConfigType:
+    def get_application_config(self, application: str) -> Optional[AppConfigType]:
         """
         Get the configuration containing input, network and roles information for the application
 
@@ -165,6 +165,19 @@ class LocalApi:
 
         """
         app_details = self.__config_manager.get_application(application)
+
+        if app_details and 'path' in app_details:
+            app_config_path = Path(app_details['path']) / 'config'
+            application_json_path = app_config_path / 'application.json'
+            network_json_path = app_config_path / 'network.json'
+
+            app_config_application: app_configApplicationType = utils.read_json_file(application_json_path)
+            app_config_network: app_configNetworkType = utils.read_json_file(network_json_path)
+
+            app_config = {"application": app_config_application, "network": app_config_network}
+            return app_config
+
+        return None
 
     def __is_config_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
         # Validate if json string is correct and validate against json schema's
@@ -230,17 +243,6 @@ class LocalApi:
             else:
                 error_dict['error'].append(message)
 
-    def get_application_config(self, application_name: str) -> AppConfigType:
-        app_config_path = Path(self.__config_manager.get_application_path(application_name)) / 'config'
-        application_json_path = app_config_path / 'application.json'
-        network_json_path = app_config_path / 'network.json'
-
-        app_config_application: app_configApplicationType = read_json_file(application_json_path)
-        app_config_network: app_configNetworkType = read_json_file(network_json_path)
-
-        app_config = {"application": app_config_application, "network": app_config_network}
-        return app_config
-
     def experiments_create(self, name: str, app_config: AppConfigType, network_name: str,
                            path: Path, application: str) -> Tuple[bool, str]:
         """
@@ -280,22 +282,22 @@ class LocalApi:
 
         """
 
-        all_network_nodes = get_network_nodes()
+        all_network_nodes = utils.get_network_nodes()
         channels_list = []
         nodes_list = []
 
-        network_slug = get_network_slug(network_name)
+        network_slug = utils.get_network_slug(network_name)
 
         if network_slug:
-            channels = get_channels_for_network(network_slug=network_slug)
+            channels = utils.get_channels_for_network(network_slug=network_slug)
             if channels:
                 for channel_slug in channels:
-                    channel_info = get_channel_info(channel_slug=channel_slug)
+                    channel_info = utils.get_channel_info(channel_slug=channel_slug)
                     channels_list.append(channel_info)
 
             if network_slug in all_network_nodes:
                 for node_slug in all_network_nodes[network_slug]:
-                    nodes_list.append(get_node_info(node_slug=node_slug))
+                    nodes_list.append(utils.get_node_info(node_slug=node_slug))
 
         return {
             "name": network_name,
@@ -307,6 +309,21 @@ class LocalApi:
     def create_experiment(
         self, name: str, app_config: AppConfigType, asset_network: assetNetworkType, path: Path, application: str
     ) -> Tuple[bool, str]:
+        """
+        Create experiment.json with meta and asset information
+
+        Args:
+            name: Name of the directory where experiment.json will be created
+            app_config: A dictionary containing application configuration information
+            asset_network: Filled Network parameters with default values
+            path: Location where experiment directory needs to be created
+            application: Name of the application for which to create the experiment
+
+        Returns:
+            (True, Success) if experiment.json was successfully created
+            (False, reason-for-failure) if experiment.json creation failed
+
+        """
 
         experiment_directory = path / name
         if experiment_directory.is_dir():
@@ -332,7 +349,7 @@ class LocalApi:
         asset = {"network": asset_network, "application": asset_application}
 
         experiment_data = {'meta': experiment_meta, 'asset': asset}
-        write_json_file(experiment_json_file, experiment_data)
+        utils.write_json_file(experiment_json_file, experiment_data)
 
         return True, "Success"
 
@@ -351,7 +368,6 @@ class LocalApi:
         if "application" in app_config:
             for input_param in app_config["application"]:
                 item = {
-                    "slug": input_param["slug"],
                     "roles": input_param["roles"],
                     "values": []
                 }
@@ -379,7 +395,7 @@ class LocalApi:
             Filled Network parameters with default values
 
         """
-        templates = get_templates()
+        templates = utils.get_templates()
         node_list = network_data["nodes"]
         channel_list = network_data["channels"]
 
@@ -467,8 +483,8 @@ class LocalApi:
         application_exists, app_path = self.__config_manager.application_exists(application=application)
         app_path = Path(app_path)
         if application_exists:
-            copy_files(app_path / "config", input_directory)
-            copy_files(app_path / "src", input_directory)
+            utils.copy_files(app_path / "config", input_directory)
+            utils.copy_files(app_path / "src", input_directory)
 
     def is_network_available(self, network_name: str, app_config: AppConfigType) -> bool:
         """
@@ -481,7 +497,7 @@ class LocalApi:
         Returns:
             bool: True if the given network name is available in application configuration, False otherwise
         """
-        network_slug = get_network_slug(network_name)
+        network_slug = utils.get_network_slug(network_name)
         if network_slug:
             if "network" in app_config:
                 if "networks" in app_config["network"]:

@@ -31,6 +31,80 @@ class ApplicationValidate(unittest.TestCase):
 
         self.experiment_data_local = {'meta': self.experiment_meta_local, 'asset': {}}
 
+        self.templates_data = {
+            "param-1": {
+                "title": "Parameter One",
+                "slug": "param-1",
+                "values": [
+                    {
+                        "name": "fidelity",
+                        "default_value": 1.0,
+                        "minimum_value": 0.5,
+                        "maximum_value": 1.0,
+                        "unit": "unit-name",
+                        "scale_value": 1.0
+                    }
+                ],
+                "input_type": "fidelity_slider"
+            },
+            "param-2": {
+                "title": "Parameter 2",
+                "slug": "param-2",
+                "values": [
+                    {
+                        "name": "t1",
+                        "default_value": 0,
+                        "minimum_value": 0,
+                        "maximum_value": 1000,
+                        "unit": "milliseconds",
+                        "scale_value": 12.0
+                    }
+                ],
+                "input_type": "time"
+            }
+        }
+
+        self.mock_app_config = {'application': [
+            {
+                "title": "Qubit state of Sender",
+                "slug": "qubit_state_sender",
+                "description": "description",
+                "values": [
+                    {
+                        "name": "phi",
+                        "default_value": 0.0,
+                        "minimum_value": -1.0,
+                        "maximum_value": 1.0,
+                        "scale_value": "pi"
+                    },
+                    {
+                        "name": "theta",
+                        "default_value": 0.0,
+                        "minimum_value": 0.0,
+                        "maximum_value": 1.0,
+                        "scale_value": 2.0
+                    }
+                ],
+                "input_type": "qubit",
+                "roles": [
+                    "Sender"
+                ]
+            }
+        ],
+            'network': {}
+        }
+
+        self.channel_info_list = [{"slug": "c1-slug", "parameters": ["param-1", "param-2"]},
+                             {"slug": "c2-slug", "parameters": ["param-1"]},
+                             {"slug": "c3-slug", "parameters": ["param-2"]}]
+
+        self.node_info_list = [{"slug": "n1-slug", "node_parameters": ["param-1", "param-2"], "number_of_qubits": 2,
+                           "qubit_parameters": ["param-1", "param-2"]},
+                          {"slug": "n2-slug", "node_parameters": ["param-2"], "number_of_qubits": 1,
+                           "qubit_parameters": ["param-1"]},
+                          {"slug": "n3-slug", "node_parameters": ["param-1"], "number_of_qubits": 1,
+                           "qubit_parameters": ["param-2"]}]
+
     def test_create_application(self):
         with patch.object(LocalApi, "_LocalApi__is_application_unique") as is_application_unique_mock, \
              patch.object(ConfigManager, "check_config_exists") as check_config_exists_mock, \
@@ -221,27 +295,42 @@ class ApplicationValidate(unittest.TestCase):
                                                     path=Path('dummy'), application='application')
 
     def test_create_experiment(self):
-        with patch("cli.api.local_api.write_json_file") as write_mock, \
-             patch.object(LocalApi, "_LocalApi__copy_input_files_from_application") as copy_input_mock, \
-             patch.object(LocalApi, "_LocalApi__create_asset_application") as create_app_asset_mock, \
+        with patch("cli.api.local_api.utils.write_json_file") as write_mock, \
              patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
-             patch('cli.api.local_api.Path.mkdir') as mkdir_mock:
+             patch('cli.api.local_api.Path.mkdir') as mkdir_mock, \
+             patch("cli.api.local_api.utils.copy_files") as copy_files_mock, \
+             patch.object(ConfigManager, "application_exists") as application_exists_mock:
 
             is_dir_mock.return_value = False
-            create_app_asset_mock.return_value = [{'x': 2}]
+            application_exists_mock.return_value = True, 'dummy_app_path'
 
-            self.local_api.create_experiment(name='test', app_config={'foo': 'bar'}, asset_network={'a': 'b'},
-                                             path=Path('dummy'), application='app_name')
+            is_created, message = self.local_api.create_experiment(name='test', app_config=self.mock_app_config,
+                                                                   asset_network={'a': 'b'}, path=Path('dummy'),
+                                                                   application='app_name')
 
             is_dir_mock.assert_called_once()
             self.assertEqual(mkdir_mock.call_count, 2)
-            copy_input_mock.assert_called_once_with('app_name', Path('dummy') / 'test' / 'input')
-            create_app_asset_mock.assert_called_once_with({'foo': 'bar'})
 
+            application_exists_mock.assert_called_once_with(application='app_name')
+            experiment_dir = Path('dummy') / 'test'
+            input_dir = experiment_dir / 'input'
+            copy_files_call = [call(Path("dummy_app_path") / "config", input_dir),
+                               call(Path("dummy_app_path") / "src", input_dir)]
+            copy_files_mock.assert_has_calls(copy_files_call)
+
+            expected_asset_application = [{
+                    "roles": ["Sender"],
+                    "values": [{"name": "phi", "value": 0.0, "scale_value": "pi"},
+                               {"name": "theta", "value": 0.0, "scale_value": 2.0}
+                              ]
+                }
+            ]
             self.experiment_data_local['meta']['description'] = 'test: experiment description'
-            self.experiment_data_local['asset'] = {'network': {'a': 'b'}, 'application': [{'x': 2}]}
+            self.experiment_data_local['asset'] = {'network': {'a': 'b'}, 'application': expected_asset_application}
 
             write_mock.assert_called_once_with(Path('dummy') / 'test' / 'experiment.json', self.experiment_data_local)
+            self.assertEqual(is_created, True)
+            self.assertEqual(message, "Success")
 
     def test_create_experiment_directory_exists(self):
         with patch("cli.api.local_api.Path.is_dir") as is_dir_mock:
@@ -255,7 +344,7 @@ class ApplicationValidate(unittest.TestCase):
 
     def test_get_application_config(self):
         with patch.object(ConfigManager, "get_application") as get_application_mock, \
-             patch("cli.api.local_api.read_json_file") as read_mock:
+             patch("cli.api.local_api.utils.read_json_file") as read_mock:
 
             read_mock.side_effect = [[{'app': 'foo'}], {'network': 'bar'}]
             get_application_mock.return_value = {'path': 'some-path'}
@@ -263,6 +352,11 @@ class ApplicationValidate(unittest.TestCase):
             get_application_mock.assert_called_once_with('test')
             self.assertEqual(read_mock.call_count, 2)
             self.assertDictEqual(config, {'application': [{'app': 'foo'}], 'network': {'network': 'bar'}})
+
+            get_application_mock.reset_mock()
+            get_application_mock.return_value = {}
+            config = self.local_api.get_application_config('test')
+            self.assertIsNone(config)
 
     def test_validate_experiment(self):
         with patch("cli.api.local_api.Path.is_file") as is_file_mock, \
@@ -314,7 +408,7 @@ class ApplicationValidate(unittest.TestCase):
             convert_mock.assert_called_once_with(4, [])
 
     def test_is_network_available(self):
-        with patch("cli.api.local_api.get_network_slug") as get_network_slug_mock:
+        with patch("cli.api.local_api.utils.get_network_slug") as get_network_slug_mock:
             get_network_slug_mock.return_value = 'network-slug-1'
             mock_app_config = {'application': [{'app': 'foo'}],
                                'network': {'networks': ['network-slug-2', 'network-slug-1']}}
@@ -331,11 +425,11 @@ class ApplicationValidate(unittest.TestCase):
             self.assertFalse(network_available)
 
     def test_get_network_data(self):
-        with patch("cli.api.local_api.get_network_nodes") as get_network_nodes_mock, \
-         patch("cli.api.local_api.get_network_slug") as get_network_slug_mock, \
-         patch("cli.api.local_api.get_channels_for_network") as get_channels_for_network_mock, \
-         patch("cli.api.local_api.get_channel_info") as get_channel_info_mock, \
-         patch("cli.api.local_api.get_node_info") as get_node_info_mock:
+        with patch("cli.api.local_api.utils.get_network_nodes") as get_network_nodes_mock, \
+         patch("cli.api.local_api.utils.get_network_slug") as get_network_slug_mock, \
+         patch("cli.api.local_api.utils.get_channels_for_network") as get_channels_for_network_mock, \
+         patch("cli.api.local_api.utils.get_channel_info") as get_channel_info_mock, \
+         patch("cli.api.local_api.utils.get_node_info") as get_node_info_mock:
             channel_info_list = [{"slug": "c1-slug"},{"slug": "c2-slug"},{"slug": "c3-slug"}]
             node_info_list = [{"slug": "n1-slug"}, {"slug": "n2-slug"}, {"slug": "n3-slug"}]
 
@@ -358,34 +452,18 @@ class ApplicationValidate(unittest.TestCase):
             self.assertEqual(data['nodes'], node_info_list)
 
     def test_create_asset_network(self):
-        with patch("cli.api.local_api.get_templates") as get_templates_mock, \
-         patch.object(LocalApi, "_LocalApi__get_filled_template_parameter") as get_filled_parameter_mock:
-            channel_info_list = [{"slug": "c1-slug", "parameters": ["c-param-1", "c-param-4"]},
-                                 {"slug": "c2-slug", "parameters": ["c-param-3"]},
-                                 {"slug": "c3-slug", "parameters": ["c-param-2"]}]
-            node_info_list = [{"slug": "n1-slug", "node_parameters": ["n-param-1", "n-param-4"], "number_of_qubits": 2,
-                                "qubit_parameters": ["q-param-1","q-param-2"]},
-                              {"slug": "n2-slug", "node_parameters": ["n-param-3"], "number_of_qubits": 1,
-                                "qubit_parameters": ["q-param-3"]},
-                              {"slug": "n3-slug", "node_parameters": ["n-param-2"], "number_of_qubits": 1,
-                                "qubit_parameters": ["q-param-4"]}]
+        with patch("cli.api.local_api.utils.get_templates") as get_templates_mock:
             mock_network_data = {
                         "name": 'Network 1',
                         "slug": 'network-slug-1',
-                        "channels": channel_info_list,
-                        "nodes": node_info_list,
+                        "channels": self.channel_info_list,
+                        "nodes": self.node_info_list,
             }
             mock_app_config = {'application': [{'app': 'foo'}],
                                'network': {'networks': ['network-slug-2', 'network-slug-1'],
                                            'roles': ['role1', 'role2']}
                                }
-            get_templates_return_value = {}
-            get_templates_mock.return_value = get_templates_return_value
-            filled_parameter_item = {
-                "slug": 'param-name',
-                "values": []
-            }
-            get_filled_parameter_mock.return_value = filled_parameter_item
+            get_templates_mock.return_value = self.templates_data
 
             asset_network = self.local_api.create_asset_network(network_data=mock_network_data,
                                                                 app_config=mock_app_config)
@@ -395,35 +473,83 @@ class ApplicationValidate(unittest.TestCase):
             self.assertIn('role1', asset_network['roles'])
             self.assertIn('role2', asset_network['roles'])
 
-            # Check calls to get_filled_parameter_mock
-            channel_calls_for_filled_parameter_mock = [call(param='c-param-1', templates=get_templates_return_value),
-                                               call(param='c-param-4', templates=get_templates_return_value),
-                                               call(param='c-param-3', templates=get_templates_return_value),
-                                               call(param='c-param-2', templates=get_templates_return_value),]
-            node_calls_for_filled_parameter_mock = [call(param='n-param-1', templates=get_templates_return_value),
-                                               call(param='n-param-4', templates=get_templates_return_value),
-                                               call(param='q-param-1', templates=get_templates_return_value),
-                                               call(param='q-param-2', templates=get_templates_return_value),
-                                               call(param='q-param-1', templates=get_templates_return_value),
-                                               call(param='q-param-2', templates=get_templates_return_value),
-                                               call(param='n-param-3', templates=get_templates_return_value),
-                                               call(param='q-param-3', templates=get_templates_return_value),
-                                               call(param='n-param-2', templates=get_templates_return_value),
-                                               call(param='q-param-4', templates=get_templates_return_value),]
-            get_filled_parameter_mock.assert_has_calls(channel_calls_for_filled_parameter_mock +
-                                                       node_calls_for_filled_parameter_mock)
-
             # Check Channels data
             self.assertIn('channels', asset_network)
+            self.assertEqual(len(asset_network["channels"]), 3)
             for channel in asset_network['channels']:
                 self.assertIn('parameters', channel)
                 self.assertNotIn('filled_parameters', channel)
 
+            expected_param_1_dict = {'slug': 'param-1',
+                                     'values': [{'name': 'fidelity', 'value': 1.0, 'scale_value': 1.0}]}
+            expected_param_2_dict = {'slug': 'param-2',
+                                     'values': [{'name': 't1', 'value': 0, 'scale_value': 12.0}]}
+
+            c1_channel = asset_network['channels'][0]
+            self.assertEqual((c1_channel["slug"]), "c1-slug")
+            self.assertEqual(len(c1_channel["parameters"]), 2)
+            self.assertDictEqual(c1_channel["parameters"][0], expected_param_1_dict)
+            self.assertDictEqual(c1_channel["parameters"][1], expected_param_2_dict)
+
+            c2_channel = asset_network['channels'][1]
+            self.assertEqual((c2_channel["slug"]), "c2-slug")
+            self.assertEqual(len(c2_channel["parameters"]), 1)
+            self.assertDictEqual(c2_channel["parameters"][0], expected_param_1_dict)
+
+            c3_channel = asset_network['channels'][2]
+            self.assertEqual((c3_channel["slug"]), "c3-slug")
+            self.assertEqual(len(c3_channel["parameters"]), 1)
+            self.assertDictEqual(c3_channel["parameters"][0], expected_param_2_dict)
+
             # Check Nodes data
             self.assertIn('nodes', asset_network)
+            self.assertEqual(len(asset_network["nodes"]), 3)
             for node in asset_network['nodes']:
                 self.assertIn('node_parameters', node)
                 self.assertIn('qubits', node)
                 self.assertNotIn('number_of_qubits', node)
                 self.assertNotIn('qubit_parameters', node)
                 self.assertNotIn('filled_node_parameters', node)
+
+            # Node 1 (n1-slug)
+            n1_node = asset_network['nodes'][0]
+            self.assertEqual((n1_node["slug"]), "n1-slug")
+            self.assertEqual(len(n1_node["node_parameters"]), 2)
+            self.assertDictEqual(n1_node["node_parameters"][0], expected_param_1_dict)
+            self.assertDictEqual(n1_node["node_parameters"][1], expected_param_2_dict)
+
+            self.assertEqual(len(n1_node["qubits"]), 2)
+
+            self.assertEqual(n1_node["qubits"][0]['qubit_id'], 0)
+            self.assertEqual(len(n1_node["qubits"][0]['qubit_parameters']), 2)
+            self.assertDictEqual(n1_node["qubits"][0]['qubit_parameters'][0], expected_param_1_dict)
+            self.assertDictEqual(n1_node["qubits"][0]['qubit_parameters'][1], expected_param_2_dict)
+
+            self.assertEqual(n1_node["qubits"][1]['qubit_id'], 1)
+            self.assertEqual(len(n1_node["qubits"][1]['qubit_parameters']), 2)
+            self.assertDictEqual(n1_node["qubits"][1]['qubit_parameters'][0], expected_param_1_dict)
+            self.assertDictEqual(n1_node["qubits"][1]['qubit_parameters'][1], expected_param_2_dict)
+
+            # Node 2 (n2-slug)
+            n2_node = asset_network['nodes'][1]
+            self.assertEqual((n2_node["slug"]), "n2-slug")
+            self.assertEqual(len(n2_node["node_parameters"]), 1)
+            self.assertDictEqual(n2_node["node_parameters"][0], expected_param_2_dict)
+
+            self.assertEqual(len(n2_node["qubits"]), 1)
+
+            self.assertEqual(n2_node["qubits"][0]['qubit_id'], 0)
+            self.assertEqual(len(n2_node["qubits"][0]['qubit_parameters']), 1)
+            self.assertDictEqual(n2_node["qubits"][0]['qubit_parameters'][0], expected_param_1_dict)
+
+            # Node 3 (n3-slug)
+            n3_node = asset_network['nodes'][2]
+            self.assertEqual((n3_node["slug"]), "n3-slug")
+            self.assertEqual(len(n3_node["node_parameters"]), 1)
+            self.assertDictEqual(n3_node["node_parameters"][0], expected_param_1_dict)
+
+            self.assertEqual(len(n3_node["qubits"]), 1)
+
+            self.assertEqual(n3_node["qubits"][0]['qubit_id'], 0)
+            self.assertEqual(len(n3_node["qubits"][0]['qubit_parameters']), 1)
+            self.assertDictEqual(n3_node["qubits"][0]['qubit_parameters'][0], expected_param_2_dict)

@@ -1,6 +1,6 @@
 import os.path
 from pathlib import Path
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any
 from cli.utils import read_json_file, write_json_file
 from cli.exceptions import ApplicationDoesNotExist, NoConfigFileExists
 
@@ -45,9 +45,24 @@ class ConfigManager:
     def delete_application(self, application_name: str) -> None:
         pass
 
-    def get_application(self, application_name: str) -> Any:
-        applications = read_json_file(self.applications_config)
-        return applications[application_name]
+    def get_application(self, application: str) -> Optional[Dict[str, Any]]:
+        """
+        Get details for an application
+
+        Args:
+            application: Name of the application
+
+        Returns:
+            If application exists, a dictionary containing application details (name, path)
+            None otherwise.
+
+        """
+        all_applications = self.get_applications()
+
+        for app in all_applications:
+            if app["name"] == application:
+                return app
+        return None
 
     def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:
         if not self.check_config_exists():
@@ -119,8 +134,7 @@ class ConfigManager:
         Args:
             application_name: name of the application
         """
-        application_info = self.get_application(application_name)
-        return application_info.get('remote_id', -1)
+        return -1
 
     def update_path(self, application: str, path: str) -> None:
         pass
