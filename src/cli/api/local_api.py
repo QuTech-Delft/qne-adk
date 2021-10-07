@@ -481,8 +481,8 @@ class LocalApi:
 
         """
         application_exists, app_path = self.__config_manager.application_exists(application=application)
-        app_path = Path(app_path)
         if application_exists:
+            app_path = Path(app_path)
             utils.copy_files(app_path / "config", input_directory)
             utils.copy_files(app_path / "src", input_directory)
 

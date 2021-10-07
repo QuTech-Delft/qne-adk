@@ -212,6 +212,8 @@ def experiments_create(
     """
     Create new experiment.
     """
+    validate_path_name("Experiment", name)
+
     cwd = Path.cwd()
     typer.echo(f"Create experiment: '{name}' with network: '{network_name}' for application: '{application}'.")
 
