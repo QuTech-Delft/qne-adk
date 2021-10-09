@@ -13,7 +13,7 @@ from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkT
                               ExperimentType, ResultType)
 from cli.utils import read_json_file, write_json_file
 from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable, ApplicationDirectoryNotComplete, \
-                           ApplicationConfigNotComplete, ApplicationFilesNonExisting
+                           ApplicationConfigNotComplete, ApplicationSourceFilesIncomplete
 from cli.settings import BASE_DIR
 
 
@@ -131,6 +131,18 @@ class LocalApi:
 
     # Todo: Update confluence scenario diagram since application_unique() and structure_valid() are swapped
     def is_application_valid(self, application: str) -> Tuple[bool, str]:
+        """
+        Function that checks if:
+        - The application is valid by validating if it is unique
+        - The file and directory structure is correct
+        - The json files in the config directory contain valid json
+        - The json files passes against schema validation
+
+        returns:
+            Returns True if all validations passes
+            Returns False if one of the validations throws an Exception
+        """
+
         if self.__is_application_unique(application) and \
            self.__is_structure_valid(application) and \
            self.__is_config_valid(application):
@@ -141,35 +153,34 @@ class LocalApi:
     def __is_config_valid(self, application: str) -> bool:
         # Validate if json string is correct and validate against json schema's
         schema_app_path = Path(BASE_DIR + "/schema/applications")
-        config_path = Path.cwd() / "config"
 
-        validate_json(config_path / "application.json", schema_app_path / "appconfig_app.json")
-        validate_json(config_path / "network.json", schema_app_path / "appconfig_network.json")
-        validate_json(config_path / "network.json", schema_app_path / "appconfig_result.json")
+        validate_json(self.app_config / "application.json", schema_app_path / "appconfig_app.json")
+        validate_json(self.app_config / "network.json", schema_app_path / "appconfig_network.json")
+        validate_json(self.app_config / "network.json", schema_app_path / "appconfig_result.json")
 
         return True
 
     def __is_structure_valid(self, application: str) -> bool:
-        # Validate that the file structure is correct
-        files_to_be_checked = ["config", "src", "MANIFEST.ini"]
-        for item in files_to_be_checked:
-            if not os.path.exists(item):
-                raise ApplicationDirectoryNotComplete()
+        # Validate that the config, src and MANIFEST.ini structure is correct
+        if not os.path.exists(self.app_config) or \
+           not os.path.exists(self.app_source) or \
+           not os.path.isfile(Path.cwd() / "MANIFEST.ini"):
+            raise ApplicationDirectoryNotComplete(Path.cwd())
 
-        # Check if the config folder is complete
-        config_files = ["application.json", "network.json", "result.json"]
-        for file in config_files:
-            if not os.path.isfile(self.app_config / file):
-                raise ApplicationConfigNotComplete()
+        # Check if the config directory is complete
+        if not os.path.isfile(self.app_config / "application.json") or \
+           not os.path.isfile(self.app_config / "network.json") or \
+           not os.path.isfile(self.app_config / "result.json"):
+            raise ApplicationConfigNotComplete(self.app_config)
 
-        # Check if there is are at least two python files in application/src
+        # Check if there is are at least two python files in the src directory
         count = 0
         for file in os.listdir(self.app_source):
             if file.endswith(".py"):
                 count += 1
 
         if count < 2:
-            raise ApplicationFilesNonExisting()
+            raise ApplicationSourceFilesIncomplete(self.app_source)
 
         return True
 

@@ -1,30 +1,37 @@
+from pathlib import Path
+from jsonschema.exceptions import ValidationError
+
+
 class MalformedJsonFile(Exception):
-    """ Raised when trying to read a file containing malformed json """
+    """Raised when trying to read a file containing malformed json """
+
+    def __init__(self, path: Path, e: Exception) -> None:
+        super().__init__(f'The file {path} does not contain valid json. Error: {e}')
 
 
 class ApplicationAlreadyExists(Exception):
-    """ Raised when application name is not unique and already exists in .qne/application.json"""
+    """Raised when application name is not unique and already exists in .qne/application.json"""
 
     def __init__(self, application: str, path: str) -> None:
         super().__init__(f"Application '{application}' already exists. Application location: '{path}'")
 
 
 class NoNetworkAvailable(Exception):
-    """ Raised when there is no networks available with the amount nodes compared with the amount of roles"""
+    """Raised when there is no networks available with the amount nodes compared with the amount of roles"""
 
     def __init__(self) -> None:
         super().__init__("No network available which contains enough nodes for all the roles.")
 
 
 class NotEnoughRoles(Exception):
-    """ Raised when only one role is given"""
+    """Raised when only one role is given"""
 
     def __init__(self) -> None:
         super().__init__("The number of roles must be higher than one")
 
 
 class InvalidPathName(Exception):
-    """ Raised when one of the following characters are used in an input name ['/', '\', '*', ':', '?', '"', '<', '>',
+    """Raised when one of the following characters are used in an input name ['/', '\', '*', ':', '?', '"', '<', '>',
     '|']"""
 
     def __init__(self, obj: str) -> None:
@@ -35,59 +42,57 @@ class InvalidPathName(Exception):
 class SchemaValidationError(Exception):
     """Raised when json file doesn't meet the requirements of the schema"""
 
-    def __init__(self, message="The JSON file you are trying to load does not contain all the required fields"):
-        self.message = message
-        super().__init__(self.message)
-
-
-class JSONValidationError(Exception):
-    """Raised when JSON string is not valid"""
-
-    def __init__(self, error, instance_path):
-        super().__init__(f"The JSON file you are trying to load has invalid syntax: {instance_path} {error}")
+    def __init__(self) -> None:
+        super().__init__("The JSON file you are trying to load does not contain all the required fields")
 
 
 class JSONSchemaValidationError(Exception):
     """Raised when the JSON file is invalid when validation against a the schema file"""
 
-    def __init__(self, error, schema_path):
+    def __init__(self, error: ValidationError, schema_path: Path) -> None:
         super().__init__(f"Failed when validating against schema file. {schema_path} {error.message}")
 
 
+class ApplicationDoesNotExist(Exception):
+    """Raised when application path (the current path the user is in) doesn't match any of the application paths in
+    .qne/application.json"""
 
-class ApplicationDoesntExist(Exception):
-    """Raised when application name doesn't exist in .qne/application.json"""
-
-    def __init__(self):
-        super().__init__("Application directory not found. Please make sure you are in your application directory "
-                         "before validating or first create your application")
+    def __init__(self) -> None:
+        super().__init__("Application path not found")
 
 
 class ApplicationDirectoryNotComplete(Exception):
     """Raised when the application directory does not contain all the directories and files necessary (MANIFEST, config,
-    and application"""
-    def __init__(self, message="Please make sure your application consists of a MANIFEST.ini, application directory and "
-                               "config directory"):
-        self.message = message
-        super().__init__(self.message)
+    and src"""
+
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"{path} should contain a MANIFEST.ini, src directory and config directory")
 
 
 class ApplicationConfigNotComplete(Exception):
-    """Raised when the the 'application_name'/config directory is not complete. Should contain the JSON files application,
+    """Raised when the the application/config directory is not complete. Should contain the JSON files application,
     network and result"""
 
-    def __init__(self, message="Are you sure the configuration directory is complete? Should contain the JSON files "
-        "network.json, result.json and application.json"):
-        self.message = message
-        super().__init__(self.message)
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"{path} should contain the files network.json, result.json and application.json")
 
 
-class ApplicationFilesNonExisting(Exception):
-    """Raised when the the 'application_name'/application directory is not complete. Should contain at least one Python
-        file"""
+class ApplicationSourceFilesIncomplete(Exception):
+    """Raised when the the application/src directory is not complete. Should contain at least two Python files"""
 
-    def __init__(self, message="Are you sure the application directory is complete? Should contain at least two Python "
-                               "files"):
-        self.message = message
-        super().__init__(self.message)
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"{path} should contain at least two Python files")
 
+
+class NoApplicationExists(Exception):
+    """Raised when there are no applications listed in .qne/application.json"""
+
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"No applications exists in application.json file: {path}")
+
+
+class NoConfigFileExists(Exception):
+    """Raised when .qne/application.json doesn't exist"""
+
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"The application configuration file {path} does not exist")

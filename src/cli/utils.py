@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict, List
 import json
-import logging
 from cli.exceptions import MalformedJsonFile, InvalidPathName
 from cli.settings import BASE_DIR
 
@@ -25,8 +24,7 @@ def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
         with open(file, encoding=encoding) as fp:
             return json.load(fp)
     except json.decoder.JSONDecodeError as exception:
-        logging.error('The file %s does not contain valid json. Error: %s', file, exception)
-        raise MalformedJsonFile(exception) from exception
+        raise MalformedJsonFile(file, exception) from exception
 
 
 def write_json_file(file: Path, data: Any, encoding: str = 'utf-8') -> None:

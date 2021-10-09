@@ -6,7 +6,7 @@ from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
 from cli.output_converter import OutputConverter
-from cli.exceptions import ApplicationDirectoryNotComplete, ApplicationFilesNonExisting, ApplicationConfigNotComplete, \
+from cli.exceptions import ApplicationDirectoryNotComplete, ApplicationSourceFilesIncomplete, ApplicationConfigNotComplete, \
                             ApplicationAlreadyExists, NoNetworkAvailable
 
 
@@ -120,17 +120,68 @@ class ApplicationValidate(unittest.TestCase):
             is_application_unique_mock.assert_called_once_with(self.application)
             is_config_valid_mock.assert_called_once_with(self.application)
 
-    def test__is_structure_valid(self):
-        with patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as \
-             is_application_unique_mock:
+            # Test when one of the checks fails
+            is_structure_valid_mock.reset_mock()
+            is_application_unique_mock.reset_mock()
+            is_structure_valid_mock.return_value = False
             self.local_api.is_application_valid(application=self.application)
+            is_structure_valid_mock.assert_called_once_with(self.application)
             is_application_unique_mock.assert_called_once_with(self.application)
+
+
+    def test__is_structure_valid(self):
+        with patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
+             patch("cli.api.local_api.os.path.exists") as exists_mock, \
+             patch("cli.api.local_api.os.path.isfile") as isfile_mock, \
+             patch("cli.api.local_api.os.listdir") as listdir_mock:
+
+            listdir_mock.return_value = ["role1.py", "role2.py"]
+            self.local_api.is_application_valid(application=self.application)
+            exists_mock.call_count = 2
+            isfile_mock.call_count = 4
+            listdir_mock.assert_called_with(self.local_api.app_source)
+
+            # Raise ApplicationDirectoryNotComplete when os.path.exists returns False
+            exists_mock.reset_mock()
+            exists_mock.return_value = False
+            self.assertRaises(ApplicationDirectoryNotComplete, self.local_api.is_application_valid, self.application)
+            exists_mock.assert_called_once_with(self.local_api.app_config)
+
+            # Raise ApplicationConfigNotComplete when os.path.isfile returns False
+            exists_mock.reset_mock()
+            isfile_mock.reset_mock()
+            exists_mock.return_value = True
+            isfile_mock.side_effect = [True, False]
+            self.assertRaises(ApplicationConfigNotComplete, self.local_api.is_application_valid, self.application)
+            exists_mock.call_count = 2
+            isfile_mock.call_count = 2
+            exists_mock.reset_mock()
+            isfile_mock.reset_mock()
+            exists_mock.return_value = True
+            isfile_mock.side_effect = [True, True, False]
+            self.assertRaises(ApplicationConfigNotComplete, self.local_api.is_application_valid, self.application)
+            exists_mock.call_count = 2
+            isfile_mock.call_count = 3
+
+            # Raise ApplicationSourceFilesIncomplete when count < 2
+            exists_mock.reset_mock()
+            listdir_mock.reset_mock()
+            exists_mock.return_value = True
+            isfile_mock.reset_mock(side_effect=True)
+            listdir_mock.return_value = []
+            self.assertRaises(ApplicationSourceFilesIncomplete, self.local_api.is_application_valid, self.application)
+            exists_mock.call_count = 2
+            isfile_mock.call_count = 4
 
 
     def test__is_config_valid(self):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True),\
-             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True):
+             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True), \
+             patch("cli.api.local_api.validate_json") as validate_json_mock:
+
             self.local_api.is_application_valid(application=self.application)
+            validate_json_mock.call_count = 3
 
     def test_list_applications(self):
         with patch.object(ConfigManager, "get_applications") as get_applications_mock:
@@ -243,36 +294,3 @@ class ApplicationValidate(unittest.TestCase):
             self.local_api.get_results(path=Path('dummy'), all_results=False)
             get_rounds_mock.assert_called_once_with(Path('dummy'))
             convert_mock.assert_called_once_with(4, [])
-
-    def test_is_application_json_valid(self):
-        with patch('cli.validators.validate_json_schema') as mock_validate_schema, \
-             patch("cli.api.local_api.os.listdir") as mock_list_dir, \
-             patch("cli.api.local_api.os.path.exists", return_value=True), \
-             patch("cli.api.local_api.os.path.isfile", return_value=True):
-
-            mock_list_dir.side_effect = [self.config_files, self.roles]
-            self.local_api.is_application_valid(self.application)
-
-            mock_validate_schema.call_count = 3
-
-    def test_application_directory_not_complete_exception(self):
-        with patch("cli.validators.validate_json_schema"), \
-             patch("cli.api.local_api.os.listdir"), \
-             patch("cli.api.local_api.os.path.exists", return_value=False):
-
-            self.assertRaises(ApplicationDirectoryNotComplete, self.local_api.is_application_valid, self.application)
-
-    def test_application_config_not_complete_exception(self):
-        with patch("cli.validators.validate_json_schema"), \
-             patch("cli.api.local_api.os.listdir"), \
-             patch("cli.api.local_api.os.path.exists", return_value=True), \
-             patch("cli.api.local_api.os.path.isfile", return_value=False):
-            self.assertRaises(ApplicationConfigNotComplete, self.local_api.is_application_valid, self.application)
-
-    def test_application_files_non_existing_exception(self):
-        with patch("cli.validators.validate_json_schema"), \
-             patch("cli.api.local_api.os.listdir"), \
-             patch("cli.api.local_api.os.path.exists", return_value=True), \
-             patch("cli.api.local_api.os.path.isfile", return_value=True):
-
-            self.assertRaises(ApplicationFilesNonExisting, self.local_api.is_application_valid, self.application)
