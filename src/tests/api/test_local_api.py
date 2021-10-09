@@ -6,8 +6,8 @@ from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
 from cli.output_converter import OutputConverter
-from cli.exceptions import ApplicationDirectoryNotComplete, ApplicationSourceFilesIncomplete, ApplicationConfigNotComplete, \
-                            ApplicationAlreadyExists, NoNetworkAvailable
+from cli.exceptions import ApplicationDirectoryNotComplete, ApplicationSourceFilesIncomplete, \
+                           ApplicationConfigNotComplete, ApplicationAlreadyExists, NoNetworkAvailable
 
 
 class ApplicationValidate(unittest.TestCase):
