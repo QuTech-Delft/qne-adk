@@ -31,6 +31,126 @@
       "parameters": [
         "elementary-link-fidelity"
       ]
+    },
+    {
+      "slug": "paris-inssbruck",
+      "node1": "paris",
+      "node2": "inssbruck",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "paris-barcelona",
+      "node1": "paris",
+      "node2": "barcelona",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "paris-copenhagen",
+      "node1": "paris",
+      "node2": "copenhagen",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "paris-delft",
+      "node1": "paris",
+      "node2": "delft",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "inssbruck-barcelona",
+      "node1": "inssbruck",
+      "node2": "barcelona",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "inssbruck-copenhagen",
+      "node1": "inssbruck",
+      "node2": "copenhagen",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "inssbruck-delft",
+      "node1": "inssbruck",
+      "node2": "delft",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "barcelona-copenhagen",
+      "node1": "barcelona",
+      "node2": "copenhagen",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "barcelona-delft",
+      "node1": "barcelona",
+      "node2": "delft",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "copenhagen-delft",
+      "node1": "copenhagen",
+      "node2": "delft",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "amsterdam-leiden",
+      "node1": "amsterdam",
+      "node2": "leiden",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "leiden-delft",
+      "node1": "leiden",
+      "node2": "delft",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "delft-eindhoven",
+      "node1": "delft",
+      "node2": "eindhoven",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "eindhoven-enschede",
+      "node1": "eindhoven",
+      "node2": "enschede",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
+    },
+    {
+      "slug": "enschede-amsterdam",
+      "node1": "enschede",
+      "node2": "amsterdam",
+      "parameters": [
+        "elementary-link-fidelity"
+      ]
     }
   ]
 }

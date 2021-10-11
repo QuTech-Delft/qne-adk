@@ -79,6 +79,102 @@
         "relaxation-time",
         "dephasing-time"
       ]
+    },
+    {
+      "name": "Barcelona",
+      "slug": "barcelona",
+      "coordinates": {
+        "latitude": 41.2744,
+        "longitude": 1.9852
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    },
+    {
+      "name": "Copenhagen",
+      "slug": "copenhagen",
+      "coordinates": {
+        "latitude": 48.8302,
+        "longitude": 2.3816
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    },
+    {
+      "name": "Inssbruck",
+      "slug": "inssbruck",
+      "coordinates": {
+        "latitude": 47.263,
+        "longitude": 11.3844
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    },
+    {
+      "name":"Paris",
+      "slug":"paris",
+      "coordinates": {
+        "latitude": 48.8302,
+        "longitude": 2.3816
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    },
+    {
+      "name": "Eindhoven",
+      "slug": "eindhoven",
+      "coordinates": {
+        "latitude": 51.4416,
+        "longitude": 5.4697
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
+    },
+    {
+      "name": "Enschede",
+      "slug": "enschede",
+      "coordinates": {
+        "latitude": 52.2215,
+        "longitude": 6.8937
+      },
+      "node_parameters": [
+        "gate-fidelity"
+      ],
+      "number_of_qubits": 3,
+      "qubit_parameters": [
+        "relaxation-time",
+        "dephasing-time"
+      ]
     }
   ]
 }

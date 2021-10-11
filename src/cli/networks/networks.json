@@ -9,6 +9,35 @@
         "delft-the-hague",
         "delft-rotterdam"
       ]
+    },
+    "europe": {
+      "name": "Europe",
+      "slug": "europe",
+      "channels": [
+        "paris-inssbruck",
+        "paris-barcelona",
+        "paris-copenhagen",
+        "paris-delft",
+        "inssbruck-barcelona",
+        "inssbruck-copenhagen",
+        "inssbruck-delft",
+        "barcelona-copenhagen",
+        "barcelona-delft",
+        "copenhagen-delft"
+      ]
+    },
+    "the-netherlands": {
+      "name": "The Netherlands",
+      "slug": "the-netherlands",
+      "channels": [
+        "amsterdam-leiden",
+        "leiden-delft",
+        "delft-eindhoven",
+        "eindhoven-enschede",
+        "enschede-amsterdam"
+      ]
     }
   }
 }
+
+
