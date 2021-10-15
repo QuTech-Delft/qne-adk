@@ -4,7 +4,7 @@ import shutil
 from typing import List, Optional, Tuple
 from pathlib import Path
 from cli import utils
-from cli.validators import validate_json
+from cli.validators import validate_json_string, validate_json_schema
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -12,16 +12,13 @@ from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkT
                               app_configApplicationType, assetApplicationType, assetNetworkType,
                               ExperimentType, ResultType)
 from cli.utils import read_json_file, write_json_file
-from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable, ApplicationDirectoryNotComplete, \
-                           ApplicationConfigNotComplete, ApplicationSourceFilesIncomplete
+from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
 from cli.settings import BASE_DIR
 
 
 class LocalApi:
     def __init__(self, config_manager: ConfigManager) -> None:
         self.__config_manager = config_manager
-        self.app_config = Path.cwd() / "config"
-        self.app_source = Path.cwd() / "src"
 
     def create_application(self, application: str, roles: List[str], path: Path) -> None:
         """
@@ -97,7 +94,7 @@ class LocalApi:
         utils.write_json_file(config_dir / "application.json", data)
 
         # Result.json configuration
-        utils.write_json_file(config_dir / "result.json", {})
+        utils.write_json_file(config_dir / "result.json", [])
 
         # Manifest.ini configuration
         utils.write_file(path / application / "MANIFEST.ini", "")
@@ -130,59 +127,122 @@ class LocalApi:
         return local_applications
 
     # Todo: Update confluence scenario diagram since application_unique() and structure_valid() are swapped
-    def is_application_valid(self, application: str) -> Tuple[bool, str]:
+    def is_application_valid(self, application: str) -> List[str]:
         """
         Function that checks if:
-        - The application is valid by validating if it is unique
+        - The application is valid by validating if it exists in .qne/application.json
         - The file and directory structure is correct
         - The json files in the config directory contain valid json
         - The json files passes against schema validation
 
         returns:
-            Returns True if all validations passes
-            Returns False if one of the validations throws an Exception
+            Returns empty list when all validations passes
+            Returns list containing error messages of the validations that failed
         """
+        error_list = []
+        is_unique, _ = self.__is_application_unique(application)
 
-        if self.__is_application_unique(application) and \
-           self.__is_structure_valid(application) and \
-           self.__is_config_valid(application):
-            return True, "Valid"
+        if is_unique:
+            error_list.append("Application does not exist")
+        for items in self.__is_structure_valid(application):
+            error_list.append(items)
+        for items in self.__is_config_valid(application):
+            error_list.append(items)
 
-        return False, "Invalid"
+        # Remove any duplicates from list
+        filtered_error_list = []
+        for i in error_list:
+            if i not in filtered_error_list:
+                filtered_error_list.append(i)
 
-    def __is_config_valid(self, application: str) -> bool:
+        return filtered_error_list
+
+    def __is_config_valid(self, application: str) -> List[str]:
         # Validate if json string is correct and validate against json schema's
         schema_app_path = Path(BASE_DIR + "/schema/applications")
+        app_config = Path(self.__config_manager.get_application(application)['path']) / "config"
+        application_path = app_config / "application.json"
+        network_path = app_config / "network.json"
+        result_path = app_config / "result.json"
 
-        validate_json(self.app_config / "application.json", schema_app_path / "appconfig_app.json")
-        validate_json(self.app_config / "network.json", schema_app_path / "appconfig_network.json")
-        validate_json(self.app_config / "network.json", schema_app_path / "appconfig_result.json")
+        error_list = []
 
-        return True
+        # Validate application.json
+        if os.path.isfile(application_path):
+            json_valid, message = validate_json_string(application_path)
+            if json_valid:
+                schema_valid, ve = validate_json_schema(application_path, schema_app_path / "appconfig_app.json")
+                if not schema_valid:
+                    error_list.append(ve)
+            else:
+                error_list.append(message)
 
-    def __is_structure_valid(self, application: str) -> bool:
+        if os.path.isfile(network_path):
+            json_valid, message = validate_json_string(network_path)
+            if json_valid:
+                schema_valid, ve = validate_json_schema(network_path, schema_app_path / "appconfig_network.json")
+                if not schema_valid:
+                    error_list.append(ve)
+            else:
+                error_list.append(message)
+
+        if os.path.isfile(result_path):
+            json_valid, message = validate_json_string(result_path)
+            if json_valid:
+                schema_valid, ve = validate_json_schema(result_path, schema_app_path / "appconfig_result.json")
+                if not schema_valid:
+                    error_list.append(ve)
+            else:
+                error_list.append(message)
+
+        return error_list
+
+    def __is_structure_valid(self, application_name: str) -> List[str]:
+        app_dir_path = Path(self.__config_manager.get_application(application_name)['path'])
+        app_config = app_dir_path / "config"
+        app_src = app_dir_path / "src"
+        error_list = []
+
         # Validate that the config, src and MANIFEST.ini structure is correct
-        if not os.path.exists(self.app_config) or \
-           not os.path.exists(self.app_source) or \
-           not os.path.isfile(Path.cwd() / "MANIFEST.ini"):
-            raise ApplicationDirectoryNotComplete(Path.cwd())
+        if not os.path.exists(app_config) or \
+           not os.path.exists(app_src) or \
+           not os.path.isfile(app_dir_path / "MANIFEST.ini"):
+            error_list.append(f"In file {app_dir_path}: should contain a 'MANIFEST.ini', 'src' directory and 'config' "
+                              f"directory")
 
         # Check if the config directory is complete
-        if not os.path.isfile(self.app_config / "application.json") or \
-           not os.path.isfile(self.app_config / "network.json") or \
-           not os.path.isfile(self.app_config / "result.json"):
-            raise ApplicationConfigNotComplete(self.app_config)
+        if os.path.exists(app_config):
+            if not os.path.isfile(app_config / "application.json") or \
+               not os.path.isfile(app_config / "network.json") or \
+               not os.path.isfile(app_config / "result.json"):
+                error_list.append(f"In file {app_config}: should contain the files 'network.json', 'result.json' and "
+                                  f"'application.json'")
 
-        # Check if there is are at least two python files in the src directory
-        count = 0
-        for file in os.listdir(self.app_source):
-            if file.endswith(".py"):
-                count += 1
+        # Check if the python files match the roles in application.json and vice versa
+        if os.path.exists(app_src) and os.path.isfile(app_config / "application.json"):
+            valid, message = validate_json_string(app_config / "application.json")
+            if valid:
+                application = read_json_file(app_config / "application.json")
+                config_roles = []
 
-        if count < 2:
-            raise ApplicationSourceFilesIncomplete(self.app_source)
+                for item in application:
+                    for role in item["roles"]:
+                        config_roles.append(role)
 
-        return True
+                config_roles = ['app_' + item + '.py' for item in config_roles]
+                application_roles = os.listdir(app_src)
+
+                if not all(item in config_roles for item in application_roles):
+                    error_list.append(
+                        f"Not all the roles in {app_config / 'application.json'} match the roles in {app_src}")
+
+                if not all(item in application_roles for item in config_roles):
+                    error_list.append(
+                        f"Not all the roles in {app_src} match the roles in {app_config / 'application.json'}")
+            else:
+                error_list.append(message)
+
+        return error_list
 
     def get_application_config(self, application: str) -> AppConfigType:
         app_details = self.__config_manager.get_application(application)

@@ -65,7 +65,7 @@ class CommandProcessor:
         self.__remote.publish_application(application)
 
     @log_function
-    def applications_validate(self, application: str) -> Tuple[bool, str]:
+    def applications_validate(self, application: str) -> List[str]:
         return self.__local.is_application_valid(application)
 
     @log_function

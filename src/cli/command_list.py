@@ -185,8 +185,14 @@ def applications_validate() -> None:
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
     typer.echo(f"Validate application '{application_name}'.")
-    processor.applications_validate(application=application_name)
-    typer.echo("Application is valid.")
+    error_list = processor.applications_validate(application=application_name)
+
+    if error_list:
+        for item in error_list:
+            print(f"ERROR: {item}")
+        print("\nApplication is invalid.")
+    else:
+        typer.echo("Application is valid.")
 
 
 @experiments_app.command("create")

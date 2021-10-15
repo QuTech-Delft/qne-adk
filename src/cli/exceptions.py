@@ -1,6 +1,4 @@
 from pathlib import Path
-from jsonschema.exceptions import ValidationError
-
 
 class MalformedJsonFile(Exception):
     """Raised when trying to read a file containing malformed json """
@@ -17,7 +15,7 @@ class ApplicationAlreadyExists(Exception):
 
 
 class NoNetworkAvailable(Exception):
-    """Raised when there is no networks available with the amount nodes compared with the amount of roles"""
+    """Raised when there are no networks available with the amount nodes compared with the amount of roles"""
 
     def __init__(self) -> None:
         super().__init__("No network available which contains enough nodes for all the roles.")
@@ -39,49 +37,12 @@ class InvalidPathName(Exception):
                          f" ':', '?', '\"', '<', '>', '|']")
 
 
-class SchemaValidationError(Exception):
-    """Raised when json file doesn't meet the requirements of the schema"""
-
-    def __init__(self) -> None:
-        super().__init__("The JSON file you are trying to load does not contain all the required fields")
-
-
-class JSONSchemaValidationError(Exception):
-    """Raised when the JSON file is invalid when validation against a the schema file"""
-
-    def __init__(self, error: ValidationError, schema_path: Path) -> None:
-        super().__init__(f"Failed when validating against schema file. {schema_path} {error.message}")
-
-
 class ApplicationDoesNotExist(Exception):
     """Raised when application path (the current path the user is in) doesn't match any of the application paths in
     .qne/application.json"""
 
     def __init__(self) -> None:
-        super().__init__("Application path not found")
-
-
-class ApplicationDirectoryNotComplete(Exception):
-    """Raised when the application directory does not contain all the directories and files necessary (MANIFEST, config,
-    and src"""
-
-    def __init__(self, path: Path) -> None:
-        super().__init__(f"{path} should contain a MANIFEST.ini, src directory and config directory")
-
-
-class ApplicationConfigNotComplete(Exception):
-    """Raised when the the application/config directory is not complete. Should contain the JSON files application,
-    network and result"""
-
-    def __init__(self, path: Path) -> None:
-        super().__init__(f"{path} should contain the files network.json, result.json and application.json")
-
-
-class ApplicationSourceFilesIncomplete(Exception):
-    """Raised when the the application/src directory is not complete. Should contain at least two Python files"""
-
-    def __init__(self, path: Path) -> None:
-        super().__init__(f"{path} should contain at least two Python files")
+        super().__init__("Current directory does not appear to be a valid application directory")
 
 
 class NoApplicationExists(Exception):

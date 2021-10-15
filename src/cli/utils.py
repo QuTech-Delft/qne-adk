@@ -106,27 +106,25 @@ def get_network_nodes() -> Dict[str, List[str]]:
     return network_nodes
 
 
-def get_dummy_application(roles: List[Any]) -> Dict[str, Any]:
-    dummy_application = {
-      "application": [
-        {
-          "title": "Title for this application",
-          "description": "Description of this application",
-          "values": [
-            {
-              "name": "x",
-              "default_value": 0,
-              "minimum_value": 0,
-              "maximum_value": 1,
-              "unit": "",
-              "scale_value": 1.0
-            }
-          ],
-          "input_type": "number",
-          "roles": roles
-        }
-      ]
-    }
+def get_dummy_application(roles: List[Any]) -> List[Dict[str, Any]]:
+    dummy_application = [
+      {
+        "title": "Title for this application",
+        "description": "Description of this application",
+        "values": [
+          {
+            "name": "x",
+            "default_value": 0,
+            "minimum_value": 0,
+            "maximum_value": 1,
+            "unit": "",
+            "scale_value": 1.0
+          }
+        ],
+        "input_type": "number",
+        "roles": roles
+      }
+    ]
 
     return dummy_application
 

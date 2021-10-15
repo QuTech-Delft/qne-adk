@@ -2,7 +2,7 @@ import os.path
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
 from cli.utils import read_json_file, write_json_file
-from cli.exceptions import ApplicationDoesNotExist, NoApplicationExists, NoConfigFileExists
+from cli.exceptions import ApplicationDoesNotExist, NoConfigFileExists
 
 
 class ConfigManager:
@@ -46,22 +46,21 @@ class ConfigManager:
     def delete_application(self, application: str) -> None:
         pass
 
-    def get_application(self, application: str) -> Dict[str, Any]:
-        return {}
+    def get_application(self, application: str) -> Any:
+        applications = read_json_file(self.applications_config)
+        return applications[application]
 
     def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:
-        if self.check_config_exists():
-            data = read_json_file(self.applications_config)
+        if not self.check_config_exists():
+            self.create_config()
 
-            if not data:
-                raise NoApplicationExists(self.applications_config)
+        data = read_json_file(self.applications_config)
 
-            for app in data:
-                if data[app]['path'] == os.path.join(str(path) + "/"):
-                    return app, data[app]
+        for app in data:
+            if data[app]['path'].lower() == os.path.join(str(path), '').lower():
+                return app, data[app]
 
-            raise ApplicationDoesNotExist()
-        raise NoConfigFileExists(self.applications_config)
+        raise ApplicationDoesNotExist()
 
     def get_applications(self) -> List[Dict[str, Any]]:
         """
@@ -98,7 +97,7 @@ class ConfigManager:
 
         return False, None
 
-    def remote_application_exists(self, application: str) -> int:
+    def remote_application_exists(self, application: str) -> Any:
         """
         Check if the application is already created on remote
         by checking the remote_id field in the config file.
@@ -146,6 +145,7 @@ class ConfigManager:
             for app in del_applications:
                 del applications[app]
 
-            write_json_file(self.applications_config, applications)
+            if applications != read_json_file(self.applications_config):
+                write_json_file(self.applications_config, applications)
         else:
             raise NoConfigFileExists(self.applications_config)
