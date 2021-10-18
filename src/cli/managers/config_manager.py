@@ -60,7 +60,7 @@ class ConfigManager:
         all_applications = self.get_applications()
 
         for app in all_applications:
-            if app["name"] == application:
+            if app["name"].lower() == application:
                 return app
         return None
 

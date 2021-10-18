@@ -11,6 +11,8 @@ assetApplicationType = List[Dict[str, Any]]
 NetworkData = Dict[str, Dict[str, Dict[str, Any]]]
 ChannelData = Dict[str, List[Dict[str, Any]]]
 NodeData = Dict[str, List[Dict[str, Any]]]
+TemplateData = Dict[str, List[Dict[str, Any]]]
+GenericNetworkData = Dict[str, List[Dict[str, Any]]]
 
 LoginFunctionType = Callable[[str, str, str], str]
 FallbackFunctionType = Callable[[], str]

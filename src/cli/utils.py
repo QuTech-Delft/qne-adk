@@ -2,11 +2,9 @@ import json
 import os
 from pathlib import Path
 import shutil
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, Dict, List
 
 from cli.exceptions import MalformedJsonFile, InvalidPathName
-from cli.settings import BASE_DIR
-from cli.type_aliases import ChannelData, NetworkData, NodeData
 
 
 def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
@@ -78,37 +76,6 @@ def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) 
         reordered_data.append(reordered_item)
     return reordered_data
 
-def get_network_nodes() -> Dict[str, List[str]]:
-    """
-    Loops trough all the networks in networks/networks.json and gets all the nodes within this network.
-
-    returns:
-    Returns a dict of networks, each having their own list including the nodes:
-    E.g.: {"randstad": ["leiden", "amsterdam", "the_hague"], "the-netherlands": ["etc..",]}
-
-    """
-    networks_file = Path(BASE_DIR) / "networks/networks.json"
-    channels_file = Path(BASE_DIR) / "networks/channels.json"
-
-    # Read network and see which are available
-    network_nodes: Dict[str, List[str]] = {}
-
-    data_networks = read_json_file(networks_file)
-    data_channels = read_json_file(channels_file)
-
-    for network in data_networks["networks"]:
-        for channel in data_channels["channels"]:
-            if channel["slug"] in data_networks["networks"][network]["channels"]:
-                if data_networks["networks"][network]["slug"] not in network_nodes:
-                    network_nodes[data_networks["networks"][network]["slug"]] = []
-                lst = network_nodes[data_networks["networks"][network]["slug"]]
-                if channel["node1"] not in lst:
-                    lst.append(channel["node1"])
-                if channel["node2"] not in lst:
-                    lst.append(channel["node2"])
-
-    return network_nodes
-
 
 def get_dummy_application(roles: List[Any]) -> List[Dict[str, Any]]:
     dummy_application = [
@@ -146,119 +113,6 @@ def validate_path_name(obj: str, name: str) -> None:
     invalid_chars = ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
     if any(char in name for char in invalid_chars):
         raise InvalidPathName(obj)
-
-def get_all_networks_data() -> NetworkData:
-    """
-    Get all the networks data from networks json file
-
-    Returns:
-
-    """
-    networks_file = Path(BASE_DIR) / "networks/networks.json"
-    network_data: NetworkData = read_json_file(networks_file)
-    return network_data
-
-def get_network_slug(network_name: str) -> Optional[str]:
-    """
-    Get the slug associated with the network based on the name of the network
-
-    Args:
-        network_name: Name of the network
-
-    Returns:
-        The slug for the given network
-    """
-    networks_data = get_all_networks_data()
-
-    for network, data in networks_data["networks"].items():
-        if data["name"] == network_name:
-            return network
-
-    return None
-
-def get_network_name(network_slug: str) -> Optional[str]:
-    """
-    Get the name associated with the network based on the slug of the network
-
-    Args:
-        network_slug: Slug of the network
-
-    Returns:
-        The Name for the given network
-    """
-    networks_data = get_all_networks_data()
-
-    for network, data in networks_data["networks"].items():
-        if network == network_slug:
-            return str(data["name"])
-
-    return None
-
-def get_channels_for_network(network_slug: str) -> Optional[List[str]]:
-    """
-    Get the list of channels available in the network
-
-    Args:
-        network_slug: Slug of the network
-
-    Returns:
-        List of channels
-    """
-    networks_data = get_all_networks_data()
-    for network, data in networks_data["networks"].items():
-        if network == network_slug:
-            return cast(List[str], data["channels"])
-
-    return None
-
-def get_channel_info(channel_slug: str) -> Optional[Dict[str, Any]]:
-    """
-    Get the channel information containing node & parameter information
-
-    Args:
-        channel_slug: Slug of the channel
-
-    Returns:
-        Channel information containing node & parameter information
-    """
-    channels_file = Path(BASE_DIR) / "networks/channels.json"
-    channels_data: ChannelData = read_json_file(channels_file)
-
-    for channel in channels_data["channels"]:
-        if channel["slug"] == channel_slug:
-            return channel
-
-    return None
-
-def get_node_info(node_slug: str) -> Optional[Dict[str, Any]]:
-    """
-    Get the node information containing node parameters & qubit information
-
-    Args:
-        node_slug: Slug of the Node
-
-    Returns:
-        Node information containing node parameters & information
-    """
-    nodes_file = Path(BASE_DIR) / "networks/nodes.json"
-    nodes_data: NodeData = read_json_file(nodes_file)
-
-    for node in nodes_data["nodes"]:
-        if node["slug"] == node_slug:
-            return node
-
-    return None
-
-def get_templates() -> Dict[str, Dict[str, Any]]:
-    """
-    Get all the templates information
-
-    Returns:
-        A dictionary containing key as template slug and value as template information
-    """
-    templates_file = Path(BASE_DIR) / "networks/templates.json"
-    templates_data = read_json_file(templates_file)
-    return {template["slug"]: template for template in templates_data["templates"]}
 
 def copy_files(source_dir: Path, destination_dir: Path) -> None:
     """

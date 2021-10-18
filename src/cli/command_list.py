@@ -215,22 +215,15 @@ def experiments_create(
     validate_path_name("Experiment", name)
 
     cwd = Path.cwd()
-    typer.echo(f"Create experiment: '{name}' with network: '{network_name}' for application: '{application}'.")
 
-    # is_app_valid, validation_message = processor.applications_validate(application)
+    # processor.applications_validate(application)
     # TODO: Uncomment above line after application validate command is ready
-    is_app_valid, validation_message = True, 'Valid'
 
-    if is_app_valid:
-        success, message = processor.experiments_create(name=name, application=application, network_name=network_name,
-                                                        local=local, path=cwd)
-        if success:
-            typer.echo("Experiment created successfully.")
-        else:
-            typer.echo("Experiment could not be created. " + message)
-    else:
-        typer.echo(f"The application {application} is not valid. " + validation_message)
-        typer.echo("You can use the application validate command to check the application.")
+    processor.experiments_create(name=name, application=application.lower(),
+                                                    network_name=network_name.lower(),
+                                                    local=local, path=cwd)
+    typer.echo(f"Experiment created successfully in directory {name} at location {cwd}.")
+
 
 @experiments_app.command("list")
 def experiments_list() -> None:
