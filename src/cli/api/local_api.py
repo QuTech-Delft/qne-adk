@@ -204,16 +204,16 @@ class LocalApi:
 
                 # Add app_ and .py to each role in config/application.json so that it matches the python files listed
                 # in the src directory
-                config_application_roles = ['app_' + role + '.py' for role in config_application_roles]
+                renamed_config_application_roles = ['app_' + role + '.py' for role in config_application_roles]
 
                 # Get all the files in the src directory
                 app_src_files = os.listdir(app_src_path)
 
                 # Check if the roles in the config/application.json match the roles in the src directory
-                if not all(roles in app_src_files for roles in config_application_roles):
+                if not all(roles in app_src_files for roles in renamed_config_application_roles):
                     error_dict['warning'].append(
-                        f"Not all the roles in {app_src_path} match the roles in "
-                        f"{app_config_path / 'application.json'}")
+                        f"Not all the the roles in {app_config_path / 'application.json'} match with the file names in "
+                        f"{app_src_path}")
             else:
                 error_dict['error'].append(message)
 
