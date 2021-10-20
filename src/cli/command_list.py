@@ -35,6 +35,7 @@ processor = CommandProcessor(local_api=local_api, remote_api=remote_api)
 
 logging.basicConfig(level=logging.INFO)
 
+
 @app.command("login")
 def login(
     host: str = typer.Argument(None),
@@ -64,7 +65,7 @@ def logout(host: str = typer.Argument(None)) -> None:
 
 @applications_app.command("create")
 def applications_create(
-    application: str = typer.Argument(..., help="Name of the application."),
+    application_name: str = typer.Argument(..., help="Name of the application."),
     roles: List[str] = typer.Argument(..., help="Names of the roles to be created."),
 ) -> None:
     """
@@ -74,7 +75,7 @@ def applications_create(
     if len(roles) <= 1:
         raise NotEnoughRoles()
 
-    validate_path_name("Application", application)
+    validate_path_name("Application", application_name)
     for role in roles:
         validate_path_name("Role", role)
 
@@ -82,8 +83,8 @@ def applications_create(
     roles = [role.lower() for role in roles]
 
     cwd = Path.cwd()
-    typer.echo(f"Create application '{application}' in directory '{cwd}'.")
-    processor.applications_create(application=application, roles=roles, path=cwd)
+    typer.echo(f"Create application '{application_name}' in directory '{cwd}'.")
+    processor.applications_create(application_name=application_name, roles=roles, path=cwd)
     typer.echo("Application successfully created.")
 
 
@@ -185,12 +186,20 @@ def applications_validate() -> None:
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
     typer.echo(f"Validate application '{application_name}'.")
-    error_list = processor.applications_validate(application=application_name)
+    error_dict = processor.applications_validate(application=application_name)
 
-    if error_list:
-        for item in error_list:
-            print(f"ERROR: {item}")
-        print("\nApplication is invalid.")
+    if error_dict['errors']:
+        for item in error_dict['errors']:
+            typer.echo(f"ERROR: {item}")
+    if error_dict['warnings']:
+        for item in error_dict['warnings']:
+            typer.echo(f"WARNING: {item}")
+    if error_dict['info']:
+        for item in error_dict['info']:
+            typer.echo(f"INFO: {item}")
+
+    if error_dict['errors'] or error_dict['warnings']:
+        typer.echo("\nApplication is invalid.")
     else:
         typer.echo("Application is valid.")
 

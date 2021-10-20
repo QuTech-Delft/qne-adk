@@ -10,14 +10,13 @@ class ConfigManager:
         self.__config_dir = config_dir
         self.applications_config = self.__config_dir / "applications.json"
 
-    def add_application(self, application: str, path: Path) -> None:
+    def add_application(self, application_name: str, path: Path) -> None:
         """
         Takes care of saving the application name in the .qne/application.json root file together with the application
         path.
 
         Args:
-            application: the application name
-            roles: a list of roles
+            application_name: name of the application
             path: the path where the application is stored
 
         """
@@ -26,7 +25,7 @@ class ConfigManager:
         apps = read_json_file(self.applications_config)
 
         # Store the app path
-        apps[application] = {'path': os.path.join(str(path), application, '')}
+        apps[application_name] = {'path': os.path.join(str(path), application_name, '')}
         write_json_file(self.applications_config, apps)
 
     def check_config_exists(self) -> bool:
@@ -43,12 +42,12 @@ class ConfigManager:
         """ Creates the application.json config file in the .qne/ root directory"""
         write_json_file(self.applications_config, {})
 
-    def delete_application(self, application: str) -> None:
+    def delete_application(self, application_name: str) -> None:
         pass
 
-    def get_application(self, application: str) -> Any:
+    def get_application(self, application_name: str) -> Any:
         applications = read_json_file(self.applications_config)
-        return applications[application]
+        return applications[application_name]
 
     def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:
         if not self.check_config_exists():
@@ -79,6 +78,19 @@ class ConfigManager:
 
         return application_list
 
+    def get_application_path(self, application_name):
+        """
+        Reads the applications.json config file for getting the path using the application_name
+
+        Args:
+            application_name: Name of the application
+
+        Returns:
+           A string of the path where there application is stored
+        """
+
+        return self.get_application(application_name)['path']
+
     def application_exists(self, application: str) -> Tuple[bool, Any]:
         """
         Checks if the application name already exists in .qne/application.json for unique purposes. Returns True when
@@ -97,14 +109,17 @@ class ConfigManager:
 
         return False, None
 
-    def remote_application_exists(self, application: str) -> Any:
+    def remote_application_exists(self, application_name: str) -> Any:
         """
         Check if the application is already created on remote
         by checking the remote_id field in the config file.
         Returns application id if application exists on remote
         else -1 if application does not exist on remote
+
+        Args:
+            application_name: name of the application
         """
-        application_info = self.get_application(application)
+        application_info = self.get_application(application_name)
         return application_info.get('remote_id', -1)
 
     def update_path(self, application: str, path: str) -> None:
@@ -145,7 +160,7 @@ class ConfigManager:
             for app in del_applications:
                 del applications[app]
 
-            if applications != read_json_file(self.applications_config):
+            if del_applications:
                 write_json_file(self.applications_config, applications)
         else:
             raise NoConfigFileExists(self.applications_config)

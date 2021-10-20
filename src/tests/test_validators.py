@@ -1,7 +1,7 @@
 from pathlib import Path
 from unittest.mock import patch
 import unittest
-from cli.validators import validate_json_string, validate_json_schema, validate_json
+from cli.validators import validate_json_file, validate_json_schema, validate_json
 from cli.exceptions import JSONSchemaValidationError
 
 
@@ -14,7 +14,7 @@ class TestValidators(unittest.TestCase):
 
     def test_validate_json_string(self):
         with patch("cli.validators.read_json_file") as read_json_file_mock:
-            validate_json_string(self.path)
+            validate_json_file(self.path)
             read_json_file_mock.assert_called_once()
 
     def test_validate_json_schema(self):

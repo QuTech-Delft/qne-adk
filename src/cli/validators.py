@@ -8,7 +8,7 @@ from jsonschema.exceptions import ValidationError
 from cli.utils import read_json_file
 
 
-def validate_json_string(instance_path: Path) -> Tuple[bool, Any]:
+def validate_json_file(instance_path: Path) -> Tuple[bool, Any]:
     try:
         with open(instance_path, encoding="utf-8") as fp:
             json.load(fp)
