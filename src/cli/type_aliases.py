@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, TypedDict, Union
 
 ExperimentType = Dict[str, Any]
 ResultType = Dict[str, Any]
@@ -19,3 +19,22 @@ FallbackFunctionType = Callable[[], str]
 TokenFetchFunctionType = Union[LoginFunctionType, FallbackFunctionType]
 
 ErrorDictType = Dict[str, List[str]]
+DefaultPayloadType = Union[int, str]
+LinkType = Dict[str, Union[str, float]]
+QuantumStateType = List[List[Dict[str, float]]]
+
+
+class DijkstraNode(TypedDict):
+    effective_fidelity: float
+    channels: List[str]
+    final: bool
+
+
+RoundResultType = Dict[str, Any]
+CumulativeResultType = Dict[str, Any]
+InstructionType = Dict[str, Any]
+LogEntryType = Dict[str, Any]
+NetworkType = Dict[str, List[Dict[str, Any]]]
+GeneratedResultType = Dict[str, Union[DefaultPayloadType, RoundResultType, CumulativeResultType, List[InstructionType]]]
+TemplatesType = Dict[str, List[Dict[str, Any]]]
+AssetType = Dict[str, Union[DefaultPayloadType, Dict[str, Any]]]

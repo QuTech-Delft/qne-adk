@@ -124,11 +124,8 @@ class CommandProcessor:
 
         if is_local:
             results = self.__local.run_experiment(path)
-        else:
-            results = self.__remote.run_experiment(block)
-
-        if results:
-            self.__store_results(results)
+            if results:
+                self.__store_results(results)
 
         return results
 

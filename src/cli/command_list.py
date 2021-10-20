@@ -248,12 +248,15 @@ def experiments_run(
     Execute a run of the experiment.
     """
     cwd = Path.cwd()
-    typer.echo("Run experiment")
-    processor.experiments_run(path=cwd, block=block)
-    if block:
-        typer.echo("Experiment has run successfully")
-    else:
-        typer.echo("Experiment has been created successfully")
+
+    # Validate the experiment before executing the run command
+    # processor.experiments_validate(path=cwd)
+
+    results = processor.experiments_run(path=cwd, block=block)
+    # if block:
+    #     typer.echo("Experiment has run successfully.")
+    # else:
+    #     typer.echo("Experiment has been created successfully.")
 
 
 @experiments_app.command("validate")

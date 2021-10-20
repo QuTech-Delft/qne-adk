@@ -12,7 +12,7 @@ from cli.output_converter import OutputConverter
 from cli.settings import BASE_DIR
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
                               app_configApplicationType, assetApplicationType, assetNetworkType,
-                              ExperimentType, ErrorDictType, GenericNetworkData, ResultType,
+                              ExperimentType, ErrorDictType, GenericNetworkData, GeneratedResultType, ResultType,
                               ChannelData, NetworkData, NodeData, TemplateData)
 from cli.validators import validate_json_file, validate_json_schema
 
@@ -688,12 +688,33 @@ class LocalApi:
     def delete_experiment(self, path: Path) -> None:
         pass
 
-    def run_experiment(self, path: Path) -> Optional[List[ResultType]]:
-        round_set_manager = RoundSetManager()
-        round_set_manager.prepare_input(path)
-        round_set_manager.process()
-        round_set_manager.terminate()
-        return []
+    def run_experiment(self, path: Path) -> Optional[List[GeneratedResultType]]:
+        asset = self._get_asset(path)
+        roundSetManager = RoundSetManager(round_set=None, asset=asset, path=path)
+
+        roundSetManager.prepare_input()
+        result = roundSetManager.process()
+
+        # terminate will clear the input directory. We dont want that
+        # roundSetManager.terminate()
+
+        print("Result is", result)
+        return result
+
+    def _get_asset(self, path: Path) -> Dict[str, Any]:
+        """
+            Get the asset from experiment.json
+
+            Args:
+                path: The location of the experiment
+
+            Returns:
+                int: Value of the number of rounds
+        """
+        experiment_data = utils.read_json_file(path / "experiment.json")
+        print(f"Experiment.json read from {str(path)} : {experiment_data.keys()}")
+        return experiment_data["asset"]
+        # return {"network": {}, "application": []}
 
     def get_experiment(self, name: str) -> ExperimentType:
         pass
