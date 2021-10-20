@@ -264,12 +264,14 @@ def experiments_validate() -> None:
     Validate the experiment configuration.
     """
     cwd = Path.cwd()
-    typer.echo(f"Validate experiment at '{cwd}'")
-    is_valid, message = processor.experiments_validate(path=cwd)
+
+    typer.echo(f"Validate experiment at '{cwd}'.")
+    is_valid = processor.experiments_validate(path=cwd)
     if is_valid:
-        typer.echo("Experiment is valid")
+        for item in is_valid:
+            print(f"Error: {item}")
     else:
-        typer.echo("Experiment is not valid: " + message)
+        typer.echo("Experiment is valid.")
 
 
 @experiments_app.command("results")

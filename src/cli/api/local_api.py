@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 import shutil
 from typing import Any, cast, Dict, List, Optional, Tuple
-
 from cli import utils
 from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, JsonFileNotFound, NetworkNotFound,
                             NoNetworkAvailable, PackageNotComplete)
@@ -733,7 +732,7 @@ class LocalApi:
 
         return output_result
 
-    def validate_experiment(self, path: Path) -> Tuple[bool, str]:
+    def validate_experiment(self, path: Path) -> List[str]:
         # TODO: Add any other validation which should be done
         """
         Validates the experiment by checking:
@@ -742,11 +741,119 @@ class LocalApi:
         - (For local run) check the python & yaml files for correct syntax (possible?)
         - content of experiment.json is valid JSON
         - asset in the experiment.json validated against a schema validator.
+
+        Args:
+            path: The location of the experiment
+
+        Returns:
+            List[str]: List containing messages of the validations that failed
+        """
+        experiment_json = path / 'experiment.json'
+        local = True
+        error_list = []
+
+        # Check if experiment.json exists
+        if not experiment_json.is_file():
+            error_list.append('File experiment.json not found in the current working directory')
+
+        # Check if experiment is local or remote
+        if experiment_json.is_file():
+            is_valid, message = validate_json_file(experiment_json)
+            if is_valid:
+                experiment = read_json_file(experiment_json)
+                if not experiment['meta']['backend']['location'] == "local":
+                    local = False
+            else:
+                error_list.append(message)
+
+        for item in self.validate_experiment_structure(path=path, local=local):
+            error_list.append(item)
+        for item in self.validate_experiment_json_valid(path=path):
+            error_list.append(item)
+
+        return error_list
+
+    # TODO: Update confluence sequence diagram with new function
+    def validate_experiment_structure(self, path: Path, local: bool) -> List[str]:
+        """
+        Validates if the experiment file structures contains a:
+        - experiment.json
+        - (Only local) input directory containing network.yaml, roles.yaml, role1.yaml, role2.yaml, ...,
+        app_role1.py, app_role2.py, ...
+
+        Args:
+            path: The location of the experiment
+            local: If the experiment is a local or not
+
+        Returns:
+            List[str]: List containing messages of the validations that failed
         """
 
+        error_list = []
         experiment_json = path / 'experiment.json'
-        if not experiment_json.is_file():
-            return False, 'File experiment.json not found in the current working directory'
+        roles = []
+        is_valid, _ = validate_json_file(experiment_json)
 
+        if is_valid:
+            experiment = read_json_file(experiment_json)
+
+            # Get the roles from the asset
+            # TODO: Get the roles from the application configuration, not the asset? But how? Experiment and application
+            #       are no where linked?
+            for item in experiment['asset']['application']:
+                for role in item['roles']:
+                    roles.append(role.lower())
+
+            # Local validation
+            if local:
+                experiment_input = path / 'input'
+                if not experiment_input.exists():
+                    error_list.append("Directory 'input' not found in the current working directory")
+                if experiment_input.exists():
+                    if not (experiment_input / 'network.yaml').exists() or \
+                       not (experiment_input / 'roles.yaml').exists():
+                        error_list.append("Directory 'input' needs to contain the files 'network.yaml' and 'roles.yaml'")
+
+                    # Check if the roles from the asset match with roles.py and roles.yaml in input directory
+                    missing_roles = []
+                    for item in ['app_' + s + '.py' for s in roles]:
+                        if not (experiment_input / item).is_file():
+                            missing_roles.append(item)
+                    for item in [s + '.yaml' for s in roles]:
+                        if not (experiment_input / item).is_file():
+                            missing_roles.append(item)
+
+                    if missing_roles:
+                        error_list.append(f"Directory 'input' is missing the files: {missing_roles}")
+
+        return error_list
+
+    # TODO: Update confluence sequence diagram with new function
+    def validate_experiment_json_valid(self, path: Path) -> List[str]:
+        """
+        This function validates if experiment.json contains valid json and if it passes schema validation.
+
+        Args:
+            path: The location of the experiment
+
+        Returns:
+            List[str]: List containing messages of the validations that failed
+        """
+        error_list = []
+        experiment_path = path / 'experiment.json'
         round_set_manager = RoundSetManager()
-        return round_set_manager.validate_asset(path)
+
+        if os.path.isfile(experiment_path):
+            asset_valid, message = round_set_manager.validate_asset(path)
+            if asset_valid is not None:
+                error_list.append(message)
+
+        return error_list
+
+
+
+
+
+
+
+

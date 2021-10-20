@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "file:node_asset.json",
+  "title": "Node",
+  "description": "Node in a Network object as part of an Asset",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[-a-zA-Z0-9_]+$"
+    },
+    "coordinates": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        }
+      }
+    },
+    "node_parameters": {
+      "type": "array",
+      "items": {
+        "$ref": "file:template.json"
+      }
+    },
+    "qubits": {
+      "type": "array",
+      "items": {
+        "$ref": "file:qubit.json"
+      }
+    }
+  },
+  "additionalProperties": false
+}

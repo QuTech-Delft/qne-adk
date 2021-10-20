@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "file:channel_asset.json",
+  "title": "Channel",
+  "description": "Channel between two Node objects as part of an Asset",
+  "type": "object",
+  "properties": {
+    "node_slug1": {
+      "type": "string",
+      "pattern": "^[-a-zA-Z0-9_]+$"
+    },
+    "node_slug2": {
+      "type": "string",
+      "pattern": "^[-a-zA-Z0-9_]+$"
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "$ref": "file:template.json"
+      }
+    }
+  },
+  "additionalProperties": false
+}

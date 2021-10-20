@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "file:template.json",
+  "title": "Template",
+  "description": "Generic data structure",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "url": {
+      "type": "string",
+      "format": "uri-reference",
+      "readOnly": true
+    },
+    "title": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string",
+      "readOnly": true,
+      "pattern": "^[-a-zA-Z0-9_]+$"
+    },
+    "description": {
+      "type": "string"
+    },
+    "values": {
+      "type": "array",
+      "items": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": ["string", "number"]
+          }
+        }
+      }
+    },
+    "input_type": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
