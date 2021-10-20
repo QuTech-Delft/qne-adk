@@ -756,6 +756,7 @@ class LocalApi:
 
         return output_result
 
+
     def validate_experiment(self, path: Path) -> ErrorDictType:
         """
         Validates the experiment by checking:
@@ -765,7 +766,6 @@ class LocalApi:
         - asset in the experiment.json validated against a schema validator.
         - if the network used in experiment.json is existing
         - if the nodes and channels used in experiment.json are correct and valid for that network
-
         Args:
             path: The location of the experiment
         Returns:
@@ -801,6 +801,7 @@ class LocalApi:
         - experiment.json
         - (Only local) input directory containing network.yaml, roles.yaml, role1.yaml, role2.yaml, ...,
         app_role1.py, app_role2.py, ...
+
         Args:
             path: The location of the experiment
             local: If the experiment is a local or not
@@ -974,3 +975,6 @@ class LocalApi:
                 return True, None
             return schema_valid, message
         return json_valid, message
+
+
+

@@ -264,7 +264,6 @@ def experiments_validate() -> None:
     Validate the experiment configuration.
     """
     cwd = Path.cwd()
-
     experiment_name = cwd.name
     typer.echo(f"Validate experiment '{experiment_name}'.\n")
     error_dict = processor.experiments_validate(path=cwd)
