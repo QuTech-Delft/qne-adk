@@ -140,12 +140,12 @@ class LocalApi:
 
         returns:
             Returns empty list when all validations passes
-            Returns list containing error messages of the validations that failed
+            Returns dict containing error messages of the validations that failed
         """
-        error_dict: ErrorDictType = {"errors": [], "warnings": [], "info": []}
+        error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
         is_unique, _ = self.__is_application_unique(application_name)
         if is_unique:
-            error_dict['errors'].append("Application does not exist")
+            error_dict['error'].append("Application does not exist")
         error_dict = self.__is_structure_valid(application_name, error_dict)
         error_dict = self.__is_config_valid(application_name, error_dict)
 
@@ -163,12 +163,12 @@ class LocalApi:
                 if json_valid:
                     schema_valid, ve = validate_json_schema(app_config_path / file, app_schema_path / file)
                     if not schema_valid:
-                        error_dict['errors'].append(ve)
+                        error_dict['error'].append(ve)
                 else:
                     # application.json is checked earlier in the validation process, no need to add this message again
                     # to error_dict (duplicate)
                     if file != "application.json":
-                        error_dict['errors'].append(message)
+                        error_dict['error'].append(message)
 
         return error_dict
 
@@ -181,16 +181,16 @@ class LocalApi:
         if not os.path.exists(app_config_path) or \
            not os.path.exists(app_src_path) or \
            not os.path.isfile(app_dir_path / "MANIFEST.ini"):
-            error_dict['warnings'].append(f"Directory {app_dir_path}: should contain a 'MANIFEST.ini', 'src' directory "
-                                          f"and 'config' directory")
+            error_dict['warning'].append(f"{app_dir_path} should contain a 'MANIFEST.ini', 'src' directory and "
+                                         f"'config' directory")
 
         # Check if the config directory is complete
         if os.path.exists(app_config_path):
             if not os.path.isfile(app_config_path / "application.json") or \
                not os.path.isfile(app_config_path / "network.json") or \
                not os.path.isfile(app_config_path / "result.json"):
-                error_dict['warnings'].append(f"Directory {app_config_path}: should contain the files 'network.json', "
-                                              f"'result.json' and 'application.json'")
+                error_dict['warning'].append(f"{app_config_path} should contain the files 'network.json', result.json' "
+                                             f"and 'application.json'")
 
         if os.path.exists(app_src_path) and os.path.isfile(app_config_path / "application.json"):
             valid, message = validate_json_file(app_config_path / "application.json")
@@ -211,11 +211,11 @@ class LocalApi:
 
                 # Check if the roles in the config/application.json match the roles in the src directory
                 if not all(roles in app_src_files for roles in config_application_roles):
-                    error_dict['warnings'].append(
+                    error_dict['warning'].append(
                         f"Not all the roles in {app_src_path} match the roles in "
                         f"{app_config_path / 'application.json'}")
             else:
-                error_dict['errors'].append(message)
+                error_dict['error'].append(message)
 
         return error_dict
 

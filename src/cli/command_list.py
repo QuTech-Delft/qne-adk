@@ -185,21 +185,17 @@ def applications_validate() -> None:
     """
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
-    typer.echo(f"Validate application '{application_name}'.")
+    typer.echo(f"Validate application '{application_name}'.\n")
     error_dict = processor.applications_validate(application_name=application_name)
 
-    if error_dict['errors']:
-        for item in error_dict['errors']:
-            typer.echo(f"ERROR: {item}")
-    if error_dict['warnings']:
-        for item in error_dict['warnings']:
-            typer.echo(f"WARNING: {item}")
-    if error_dict['info']:
-        for item in error_dict['info']:
-            typer.echo(f"INFO: {item}")
+    for key in error_dict:
+        if error_dict[key]:
+            for item in error_dict[key]:
+                typer.echo(f"{key.upper()}: {item}")
+            print("\n")
 
-    if error_dict['errors'] or error_dict['warnings']:
-        typer.echo("\nApplication is invalid.")
+    if error_dict['error'] or error_dict['warning']:
+        typer.echo("Application is invalid.")
     else:
         typer.echo("Application is valid.")
 
