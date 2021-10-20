@@ -96,7 +96,7 @@ def applications_delete() -> None:
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
     typer.echo(f"Delete application '{application_name}'.")
-    processor.applications_delete(application=application_name)
+    processor.applications_delete(application_name=application_name)
     typer.echo("Application deleted successfully.")
 
 
@@ -121,7 +121,7 @@ def applications_upload() -> None:
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
     typer.echo(f"Upload application '{application_name}' to Quantum Network Explorer.")
-    processor.applications_upload(application=application_name)
+    processor.applications_upload(application_name=application_name)
     typer.echo("Application successfully uploaded.")
 
 
@@ -174,7 +174,7 @@ def applications_publish() -> None:
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
     typer.echo(f"Publish application '{application_name}'.")
-    processor.applications_publish(application=application_name)
+    processor.applications_publish(application_name=application_name)
     typer.echo("Request to publish application sent successfully.")
 
 
@@ -186,7 +186,7 @@ def applications_validate() -> None:
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
     typer.echo(f"Validate application '{application_name}'.")
-    error_dict = processor.applications_validate(application=application_name)
+    error_dict = processor.applications_validate(application_name=application_name)
 
     if error_dict['errors']:
         for item in error_dict['errors']:

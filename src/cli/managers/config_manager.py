@@ -78,7 +78,7 @@ class ConfigManager:
 
         return application_list
 
-    def get_application_path(self, application_name):
+    def get_application_path(self, application_name: str) -> Any:
         """
         Reads the applications.json config file for getting the path using the application_name
 
@@ -91,20 +91,20 @@ class ConfigManager:
 
         return self.get_application(application_name)['path']
 
-    def application_exists(self, application: str) -> Tuple[bool, Any]:
+    def application_exists(self, application_name: str) -> Tuple[bool, Any]:
         """
         Checks if the application name already exists in .qne/application.json for unique purposes. Returns True when
         the application does exists. Else, return False.
 
         Args:
-            application: the application name
+            application_name: name of the application
 
         """
 
         self.__cleanup_config()
         data = read_json_file(self.applications_config)
         for key in data:
-            if key == application:
+            if key == application_name:
                 return True, data[key]['path']
 
         return False, None

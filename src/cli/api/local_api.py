@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple
 from pathlib import Path
 from cli import utils
 from cli.validators import validate_json_file, validate_json_schema
@@ -10,7 +10,7 @@ from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
                               app_configApplicationType, assetApplicationType, assetNetworkType,
-                              ExperimentType, ResultType)
+                              ExperimentType, ResultType, ErrorDictType)
 from cli.utils import read_json_file, write_json_file
 from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
 from cli.settings import BASE_DIR
@@ -127,7 +127,7 @@ class LocalApi:
         return local_applications
 
     # Todo: Update confluence scenario diagram since application_unique() and structure_valid() are swapped
-    def is_application_valid(self, application_name: str) -> Dict[str, List[str]]:
+    def is_application_valid(self, application_name: str) -> ErrorDictType:
         """
         Function that checks if:
         - The application is valid by validating if it exists in .qne/application.json
@@ -142,7 +142,7 @@ class LocalApi:
             Returns empty list when all validations passes
             Returns list containing error messages of the validations that failed
         """
-        error_dict = {"errors": [], "warnings": [], "info": []}
+        error_dict: ErrorDictType = {"errors": [], "warnings": [], "info": []}
         is_unique, _ = self.__is_application_unique(application_name)
         if is_unique:
             error_dict['errors'].append("Application does not exist")
@@ -151,7 +151,7 @@ class LocalApi:
 
         return error_dict
 
-    def __is_config_valid(self, application_name: str, error_dict: Dict) -> Dict[str, List[str]]:
+    def __is_config_valid(self, application_name: str, error_dict: ErrorDictType) -> ErrorDictType:
         # Validate if json string is correct and validate against json schema's
         app_schema_path = Path(BASE_DIR) / "schema/applications"
         app_config_path = Path(self.__config_manager.get_application_path(application_name)) / "config"
@@ -172,7 +172,7 @@ class LocalApi:
 
         return error_dict
 
-    def __is_structure_valid(self, application_name: str, error_dict: Dict) -> Dict[str, List[str]]:
+    def __is_structure_valid(self, application_name: str, error_dict: ErrorDictType) -> ErrorDictType:
         app_dir_path = Path(self.__config_manager.get_application(application_name)['path'])
         app_config_path = app_dir_path / "config"
         app_src_path = app_dir_path / "src"
