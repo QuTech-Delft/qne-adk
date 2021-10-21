@@ -5,7 +5,7 @@ from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.decorators import log_function
 from cli.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication
-from cli.type_aliases import ApplicationType, ExperimentType, ErrorDictType, ResultType
+from cli.type_aliases import ApplicationType, ExperimentType, ErrorDictType, GeneratedResultType,  ResultType
 
 
 class CommandProcessor:
@@ -117,15 +117,13 @@ class CommandProcessor:
         pass
 
     @log_function
-    def experiments_run(self, path: Path, block: bool) -> Optional[List[ResultType]]:
+    def experiments_run(self, path: Path, block: bool) -> Optional[GeneratedResultType]:
 
         results = None
         is_local = self.__local.is_experiment_local(path)
 
         if is_local:
             results = self.__local.run_experiment(path)
-            if results:
-                self.__store_results(results)
 
         return results
 

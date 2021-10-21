@@ -37,7 +37,7 @@ class BaseTemplate(ABC):
     def render(self) -> None:
         """Write a configuration to the appropriate file."""
         config_file_path = os.path.join(self._config_dir, f"{self._file_name}.yaml")
-        with open(config_file_path, 'w') as config_file:
+        with open(config_file_path, 'w', encoding='utf-8') as config_file:
             yaml.dump(self._config, config_file)
 
     @staticmethod
@@ -93,7 +93,6 @@ class NetworkTemplate(BaseTemplate):
               network: The network object that represents the actual network.
         """
         network = kwargs['network']
-        print(f"NetworkTemplate create_config() : network value is {network}")
 
         network_description: Dict[str, List[Any]] = {
             "nodes": [],
@@ -160,11 +159,6 @@ class NetworkTemplate(BaseTemplate):
         """
         # Temporarily added to cover the noise_type as well.
         link['parameters'].append(self.__get_noise_type())
-        # link_dict = {
-        #     'name': f"{link['node_slug1']}-{link['node_slug2']}",
-        #     'node_name1': link['node_slug1'],
-        #     'node_name2': link['node_slug2'],
-        # }
         link_dict = {
             'name': f"{link['node1']}-{link['node2']}",
             'node_name1': link['node1'],

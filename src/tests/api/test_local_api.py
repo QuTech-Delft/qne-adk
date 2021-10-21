@@ -385,17 +385,37 @@ class ApplicationValidate(unittest.TestCase):
             self.assertIsNone(config)
 
     def test_validate_experiment(self):
-        pass
+        with patch("cli.api.local_api.Path.is_file") as is_file_mock, \
+             patch.object(LocalApi, "_get_asset") as get_asset_mock, \
+             patch.object(RoundSetManager, "validate_asset") as validate_asset_mock:
+
+            is_file_mock.return_value = True
+            get_asset_mock.return_value = {}
+            validate_asset_mock.return_value= True, 'ok'
+            is_valid, message = self.local_api.validate_experiment(Path('dummy'))
+            is_file_mock.assert_called_once()
+            validate_asset_mock.assert_called_once_with(Path('dummy'))
+            self.assertEqual(is_valid, True)
+            self.assertEqual(message, 'ok')
+
+            is_file_mock.reset_mock()
+            is_file_mock.return_value = False
+            validate_asset_mock.reset_mock()
+            is_valid, message = self.local_api.validate_experiment(Path('dummy'))
+            is_file_mock.assert_called_once()
+            self.assertEqual(is_valid, False)
+            self.assertEqual(message, 'File experiment.json not found in the current working directory')
+            validate_asset_mock.assert_not_called()
 
     def test_run_experiment(self):
         with patch.object(RoundSetManager, "prepare_input") as prepare_input_mock, \
-             patch.object(RoundSetManager, "process") as process_mock, \
-             patch.object(RoundSetManager, "terminate") as terminate_mock:
+             patch.object(LocalApi, "_get_asset") as get_asset_mock, \
+             patch.object(RoundSetManager, "process") as process_mock:
 
             self.local_api.run_experiment(Path('dummy'))
-            prepare_input_mock.assert_called_once_with(Path('dummy'))
+            get_asset_mock.assert_called_once()
+            prepare_input_mock.assert_called_once()
             process_mock.assert_called_once()
-            terminate_mock.assert_called_once()
 
     def test_get_results(self):
         with patch.object(OutputConverter, "convert") as convert_mock, \
@@ -413,7 +433,7 @@ class ApplicationValidate(unittest.TestCase):
 
             self.local_api.get_results(path=Path('dummy'), all_results=False)
             get_rounds_mock.assert_called_once_with(Path('dummy'))
-            convert_mock.assert_called_once_with(4, [])
+            convert_mock.assert_called_once_with(4)
 
     def test_is_network_available(self):
         with patch.object(LocalApi, "_get_network_slug") as get_network_slug_mock:

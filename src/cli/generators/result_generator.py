@@ -9,7 +9,6 @@ class ResultGenerator:
                  instructions: List[InstructionType], cumulative_result: CumulativeResultType) -> GeneratedResultType:
         return {
             'round_number': round_number,
-            # 'round_set': str(round_set['url']),
             'round_result': round_result,
             'instructions': instructions,
             'cumulative_result': cumulative_result
@@ -28,7 +27,6 @@ class ErrorResultGenerator:
         }
         return {
             'round_number': round_number,
-            # 'round_set': str(round_set['url']),
             'round_result': round_result,
             'instructions': [],
             'cumulative_result': {}

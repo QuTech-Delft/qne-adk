@@ -669,8 +669,13 @@ class LocalApi:
         Returns:
             bool: True if the experiment at given path is local, False otherwise
         """
-        # read experiment.json and check the meta->backend->location attribute
-        return True
+        experiment_data = utils.read_json_file(path / "experiment.json")
+        if "meta" in experiment_data:
+            if "backend" in experiment_data["meta"]:
+                if "location" in experiment_data["meta"]["backend"]:
+                    if experiment_data["meta"]["backend"]["location"].strip().lower() == "local":
+                        return True
+        return False
 
     def get_experiment_rounds(self, path: Path) -> int:
         """
@@ -682,23 +687,20 @@ class LocalApi:
         Returns:
             int: Value of the number of rounds
         """
-        # read experiment.json and check the meta->number_of_rounds attribute
+        experiment_data = utils.read_json_file(path / "experiment.json")
+        if "meta" in experiment_data:
+            if "number_of_rounds" in experiment_data["meta"]:
+                return cast(int, experiment_data["meta"]["number_of_rounds"])
+
         return 1
 
     def delete_experiment(self, path: Path) -> None:
         pass
 
-    def run_experiment(self, path: Path) -> Optional[List[GeneratedResultType]]:
-        asset = self._get_asset(path)
-        roundSetManager = RoundSetManager(round_set=None, asset=asset, path=path)
-
+    def run_experiment(self, path: Path) -> GeneratedResultType:
+        roundSetManager = RoundSetManager(asset=self._get_asset(path), path=path)
         roundSetManager.prepare_input()
         result = roundSetManager.process()
-
-        # terminate will clear the input directory. We dont want that
-        # roundSetManager.terminate()
-
-        print("Result is", result)
         return result
 
     def _get_asset(self, path: Path) -> Dict[str, Any]:
@@ -709,12 +711,10 @@ class LocalApi:
                 path: The location of the experiment
 
             Returns:
-                int: Value of the number of rounds
+                A dictionary containing the asset information
         """
         experiment_data = utils.read_json_file(path / "experiment.json")
-        print(f"Experiment.json read from {str(path)} : {experiment_data.keys()}")
-        return experiment_data["asset"]
-        # return {"network": {}, "application": []}
+        return cast(Dict[str, Any], experiment_data["asset"])
 
     def get_experiment(self, name: str) -> ExperimentType:
         pass
@@ -722,15 +722,14 @@ class LocalApi:
     def get_results(self, path: Path, all_results: bool) -> List[ResultType]:
         output_converter = OutputConverter('log_dir', 'output_dir')
 
-        result_list: List[ResultType] = []
         output_result: List[ResultType] = []
 
         total_rounds = self.get_experiment_rounds(path)
         if all_results:
             for round_number in range(1, total_rounds + 1):
-                output_result.append(output_converter.convert(round_number, result_list))
+                output_result.append(output_converter.convert(round_number))
         else:
-            output_result.append(output_converter.convert(total_rounds, result_list))
+            output_result.append(output_converter.convert(total_rounds))
 
         return output_result
 

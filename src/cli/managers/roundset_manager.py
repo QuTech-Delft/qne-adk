@@ -3,7 +3,7 @@ from pathlib import Path
 import shutil
 import subprocess
 from subprocess import CalledProcessError, TimeoutExpired
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, cast, Dict
 
 from cli.output_converter import OutputConverter
 from cli.generators.network_generator import FullyConnectedNetworkGenerator
@@ -13,28 +13,23 @@ from cli.type_aliases import AssetType, ErrorDictType, GeneratedResultType
 
 
 class RoundSetManager:
-    def __init__(self, round_set, asset: Dict[str, Any], path: Path) -> None:
-        self.__round_set = round_set
+    def __init__(self, asset: Dict[str, Any], path: Path) -> None:
         self.__asset = asset
-        # self.__cache_dir = "./cache"
+        self.__path = path
         self.__input_dir = str(path / "input")
         self.__log_dir = str(path / "raw_output")
-        self.__output_dir = str(path / "LAST")
+        self.__output_dir = "LAST"
         self.__fully_connected_network_generator = FullyConnectedNetworkGenerator()
         self.__output_converter = OutputConverter(
-            round_set=self.__round_set,
             log_dir=self.__log_dir,
             output_dir=self.__output_dir,
             instruction_converter=self.__fully_connected_network_generator
         )
-        print("RoundsetManager initialized __init__")
 
-    def process(self) -> Optional[List[GeneratedResultType]]:
-        print("RoundsetManager process() called")
-        self.__output_converter.prepare_output()
+    def process(self) -> GeneratedResultType:
         round_failed = False
         round_number = 1
-        result = None
+        self.__output_converter.prepare_output()
 
         try:
             self._run_application()
@@ -55,14 +50,9 @@ class RoundSetManager:
             round_failed = True
 
         if round_failed:
-            print("Error occurred while processing round %d", round_number)
             result = ErrorResultGenerator.generate(round_number, exception_type, message, trace)
-
-            # Terminate will clear the output dir and log dir
-            # self.__output_converter.terminate()
         else:
-            # Experiment run was successful
-            print("Round was successful")
+            result = self.__output_converter.convert(round_number)
 
         return result
 
@@ -70,33 +60,23 @@ class RoundSetManager:
         pass
 
     def prepare_input(self) -> None:
+        """Create input yaml files for the application.
 
-        # Clean will remove all files from input dir. We dont want that
-        # self.__clean()
+        An application requires various files for running: app_<node>.py, <node>.yaml and network.yaml. This function
+        unwraps the asset and stores the appropriate data in the YAML files.
 
+        """
         role_mapping = self.__get_role_mapping(self.__asset)
-        print(f"Role Mapping for the exp is {role_mapping}")
-        # Example: {
-        #         "role1": "amsterdam",
-        #         "role2": "leiden"
-        #       }
-
-        # This step not needed as py files are aready present in the experiment folder / input dir
-        # Create app_*.py files
-        # self.resource_manager.prepare_resources(app_source)
 
         # Create *.yaml files
         for role_name in role_mapping.keys():
             self._create_role_file(self.__asset, role_name)
-            print(f"Created yaml  role file for {role_name}")
 
         # Create network.yaml file
         self._create_network_file(self.__asset, role_mapping)
-        print(f"Created Network yaml file for {role_mapping}")
 
         # Create roles.yaml file
         self._create_roles_file(role_mapping)
-        print(f"Created roles.yaml file")
 
     def __clean(self) -> None:
         """Cleans up all files in the input directory.
@@ -125,12 +105,7 @@ class RoundSetManager:
             CalledProcessError: If the application has failed, an exception is raised.
             TimeoutExpired: If the application runs longer than expected.
         """
-        # input_dir = self.__configuration.get('paths', 'input_dir')
-        # log_dir = self.__configuration.get('paths', 'log_dir')
-        # logging.info("Running application from %s", input_dir)
-        # logging.info("Logging results to %s", log_dir)
 
-        print("run_application called..")
         subprocess.run(
             ["netqasm", "simulate", "--app-dir", self.__input_dir, "--log-dir", self.__log_dir],
             stdout=subprocess.DEVNULL,
@@ -138,8 +113,6 @@ class RoundSetManager:
             check=True,
             timeout=60
         )
-        print("run_application Finished")
-        # logging.info("Finished running application. Logs available in %s", log_dir)
 
     @staticmethod
     def __get_role_mapping(asset: AssetType) -> Dict[str, str]:

@@ -253,10 +253,13 @@ def experiments_run(
     # processor.experiments_validate(path=cwd)
 
     results = processor.experiments_run(path=cwd, block=block)
-    # if block:
-    #     typer.echo("Experiment has run successfully.")
-    # else:
-    #     typer.echo("Experiment has been created successfully.")
+
+    if results:
+        if "error" in results["round_result"]:
+            typer.echo("Error encountered while running the experiment.")
+            typer.echo(results["round_result"]["error"])
+        else:
+            typer.echo("Experiment was run successfully. You can check the results using experiment results command.")
 
 
 @experiments_app.command("validate")

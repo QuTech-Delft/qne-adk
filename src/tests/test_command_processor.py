@@ -100,8 +100,7 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_experiments_run(self):
         with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
-             patch.object(LocalApi, "run_experiment") as run_exp_mock, \
-             patch.object(CommandProcessor, '_CommandProcessor__store_results') as store_result_mock:
+             patch.object(LocalApi, "run_experiment") as run_exp_mock:
 
             is_exp_local_mock.return_value = True
             run_exp_mock.return_value = ['foo']
@@ -109,16 +108,13 @@ class TestCommandProcessor(unittest.TestCase):
 
             is_exp_local_mock.assert_called_once_with(Path('dummy'))
             run_exp_mock.assert_called_once_with(Path('dummy'))
-            store_result_mock.assert_called_once_with(['foo'])
 
             is_exp_local_mock.reset_mock()
             run_exp_mock.reset_mock()
-            store_result_mock.reset_mock()
             run_exp_mock.return_value = None
             self.processor.experiments_run(Path('dummy'), True)
             is_exp_local_mock.assert_called_once_with(Path('dummy'))
             run_exp_mock.assert_called_once_with(Path('dummy'))
-            store_result_mock.assert_not_called()
 
     def test_experiments_result(self):
         with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
