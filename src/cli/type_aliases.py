@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict, List, TypedDict, Union
+from typing import Any, Callable, Dict, List, Union
+from typing_extensions import TypedDict
 
 ExperimentType = Dict[str, Any]
 ResultType = Dict[str, Any]

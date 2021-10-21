@@ -74,7 +74,7 @@ setup(
     ],
     license="MIT",
     packages=find_packages(where="src", exclude=["*tests*"]),
-    install_requires=["typer[all]", "netqasm", "pydantic", "tabulate", "jsonschema", "pyyaml"],
+    install_requires=["typer[all]", "netqasm", "pydantic", "tabulate", "jsonschema", "pyyaml", "typing-extensions"],
     extras_require={
         "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort", "types-tabulate"],
         "rtd": [
