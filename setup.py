@@ -76,7 +76,7 @@ setup(
     packages=find_packages(where="src", exclude=["*tests*"]),
     install_requires=["typer[all]", "netqasm", "pydantic", "tabulate", "jsonschema", "pyyaml", "typing-extensions"],
     extras_require={
-        "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort", "types-tabulate"],
+        "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort", "types-tabulate", "types-PyYAML"],
         "rtd": [
             "sphinx",
             "sphinx_rtd_theme",
