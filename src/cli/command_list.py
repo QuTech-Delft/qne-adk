@@ -266,10 +266,16 @@ def experiments_validate() -> None:
     cwd = Path.cwd()
 
     typer.echo(f"Validate experiment at '{cwd}'.")
-    is_valid = processor.experiments_validate(path=cwd)
-    if is_valid:
-        for item in is_valid:
-            print(f"Error: {item}")
+    error_dict = processor.experiments_validate(path=cwd)
+
+    for key in error_dict:
+        if error_dict[key]:
+            for item in error_dict[key]:
+                typer.echo(f"{key.upper()}: {item}")
+            print("\n")
+
+    if error_dict['error'] or error_dict['warning']:
+        typer.echo("Experiment is invalid.")
     else:
         typer.echo("Experiment is valid.")
 

@@ -732,7 +732,7 @@ class LocalApi:
 
         return output_result
 
-    def validate_experiment(self, path: Path) -> List[str]:
+    def validate_experiment(self, path: Path) -> ErrorDictType:
         # TODO: Add any other validation which should be done
         """
         Validates the experiment by checking:
@@ -750,11 +750,11 @@ class LocalApi:
         """
         experiment_json = path / 'experiment.json'
         local = True
-        error_list = []
+        error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
 
         # Check if experiment.json exists
         if not experiment_json.is_file():
-            error_list.append('File experiment.json not found in the current working directory')
+            error_dict['error'].append('File experiment.json not found in the current working directory')
 
         # Check if experiment is local or remote
         if experiment_json.is_file():
@@ -764,17 +764,15 @@ class LocalApi:
                 if not experiment['meta']['backend']['location'] == "local":
                     local = False
             else:
-                error_list.append(message)
+                error_dict['error'].append(message)
 
-        for item in self.validate_experiment_structure(path=path, local=local):
-            error_list.append(item)
-        for item in self.validate_experiment_json_valid(path=path):
-            error_list.append(item)
+        error_dict = self.validate_experiment_structure(path=path, local=local, error_dict=error_dict)
+        error_dict = self.validate_experiment_json(path=path, error_dict=error_dict)
 
-        return error_list
+        return error_dict
 
     # TODO: Update confluence sequence diagram with new function
-    def validate_experiment_structure(self, path: Path, local: bool) -> List[str]:
+    def validate_experiment_structure(self, path: Path, local: bool, error_dict: ErrorDictType) -> ErrorDictType:
         """
         Validates if the experiment file structures contains a:
         - experiment.json
@@ -784,12 +782,12 @@ class LocalApi:
         Args:
             path: The location of the experiment
             local: If the experiment is a local or not
+            error_dict: Dictionary containing error and warning messages of the validations that failed
 
         Returns:
-            List[str]: List containing messages of the validations that failed
+            Returns a dictionary of error and warning messages of the validations that failed
         """
 
-        error_list = []
         experiment_json = path / 'experiment.json'
         roles = []
         is_valid, _ = validate_json_file(experiment_json)
@@ -808,47 +806,48 @@ class LocalApi:
             if local:
                 experiment_input = path / 'input'
                 if not experiment_input.exists():
-                    error_list.append("Directory 'input' not found in the current working directory")
+                    error_dict['warning'].append(f"{experiment_input} does not exist")
                 if experiment_input.exists():
                     if not (experiment_input / 'network.yaml').exists() or \
                        not (experiment_input / 'roles.yaml').exists():
-                        error_list.append("Directory 'input' needs to contain the files 'network.yaml' and 'roles.yaml'")
+                        error_dict['warning'].append(f"{experiment_input} needs to contain the files 'network.yaml' "
+                                                     f"and 'roles.yaml'")
 
                     # Check if the roles from the asset match with roles.py and roles.yaml in input directory
-                    missing_roles = []
+                    missing_files = []
                     for item in ['app_' + s + '.py' for s in roles]:
                         if not (experiment_input / item).is_file():
-                            missing_roles.append(item)
+                            missing_files.append(item)
                     for item in [s + '.yaml' for s in roles]:
                         if not (experiment_input / item).is_file():
-                            missing_roles.append(item)
+                            missing_files.append(item)
 
-                    if missing_roles:
-                        error_list.append(f"Directory 'input' is missing the files: {missing_roles}")
+                    if missing_files:
+                        error_dict['warning'].append(f"{experiment_input} is missing the files: {missing_files}")
 
-        return error_list
+        return error_dict
 
     # TODO: Update confluence sequence diagram with new function
-    def validate_experiment_json_valid(self, path: Path) -> List[str]:
+    def validate_experiment_json(self, path: Path, error_dict: ErrorDictType) -> ErrorDictType:
         """
         This function validates if experiment.json contains valid json and if it passes schema validation.
 
         Args:
             path: The location of the experiment
+            error_dict: Dictionary containing error and warning messages of the validations that failed
 
         Returns:
-            List[str]: List containing messages of the validations that failed
+            Returns a dictionary of error and warning messages of the validations that  failed
         """
-        error_list = []
         experiment_path = path / 'experiment.json'
         round_set_manager = RoundSetManager()
 
         if os.path.isfile(experiment_path):
             asset_valid, message = round_set_manager.validate_asset(path)
             if asset_valid is not None:
-                error_list.append(message)
+                error_dict['error'].append(message)
 
-        return error_list
+        return error_dict
 
 
 
