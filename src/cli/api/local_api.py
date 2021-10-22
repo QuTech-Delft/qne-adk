@@ -801,7 +801,6 @@ class LocalApi:
         - experiment.json
         - (Only local) input directory containing network.yaml, roles.yaml, role1.yaml, role2.yaml, ...,
         app_role1.py, app_role2.py, ...
-
         Args:
             path: The location of the experiment
             local: If the experiment is a local or not
