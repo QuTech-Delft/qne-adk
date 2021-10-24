@@ -6,8 +6,7 @@ from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
 from cli.output_converter import OutputConverter
-from cli.exceptions import ApplicationDirectoryNotComplete, ApplicationSourceFilesIncomplete, \
-                           ApplicationConfigNotComplete, ApplicationAlreadyExists, NoNetworkAvailable
+from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
 
 
 class ApplicationValidate(unittest.TestCase):
@@ -28,6 +27,7 @@ class ApplicationValidate(unittest.TestCase):
             "number_of_rounds": 1,
             "description": ""
         }
+        self.error_dict = {"error": [], "warning": [], "info": []}
 
         self.experiment_data_local = {'meta': self.experiment_meta_local, 'asset': {}}
 
@@ -110,78 +110,94 @@ class ApplicationValidate(unittest.TestCase):
             application_exists_mock.assert_called_once_with(self.application)
 
     def test_is_application_valid(self):
-        with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True) as is_structure_valid_mock, \
-             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as \
-             is_application_unique_mock, \
-             patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True) as is_config_valid_mock:
+        with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
+             patch.object(LocalApi, "_LocalApi__is_application_unique") as is_application_unique_mock, \
+             patch.object(LocalApi, "_LocalApi__is_config_valid") as is_config_valid_mock:
 
-            self.local_api.is_application_valid(application=self.application)
-            is_structure_valid_mock.assert_called_once_with(self.application)
+            # If application is not unique, is_config_valid() returns an error and warning
+            is_application_unique_mock.return_value = False, None
+            is_config_valid_mock.return_value = {"error": ["error"], "warning": ["warning"], "info": []}
+            is_structure_valid_mock.return_value = self.error_dict
+
+            self.assertEqual(self.local_api.is_application_valid(application_name=self.application),
+                             {"error": ["error"], "warning": ["warning"], "info": []})
+
             is_application_unique_mock.assert_called_once_with(self.application)
-            is_config_valid_mock.assert_called_once_with(self.application)
+            is_structure_valid_mock.assert_called_once_with(self.application, self.error_dict)
+            is_config_valid_mock.assert_called_once_with(self.application, self.error_dict)
 
-            # Test when one of the checks fails
-            is_structure_valid_mock.reset_mock()
+            # If application is unique
             is_application_unique_mock.reset_mock()
-            is_structure_valid_mock.return_value = False
-            self.local_api.is_application_valid(application=self.application)
-            is_structure_valid_mock.assert_called_once_with(self.application)
+            is_structure_valid_mock.reset_mock()
+            is_config_valid_mock.reset_mock()
+            is_application_unique_mock.return_value = True, None
+            self.assertEqual(self.local_api.is_application_valid(application_name=self.application),
+                             {"error": ["Application does not exist"], "warning": [], "info": []})
             is_application_unique_mock.assert_called_once_with(self.application)
-
 
     def test__is_structure_valid(self):
-        with patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True), \
+        with patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=(False, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
-             patch("cli.api.local_api.os.path.exists") as exists_mock, \
-             patch("cli.api.local_api.os.path.isfile") as isfile_mock, \
+             patch.object(ConfigManager, "get_application_path") as get_application_path_mock, \
+             patch("cli.api.local_api.validate_json_file") as validate_json_file_mock, \
+             patch("cli.api.local_api.read_json_file") as read_json_file_mock, \
+             patch("cli.api.local_api.os.path.exists", return_value=True) as exists_mock, \
+             patch("cli.api.local_api.os.path.isfile", return_value=True) as isfile_mock, \
              patch("cli.api.local_api.os.listdir") as listdir_mock:
 
+            exists_mock.side_effect = [True, True, True, True]
+            isfile_mock.side_effect = [True, True, True, True, True]
             listdir_mock.return_value = ["role1.py", "role2.py"]
-            self.local_api.is_application_valid(application=self.application)
-            exists_mock.call_count = 2
+            read_json_file_mock.return_value = [{"roles": ["role1", "role2"]}]
+            validate_json_file_mock.return_value = (True, None)
+            self.local_api.is_application_valid(application_name=self.application)
+            exists_mock.call_count = 4
             isfile_mock.call_count = 4
-            listdir_mock.assert_called_with(self.local_api.app_source)
+            get_application_path_mock.assert_called_once()
+            validate_json_file_mock.assert_called_once()
+            listdir_mock.assert_called_once()
 
-            # Raise ApplicationDirectoryNotComplete when os.path.exists returns False
-            exists_mock.reset_mock()
-            exists_mock.return_value = False
-            self.assertRaises(ApplicationDirectoryNotComplete, self.local_api.is_application_valid, self.application)
-            exists_mock.assert_called_once_with(self.local_api.app_config)
-
-            # Raise ApplicationConfigNotComplete when os.path.isfile returns False
+            # If the app_config_path, app_config_path / application.json does not exist and validate_json_file is False
             exists_mock.reset_mock()
             isfile_mock.reset_mock()
-            exists_mock.return_value = True
-            isfile_mock.side_effect = [True, False]
-            self.assertRaises(ApplicationConfigNotComplete, self.local_api.is_application_valid, self.application)
-            exists_mock.call_count = 2
-            isfile_mock.call_count = 2
-            exists_mock.reset_mock()
-            isfile_mock.reset_mock()
-            exists_mock.return_value = True
-            isfile_mock.side_effect = [True, True, False]
-            self.assertRaises(ApplicationConfigNotComplete, self.local_api.is_application_valid, self.application)
-            exists_mock.call_count = 2
-            isfile_mock.call_count = 3
-
-            # Raise ApplicationSourceFilesIncomplete when count < 2
-            exists_mock.reset_mock()
+            get_application_path_mock.reset_mock()
+            validate_json_file_mock.reset_mock()
             listdir_mock.reset_mock()
-            exists_mock.return_value = True
-            isfile_mock.reset_mock(side_effect=True)
-            listdir_mock.return_value = []
-            self.assertRaises(ApplicationSourceFilesIncomplete, self.local_api.is_application_valid, self.application)
-            exists_mock.call_count = 2
-            isfile_mock.call_count = 4
-
+            validate_json_file_mock.reset_mock()
+            exists_mock.side_effect = [False, True, True, True]
+            isfile_mock.side_effect = [True, False, True, True, True]
+            validate_json_file_mock.return_value = (False, None)
+            self.local_api.is_application_valid(application_name=self.application)
+            exists_mock.call_count = 3
+            isfile_mock.call_count = 2
+            get_application_path_mock.assert_called_once()
+            validate_json_file_mock.assert_called_once()
 
     def test__is_config_valid(self):
-        with patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True),\
-             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True), \
-             patch("cli.api.local_api.validate_json") as validate_json_mock:
+        with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock,\
+             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=(False, None)), \
+             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch.object(ConfigManager, "get_application_path") as get_application_path_mock, \
+             patch("cli.api.local_api.validate_json_file") as validate_json_file_mock, \
+             patch("cli.api.local_api.validate_json_schema") as validate_json_schema_mock:
 
-            self.local_api.is_application_valid(application=self.application)
-            validate_json_mock.call_count = 3
+            # If is_file() is true and validate_json_file is true
+            is_structure_valid_mock.return_value = self.error_dict
+            validate_json_file_mock.return_value = True, None
+            validate_json_schema_mock.return_value = True, None
+            self.local_api.is_application_valid(application_name=self.application)
+            is_file_mock.call_count = 3
+            validate_json_file_mock.call_count = 3
+            validate_json_schema_mock.call_count = 3
+
+            # If validate_json_file is false
+            is_file_mock.reset_mock()
+            validate_json_file_mock.reset_mock()
+            validate_json_schema_mock.reset_mock()
+            validate_json_file_mock.return_value = False
+            self.local_api.is_application_valid(application_name=self.application)
+            is_file_mock.call_count = 3
+            validate_json_file_mock.call_count = 3
 
     def test_list_applications(self):
         with patch.object(ConfigManager, "get_applications") as get_applications_mock:

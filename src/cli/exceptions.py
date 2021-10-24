@@ -45,13 +45,6 @@ class ApplicationDoesNotExist(Exception):
         super().__init__("Current directory does not appear to be a valid application directory")
 
 
-class NoApplicationExists(Exception):
-    """Raised when there are no applications listed in .qne/application.json"""
-
-    def __init__(self, path: Path) -> None:
-        super().__init__(f"No applications exists in application.json file: {path}")
-
-
 class NoConfigFileExists(Exception):
     """Raised when .qne/application.json doesn't exist"""
 

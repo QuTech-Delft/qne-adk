@@ -1,8 +1,7 @@
 from pathlib import Path
 from unittest.mock import patch
 import unittest
-from cli.validators import validate_json_file, validate_json_schema, validate_json
-from cli.exceptions import JSONSchemaValidationError
+from cli.validators import validate_json_file, validate_json_schema
 
 
 class TestValidators(unittest.TestCase):
@@ -12,13 +11,9 @@ class TestValidators(unittest.TestCase):
         self.roles = ["role1", "role2"]
         self.invalid_name = "invalid/name"
 
-    def test_validate_json_string(self):
-        with patch("cli.validators.read_json_file") as read_json_file_mock:
-            validate_json_file(self.path)
-            read_json_file_mock.assert_called_once()
-
     def test_validate_json_schema(self):
-        with patch("cli.validators.read_json_file") as read_json_file_mock:
+        with patch("cli.validators.read_json_file") as read_json_file_mock, \
+             patch("cli.validators.platform.system") as system_mock:
 
             json_file = {
               "application": [
@@ -63,9 +58,20 @@ class TestValidators(unittest.TestCase):
 
             validate_json_schema(self.path, self.path)
             read_json_file_mock.call_count = 2
+            system_mock.assert_called_once()
             read_json_file_mock.assert_called_with(self.path)
 
-            # Raise JSONSchemaValidationError when validation returns False
+            # If platform.system() equals windows
+            system_mock.reset_mock()
+            system_mock.return_value = "Windows"
+            read_json_file_mock.reset_mock()
+            read_json_file_mock.side_effect = [json_file, schema_file]
+            validate_json_schema(self.path, self.path)
+            system_mock.assert_called_once()
+            read_json_file_mock.call_count = 2
+            read_json_file_mock.assert_called_with(self.path)
+
+            # Raise ValidationError when validation returns False
             wrong_json_file = {
               "application": [
                 {
@@ -75,15 +81,24 @@ class TestValidators(unittest.TestCase):
             }
 
             read_json_file_mock.reset_mock()
+            system_mock.reset_mock()
+            system_mock.return_value = "Windows"
             read_json_file_mock.side_effect = [wrong_json_file, schema_file]
-            self.assertRaises(JSONSchemaValidationError, validate_json_schema, self.path, self.path)
+            validate_json_schema(self.path, self.path)
             read_json_file_mock.call_count = 2
             read_json_file_mock.assert_called_with(self.path)
+            system_mock.assert_called_once()
 
-    def test_validate_json(self):
-        with patch("cli.validators.validate_json_string", return_value=True) as validate_json_string_mock, \
-             patch("cli.validators.validate_json_schema", return_value=True) as validate_json_schema_mock:
+    def test_validate_json_file(self):
+        with patch("cli.validators.open") as open_mock, \
+             patch("cli.validators.json.load") as load_mock:
 
-            validate_json(self.path, self.path)
-            validate_json_string_mock.assert_called_once_with(self.path)
-            validate_json_schema_mock.assert_called_once_with(self.path, self.path)
+            validate_json_file(self.path)
+            open_mock.assert_called_once_with(self.path, encoding='utf-8')
+            load_mock.assert_called_once()
+
+            # When open fails
+            open_mock.reset_mock()
+            open_mock.return_value = False
+            validate_json_file(self.path)
+            open_mock.assert_called_once_with(self.path, encoding='utf-8')
