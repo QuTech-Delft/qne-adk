@@ -147,6 +147,7 @@ class ApplicationValidate(unittest.TestCase):
 
             exists_mock.side_effect = [True, True, True, True]
             isfile_mock.side_effect = [True, True, True, True, True]
+            get_application_path_mock.return_value = self.path
             listdir_mock.return_value = ["role1.py", "role2.py"]
             read_json_file_mock.return_value = [{"roles": ["role1", "role2"]}]
             validate_json_file_mock.return_value = (True, None)
@@ -166,6 +167,7 @@ class ApplicationValidate(unittest.TestCase):
             validate_json_file_mock.reset_mock()
             exists_mock.side_effect = [False, True, True, True]
             isfile_mock.side_effect = [True, False, True, True, True]
+            get_application_path_mock.return_value = self.path
             validate_json_file_mock.return_value = (False, None)
             self.local_api.is_application_valid(application_name=self.application)
             exists_mock.call_count = 3
@@ -185,7 +187,9 @@ class ApplicationValidate(unittest.TestCase):
             is_structure_valid_mock.return_value = self.error_dict
             validate_json_file_mock.return_value = True, None
             validate_json_schema_mock.return_value = True, None
+            get_application_path_mock.return_value = self.path
             self.local_api.is_application_valid(application_name=self.application)
+            get_application_path_mock.assert_called_once()
             is_file_mock.call_count = 3
             validate_json_file_mock.call_count = 3
             validate_json_schema_mock.call_count = 3
@@ -194,8 +198,11 @@ class ApplicationValidate(unittest.TestCase):
             is_file_mock.reset_mock()
             validate_json_file_mock.reset_mock()
             validate_json_schema_mock.reset_mock()
+            get_application_path_mock.reset_mock()
+            get_application_path_mock.return_value = self.path
             validate_json_file_mock.return_value = False
             self.local_api.is_application_valid(application_name=self.application)
+            get_application_path_mock.assert_called_once()
             is_file_mock.call_count = 3
             validate_json_file_mock.call_count = 3
 
