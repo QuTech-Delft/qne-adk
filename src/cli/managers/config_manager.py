@@ -20,6 +20,8 @@ class ConfigManager:
             path: the path where the application is stored
 
         """
+        # Extra check to make sure application name is stored in lowercase
+        application_name = application_name.lower()
 
         # Read json file
         apps = read_json_file(self.applications_config)
@@ -60,7 +62,7 @@ class ConfigManager:
         all_applications = self.get_applications()
 
         for app in all_applications:
-            if app["name"].lower() == application:
+            if app["name"] == application.lower():
                 return app
         return None
 
@@ -119,7 +121,7 @@ class ConfigManager:
         self.__cleanup_config()
         data = read_json_file(self.applications_config)
         for key in data:
-            if key == application_name:
+            if key == application_name.lower():
                 return True, data[key]['path']
 
         return False, None

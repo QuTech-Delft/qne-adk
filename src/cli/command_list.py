@@ -219,9 +219,8 @@ def experiments_create(
     # processor.applications_validate(application)
     # TODO: Uncomment above line after application validate command is ready
 
-    processor.experiments_create(name=name, application=application.lower(),
-                                                    network_name=network_name.lower(),
-                                                    local=local, path=cwd)
+    processor.experiments_create(name=name, application=application, network_name=network_name,
+                                 local=local, path=cwd)
     typer.echo(f"Experiment created successfully in directory {name} at location {cwd}.")
 
 

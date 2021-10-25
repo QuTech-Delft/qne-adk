@@ -133,38 +133,21 @@ class TestCommandList(unittest.TestCase):
     def test_experiment_create(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
              patch.object(CommandProcessor, 'experiments_create') as experiment_create_mock, \
-             patch.object(CommandProcessor, 'applications_validate') as app_validate_mock:
+             patch.object(CommandProcessor, 'applications_validate') as app_validate_mock, \
+             patch("cli.command_list.validate_path_name") as mock_validate_path:
             mock_cwd.return_value = 'test'
             app_validate_mock.return_value = True, ''
             experiment_create_mock.return_value = True, ''
 
             experiment_create_output = self.runner.invoke(experiments_app, ['create', 'test_exp', 'app_name',
                                                                             'network_1'])
+            mock_validate_path.assert_called_once_with('Experiment', 'test_exp')
             self.assertEqual(experiment_create_output.exit_code, 0)
-            self.assertIn('Experiment created successfully.', experiment_create_output.stdout)
+            self.assertIn('Experiment created successfully in directory test_exp at location test.',
+                          experiment_create_output.stdout)
             experiment_create_mock.assert_called_once_with(name='test_exp', application='app_name',
                                                            network_name='network_1', local=True, path='test')
 
-            # TODO: Uncomment following lines after application validate command is ready
-            # app_validate_mock.return_value = False, 'network.json is not a valid json.'
-            # experiment_create_mock.reset_mock()
-            # experiment_create_output = self.runner.invoke(experiments_app, ['create', 'test_exp', 'app_name',
-            #                                                                 'network_1'])
-            # self.assertEqual(experiment_create_output.exit_code, 0)
-            # self.assertIn('The application app_name is not valid.', experiment_create_output.stdout)
-            # self.assertIn('network.json is not a valid json.', experiment_create_output.stdout)
-            # self.assertIn('You can use the application validate command to check the application.',
-            #               experiment_create_output.stdout)
-
-            app_validate_mock.return_value = True, ''
-            experiment_create_mock.return_value = False, 'lorem ipsum issue'
-            experiment_create_mock.reset_mock()
-            experiment_create_output = self.runner.invoke(experiments_app, ['create', 'test_exp', 'app_name',
-                                                                            'network_1'])
-            self.assertEqual(experiment_create_output.exit_code, 0)
-            experiment_create_mock.assert_called_once_with(name='test_exp', application='app_name',
-                                                           network_name='network_1', local=True, path='test')
-            self.assertIn("Experiment could not be created. lorem ipsum issue", experiment_create_output.stdout)
 
     def test_experiment_validate(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd,\

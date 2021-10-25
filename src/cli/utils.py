@@ -79,23 +79,23 @@ def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) 
 
 def get_dummy_application(roles: List[Any]) -> List[Dict[str, Any]]:
     dummy_application = [
-      {
-        "title": "Title for this application",
-        "description": "Description of this application",
-        "values": [
-          {
-            "name": "x",
-            "default_value": 0,
-            "minimum_value": 0,
-            "maximum_value": 1,
-            "unit": "",
-            "scale_value": 1.0
-          }
-        ],
-        "input_type": "number",
-        "roles": roles
-      }
-    ]
+        {
+          "title": "Title for this application",
+          "description": "Description of this application",
+          "values": [
+            {
+              "name": "x",
+              "default_value": 0,
+              "minimum_value": 0,
+              "maximum_value": 1,
+              "unit": "",
+              "scale_value": 1.0
+            }
+          ],
+          "input_type": "number",
+          "roles": roles
+        }
+      ]
 
     return dummy_application
 

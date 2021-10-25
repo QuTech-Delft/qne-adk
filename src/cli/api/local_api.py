@@ -58,8 +58,8 @@ class LocalApi:
             Network information containing name, slug, and channel list
         """
 
-        for network, data in self.__networks_data["networks"].items():
-            if data[identifier_type].lower() == identifier_value:
+        for _, data in self.__networks_data["networks"].items():
+            if data[identifier_type].lower() == identifier_value.lower():
                 return data
 
         return None
@@ -92,6 +92,23 @@ class LocalApi:
             The Name for the given network
         """
         network_data = self._get_network_info(network_slug)
+        if network_data:
+            if 'name' in network_data:
+                return str(network_data['name'])
+
+        return None
+
+    def _get_qne_network_name(self, network_name: str) -> Optional[str]:
+        """
+        Get the case-sensitive name of the network as defined in the networks.json
+
+        Args:
+            network_name: Provided name of the network (can be in any case)
+
+        Returns:
+            The Name for the given network as available in the networks.json
+        """
+        network_data = self._get_network_info(identifier_value=network_name, identifier_type="name")
         if network_data:
             if 'name' in network_data:
                 return str(network_data['name'])
@@ -227,6 +244,7 @@ class LocalApi:
             roles: a list of roles
             path: the path where the application is stored
         """
+        application = application.lower()
 
         # code to create the local application in root dir
         app_src_path = path / application_name / "src"
@@ -410,7 +428,7 @@ class LocalApi:
                 error_dict['error'].append(message)
 
     def experiments_create(self, name: str, app_config: AppConfigType, network_name: str,
-                           path: Path, application:str) -> None:
+                           path: Path, application: str) -> None:
         """
         Create all the necessary resources for experiment creation
          - 1. Get the network data for the specified network_name
@@ -430,9 +448,9 @@ class LocalApi:
                                                                     app_config=app_config)
 
         self.create_experiment(name=name, app_config=app_config, asset_network=asset_network, path=path,
-                                application=application)
+                               application=application)
 
-    def get_network_data(self, network_name: str)-> assetNetworkType:
+    def get_network_data(self, network_name: str) -> assetNetworkType:
         """
         Fetch the data for the specified network_name from the json files in networks folder
 
@@ -461,10 +479,12 @@ class LocalApi:
                 for node_slug in all_network_nodes[network_slug]:
                     nodes_list.append(self._get_node_info(node_slug=node_slug))
             else:
-                raise NetworkNotFound(network_slug)
+                raise NetworkNotFound(network_name)
+
+            qne_network_name = self._get_qne_network_name(network_name)
 
             return {
-                "name": network_name,
+                "name": qne_network_name,
                 "slug": network_slug,
                 "channels": channels_list,
                 "nodes": nodes_list,
@@ -510,8 +530,7 @@ class LocalApi:
         experiment_data = {'meta': experiment_meta, 'asset': asset}
         utils.write_json_file(experiment_json_file, experiment_data)
 
-
-    def __create_asset_application(self,  app_config: AppConfigType) -> assetApplicationType:
+    def __create_asset_application(self, app_config: AppConfigType) -> assetApplicationType:
         """
         Prepare the asset by filling the application input parameters with default values
 
@@ -553,6 +572,7 @@ class LocalApi:
             Filled Network parameters with default values
 
         """
+        # pylint: disable-msg=too-many-locals
 
         templates = {template["slug"]: template for template in self.__templates_data["templates"]}
         node_list = network_data["nodes"]

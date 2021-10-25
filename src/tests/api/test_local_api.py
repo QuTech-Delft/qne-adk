@@ -31,39 +31,6 @@ class ApplicationValidate(unittest.TestCase):
 
         self.experiment_data_local = {'meta': self.experiment_meta_local, 'asset': {}}
 
-        self.templates_data = {
-            "param-1": {
-                "title": "Parameter One",
-                "slug": "param-1",
-                "values": [
-                    {
-                        "name": "fidelity",
-                        "default_value": 1.0,
-                        "minimum_value": 0.5,
-                        "maximum_value": 1.0,
-                        "unit": "unit-name",
-                        "scale_value": 1.0
-                    }
-                ],
-                "input_type": "fidelity_slider"
-            },
-            "param-2": {
-                "title": "Parameter 2",
-                "slug": "param-2",
-                "values": [
-                    {
-                        "name": "t1",
-                        "default_value": 0,
-                        "minimum_value": 0,
-                        "maximum_value": 1000,
-                        "unit": "milliseconds",
-                        "scale_value": 12.0
-                    }
-                ],
-                "input_type": "time"
-            }
-        }
-
         self.mock_app_config = {'application': [
             {
                 "title": "Qubit state of Sender",
@@ -105,6 +72,93 @@ class ApplicationValidate(unittest.TestCase):
                           {"slug": "n3-slug", "node_parameters": ["param-1"], "number_of_qubits": 1,
                            "qubit_parameters": ["param-2"]}]
 
+        self.mock_network_data = {
+          "networks": {
+            "network1": {
+                "name": "Network 1",
+                "slug": "network1",
+                "channels": [
+                    "n1-n2",
+                    "n2-n3"
+                ]
+            }
+          }
+        }
+        self.mock_channel_data = {
+          "channels": [
+            {
+              "slug": "n1-n2",
+              "node1": "n1",
+              "node2": "n2",
+              "parameters": [
+                    "param-1"
+                ]
+            },
+           {
+              "slug": "n2-n3",
+              "node1": "n2",
+              "node2": "n3",
+              "parameters": [
+                  "param-2"
+              ]
+           }
+          ]
+        }
+        self.mock_node_data = {
+          "nodes": [
+            {
+              "name": "N1",
+              "slug": "n1",
+              "coordinates": {
+                "latitude": 52.3667,
+                "longitude": 4.8945
+              },
+              "node_parameters": [
+                "gate-fidelity"
+              ],
+              "number_of_qubits": 3,
+              "qubit_parameters": [
+                "relaxation-time",
+                "dephasing-time"
+              ]
+            }
+          ]
+        }
+        self.mock_template_data = {
+          "templates": [
+            {
+              "title": "Parameter One",
+              "slug": "param-1",
+              "values": [
+                {
+                  "name": "fidelity",
+                  "default_value": 1.0,
+                  "minimum_value": 0.5,
+                  "maximum_value": 1.0,
+                  "unit": "unit-name",
+                  "scale_value": 1.0
+                }
+              ],
+              "input_type": "fidelity_slider"
+            },
+            {
+              "title": "Parameter 2",
+              "slug": "param-2",
+              "values": [
+                  {
+                      "name": "t1",
+                      "default_value": 0,
+                      "minimum_value": 0,
+                      "maximum_value": 1000,
+                      "unit": "milliseconds",
+                      "scale_value": 12.0
+                  }
+              ],
+              "input_type": "time"
+            }
+          ]
+        }
+
     def test_create_application(self):
         with patch.object(LocalApi, "_LocalApi__is_application_unique") as is_application_unique_mock, \
              patch.object(ConfigManager, "check_config_exists") as check_config_exists_mock, \
@@ -133,7 +187,7 @@ class ApplicationValidate(unittest.TestCase):
 
     def test__create_application_structure(self):
         with patch('cli.api.local_api.Path.mkdir') as mock_mkdir, \
-             patch("cli.api.local_api.utils.get_network_nodes") as check_network_nodes_mock, \
+             patch.object(LocalApi, "_get_network_nodes") as check_network_nodes_mock, \
              patch("cli.api.local_api.utils.get_dummy_application") as get_dummy_application_mock, \
              patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
              patch("cli.api.local_api.utils.write_json_file") as write_json_file_mock, \
@@ -296,19 +350,15 @@ class ApplicationValidate(unittest.TestCase):
 
     def test_create_experiment(self):
         with patch("cli.api.local_api.utils.write_json_file") as write_mock, \
-             patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
              patch('cli.api.local_api.Path.mkdir') as mkdir_mock, \
              patch("cli.api.local_api.utils.copy_files") as copy_files_mock, \
              patch.object(ConfigManager, "application_exists") as application_exists_mock:
 
-            is_dir_mock.return_value = False
             application_exists_mock.return_value = True, 'dummy_app_path'
 
-            is_created, message = self.local_api.create_experiment(name='test', app_config=self.mock_app_config,
-                                                                   asset_network={'a': 'b'}, path=Path('dummy'),
-                                                                   application='app_name')
+            self.local_api.create_experiment(name='test', app_config=self.mock_app_config, asset_network={'a': 'b'},
+                                             path=Path('dummy'), application='app_name')
 
-            is_dir_mock.assert_called_once()
             self.assertEqual(mkdir_mock.call_count, 2)
 
             application_exists_mock.assert_called_once_with(application='app_name')
@@ -329,18 +379,6 @@ class ApplicationValidate(unittest.TestCase):
             self.experiment_data_local['asset'] = {'network': {'a': 'b'}, 'application': expected_asset_application}
 
             write_mock.assert_called_once_with(Path('dummy') / 'test' / 'experiment.json', self.experiment_data_local)
-            self.assertEqual(is_created, True)
-            self.assertEqual(message, "Success")
-
-    def test_create_experiment_directory_exists(self):
-        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock:
-
-            is_dir_mock.return_value = True
-            is_created, message = self.local_api.create_experiment('test', {'foo': 'bar'}, 'network_1',
-                                                                   Path('dummy'), 'app_name')
-
-            self.assertEqual(is_created, False)
-            self.assertEqual(message, 'Experiment directory test already exists.')
 
     def test_get_application_config(self):
         with patch.object(ConfigManager, "get_application") as get_application_mock, \
@@ -408,7 +446,7 @@ class ApplicationValidate(unittest.TestCase):
             convert_mock.assert_called_once_with(4, [])
 
     def test_is_network_available(self):
-        with patch("cli.api.local_api.utils.get_network_slug") as get_network_slug_mock:
+        with patch.object(LocalApi, "_get_network_slug") as get_network_slug_mock:
             get_network_slug_mock.return_value = 'network-slug-1'
             mock_app_config = {'application': [{'app': 'foo'}],
                                'network': {'networks': ['network-slug-2', 'network-slug-1']}}
@@ -425,11 +463,12 @@ class ApplicationValidate(unittest.TestCase):
             self.assertFalse(network_available)
 
     def test_get_network_data(self):
-        with patch("cli.api.local_api.utils.get_network_nodes") as get_network_nodes_mock, \
-         patch("cli.api.local_api.utils.get_network_slug") as get_network_slug_mock, \
-         patch("cli.api.local_api.utils.get_channels_for_network") as get_channels_for_network_mock, \
-         patch("cli.api.local_api.utils.get_channel_info") as get_channel_info_mock, \
-         patch("cli.api.local_api.utils.get_node_info") as get_node_info_mock:
+        with patch.object(LocalApi, "_get_network_nodes") as get_network_nodes_mock, \
+         patch.object(LocalApi, "_get_network_slug") as get_network_slug_mock, \
+         patch.object(LocalApi, "_get_channels_for_network") as get_channels_for_network_mock, \
+         patch.object(LocalApi, "_get_channel_info") as get_channel_info_mock, \
+         patch.object(LocalApi, "_get_node_info") as get_node_info_mock, \
+         patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock:
             channel_info_list = [{"slug": "c1-slug"},{"slug": "c2-slug"},{"slug": "c3-slug"}]
             node_info_list = [{"slug": "n1-slug"}, {"slug": "n2-slug"}, {"slug": "n3-slug"}]
 
@@ -439,7 +478,14 @@ class ApplicationValidate(unittest.TestCase):
             get_channel_info_mock.side_effect = channel_info_list
             get_node_info_mock.side_effect = node_info_list
 
-            data = self.local_api.get_network_data('Network 1')
+            # Initialize the data for networks, channels, nodes and templates
+            read_generic_mock.side_effect = [self.mock_network_data, self.mock_channel_data,
+                                             self.mock_node_data, self.mock_template_data]
+
+            config_manager = ConfigManager(config_dir=Path("path/to/application"))
+            test_local_api = LocalApi(config_manager=config_manager)
+
+            data = test_local_api.get_network_data('Network 1')
             get_network_slug_mock.assert_called_once_with('Network 1')
             get_channels_for_network_mock.assert_called_once_with(network_slug='network-slug-1')
             get_channel_info_mock.assert_has_calls([call(channel_slug='c1'), call(channel_slug='c2'),
@@ -452,7 +498,9 @@ class ApplicationValidate(unittest.TestCase):
             self.assertEqual(data['nodes'], node_info_list)
 
     def test_create_asset_network(self):
-        with patch("cli.api.local_api.utils.get_templates") as get_templates_mock:
+        # pylint: disable-msg=too-many-statements, too-many-locals
+        with patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock:
+
             mock_network_data = {
                         "name": 'Network 1',
                         "slug": 'network-slug-1',
@@ -463,9 +511,14 @@ class ApplicationValidate(unittest.TestCase):
                                'network': {'networks': ['network-slug-2', 'network-slug-1'],
                                            'roles': ['role1', 'role2']}
                                }
-            get_templates_mock.return_value = self.templates_data
+            # Initialize the data for networks, channels, nodes and templates
+            read_generic_mock.side_effect = [self.mock_network_data, self.mock_channel_data,
+                                             self.mock_node_data, self.mock_template_data]
 
-            asset_network = self.local_api.create_asset_network(network_data=mock_network_data,
+            config_manager = ConfigManager(config_dir=Path("path/to/application"))
+            test_local_api = LocalApi(config_manager=config_manager)
+
+            asset_network = test_local_api.create_asset_network(network_data=mock_network_data,
                                                                 app_config=mock_app_config)
 
             # Check Roles data
