@@ -146,7 +146,7 @@ class LocalApi:
         is_unique, _ = self.__is_application_unique(application_name)
         if is_unique:
             error_dict['error'].append("Application does not exist")
-        if not is_unique:
+        else:
             error_dict = self.__is_structure_valid(application_name, error_dict)
             error_dict = self.__is_config_valid(application_name, error_dict)
 
@@ -210,10 +210,10 @@ class LocalApi:
                 # Get all the files in the src directory
                 src_dir_files = os.listdir(app_src_path)
 
-                # Check if the roles in the config/application.json match the roles in the src directory
+                # Check if the roles in the config/application.json double the file names in the src directory
                 if not all(roles in src_dir_files for roles in application_file_names):
                     error_dict['warning'].append(
-                        f"Not all the the roles in {app_config_path / 'application.json'} match with the file names in "
+                        f"Not all the the roles in {app_config_path / 'application.json'} double the file names in "
                         f"{app_src_path}")
             else:
                 error_dict['error'].append(message)
