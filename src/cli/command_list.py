@@ -294,11 +294,9 @@ def experiments_results(
     Get results for an experiment.
     """
     result_noun = "results" if all_results else "result"
-    typer.echo(f"Get {result_noun} for this experiment")
     cwd = Path.cwd()
-    results = processor.experiments_results(all_results=all_results, show=show, path=cwd)
+    results = processor.experiments_results(all_results=all_results, path=cwd)
     if show:
-        for result in results:
-            typer.echo(result)
+        typer.echo(results)
     else:
-        typer.echo(f"{result_noun.title()} stored successfully")
+        typer.echo(f"{result_noun.title()} are stored at location results/processed.json.")

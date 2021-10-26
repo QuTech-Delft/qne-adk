@@ -2,9 +2,17 @@ import json
 import os
 from pathlib import Path
 import shutil
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from cli.exceptions import JsonFileNotFound, MalformedJsonFile, InvalidPathName
+
+
+class ComplexEncoder(json.JSONEncoder):
+    def default(self, o: object) -> Any:
+        if isinstance(o, complex):
+            return [o.real, o.imag]
+         # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, o)
 
 
 def read_json_file(file_name: Path, encoding: str = 'utf-8') -> Any:
@@ -32,7 +40,8 @@ def read_json_file(file_name: Path, encoding: str = 'utf-8') -> Any:
         raise MalformedJsonFile(str(file_name), json_error) from None
 
 
-def write_json_file(file_name: Path, data: Any, encoding: str = 'utf-8') -> None:
+def write_json_file(file_name: Path, data: Any, encoding: str = 'utf-8',
+                    encoder_cls: Optional[Type[json.JSONEncoder]] = None) -> None:
     """
     Open the file & write the data to the file
 
@@ -40,11 +49,15 @@ def write_json_file(file_name: Path, data: Any, encoding: str = 'utf-8') -> None
         file_name: Path specifying the json file to be written to
         data: Data to be written to file
         encoding: Encoding format in which to open the file
+        encoder_cls: Class to use for encoding the objects
 
     """
 
     with open(file_name, mode="w", encoding=encoding) as fp:
-        json.dump(data, fp, indent=2)
+        if encoder_cls:
+            json.dump(data, fp, indent=2, cls=encoder_cls)
+        else:
+            json.dump(data, fp, indent=2)
 
 
 def write_file(file_name: Path, data: Any, encoding: str = 'utf-8') -> None:

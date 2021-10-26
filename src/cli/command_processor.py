@@ -1,11 +1,12 @@
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import cast, Dict, List, Optional, Tuple
 
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.decorators import log_function
 from cli.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication
-from cli.type_aliases import ApplicationType, ExperimentType, ErrorDictType, GeneratedResultType,  ResultType
+from cli.type_aliases import ApplicationType, ExperimentType, ErrorDictType, GeneratedResultType
+from cli import utils
 
 
 class CommandProcessor:
@@ -124,6 +125,7 @@ class CommandProcessor:
 
         if is_local:
             results = self.__local.run_experiment(path)
+            self.__store_results(results, path)
 
         return results
 
@@ -137,22 +139,26 @@ class CommandProcessor:
 
     @log_function
     def experiments_results(
-        self, all_results: bool, show: bool, path:Path
-    ) -> Optional[List[ResultType]]:
-        results = None
-        is_local = self.__local.is_experiment_local(path)
-
-        if is_local:
-            results = self.__local.get_results(path, all_results)
-        else:
-            results = self.__remote.get_results('path', all_results, block=True, timeout=100)
-
-        if show:
-            return results
-
-        self.__store_results(results)
-        return None
+        self, all_results: bool, path:Path
+    ) -> GeneratedResultType:
+        results: GeneratedResultType = self.__get_results(path=path)
+        return results
 
     @log_function
-    def __store_results(self, results: List[ResultType]) -> None:
-        pass
+    def __store_results(self, results: GeneratedResultType, path: Path) -> None:
+        print(f"store_results called with {results}")
+        processed_results_directory = path / "results"
+        if not processed_results_directory.is_dir():
+            processed_results_directory.mkdir(parents=True)
+
+        processed_result_json_file = processed_results_directory / 'processed.json'
+        utils.write_json_file(processed_result_json_file, results, encoder_cls=utils.ComplexEncoder)
+
+    @log_function
+    def __get_results(self, path: Path) -> GeneratedResultType:
+        processed_results_directory = path / "results"
+        if not processed_results_directory.is_dir():
+            raise Exception(f"Results are not available for experiment at location {path}")
+
+        processed_result_json_file = processed_results_directory / 'processed.json'
+        return cast(GeneratedResultType, utils.read_json_file(processed_result_json_file))

@@ -206,16 +206,21 @@ class TestCommandList(unittest.TestCase):
             mock_cwd.return_value = 'test'
             exp_results_output = self.runner.invoke(experiments_app, ['results'])
 
-            exp_results_mock.assert_called_once_with(all_results=False, show=False, path='test')
+            exp_results_mock.assert_called_once_with(all_results=False, path='test')
             self.assertEqual(exp_results_output.exit_code, 0)
-            self.assertIn("Result stored successfully", exp_results_output.stdout)
 
             exp_results_mock.reset_mock()
             exp_results_mock.return_value = ['r1', 'r2']
             exp_results_output = self.runner.invoke(experiments_app, ['results', '--all', '--show'])
-            exp_results_mock.assert_called_once_with(all_results=True, show=True, path='test')
+            exp_results_mock.assert_called_once_with(all_results=True, path='test')
             self.assertEqual(exp_results_output.exit_code, 0)
-            self.assertIn("r1\nr2", exp_results_output.stdout)
+            self.assertIn("['r1', 'r2']", exp_results_output.stdout)
+
+            exp_results_mock.reset_mock()
+            exp_results_output = self.runner.invoke(experiments_app, ['results', '--all'])
+            exp_results_mock.assert_called_once_with(all_results=True, path='test')
+            self.assertEqual(exp_results_output.exit_code, 0)
+            self.assertIn("Results are stored at location results/processed.json.", exp_results_output.stdout)
 
     def test_applications_list(self):
         with patch.object(CommandProcessor, "applications_list") as list_applications_mock:

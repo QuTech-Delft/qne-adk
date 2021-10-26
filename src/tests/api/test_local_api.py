@@ -418,22 +418,9 @@ class ApplicationValidate(unittest.TestCase):
             process_mock.assert_called_once()
 
     def test_get_results(self):
-        with patch.object(OutputConverter, "convert") as convert_mock, \
-             patch.object(LocalApi, "get_experiment_rounds") as get_rounds_mock:
-
-            get_rounds_mock.return_value = 3
-
-            self.local_api.get_results(path=Path('dummy'), all_results=True)
-            get_rounds_mock.assert_called_once_with(Path('dummy'))
-            self.assertEqual(convert_mock.call_count, 3)
-
-            get_rounds_mock.reset_mock()
-            get_rounds_mock.return_value = 4
-            convert_mock.reset_mock()
-
-            self.local_api.get_results(path=Path('dummy'), all_results=False)
-            get_rounds_mock.assert_called_once_with(Path('dummy'))
-            convert_mock.assert_called_once_with(4)
+        with patch.object(OutputConverter, "convert") as convert_mock:
+            self.local_api.get_results(path=Path('dummy'))
+            convert_mock.assert_called_once_with(round_number=1)
 
     def test_is_network_available(self):
         with patch.object(LocalApi, "_get_network_slug") as get_network_slug_mock:

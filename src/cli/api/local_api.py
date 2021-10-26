@@ -8,11 +8,12 @@ from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, Js
                             NetworkNotFound, NoNetworkAvailable, PackageNotComplete)
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
+from cli.generators.network_generator import FullyConnectedNetworkGenerator
 from cli.output_converter import OutputConverter
 from cli.settings import BASE_DIR
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
                               app_configApplicationType, assetApplicationType, assetNetworkType,
-                              ExperimentType, ErrorDictType, GenericNetworkData, GeneratedResultType, ResultType,
+                              ExperimentType, ErrorDictType, GenericNetworkData, GeneratedResultType,
                               ChannelData, NetworkData, NodeData, TemplateData)
 from cli.validators import validate_json_file, validate_json_schema
 
@@ -719,19 +720,14 @@ class LocalApi:
     def get_experiment(self, name: str) -> ExperimentType:
         pass
 
-    def get_results(self, path: Path, all_results: bool) -> List[ResultType]:
-        output_converter = OutputConverter('log_dir', 'output_dir')
+    def get_results(self, path: Path) -> GeneratedResultType:
+        output_converter = OutputConverter(
+            log_dir=str(path / "raw_output"),
+            output_dir="LAST",
+            instruction_converter=FullyConnectedNetworkGenerator()
+        )
 
-        output_result: List[ResultType] = []
-
-        total_rounds = self.get_experiment_rounds(path)
-        if all_results:
-            for round_number in range(1, total_rounds + 1):
-                output_result.append(output_converter.convert(round_number))
-        else:
-            output_result.append(output_converter.convert(total_rounds))
-
-        return output_result
+        return output_converter.convert(round_number=1)
 
     def validate_experiment(self, path: Path) -> ErrorDictType:
         """
