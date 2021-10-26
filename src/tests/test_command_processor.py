@@ -36,7 +36,7 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_applications_create(self):
         with patch.object(LocalApi, "create_application") as create_application_mock:
-            self.processor.applications_create(application=self.application, roles=self.roles, path=self.path)
+            self.processor.applications_create(application_name=self.application, roles=self.roles, path=self.path)
             create_application_mock.assert_called_once_with(self.application, self.roles, self.path)
 
     def test_applications_validate(self):

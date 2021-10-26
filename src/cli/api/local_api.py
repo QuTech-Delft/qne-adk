@@ -1,29 +1,32 @@
+import os
+import shutil
+
 from typing import List, Optional, Tuple
 from pathlib import Path
-import shutil
 from cli import utils
-
+from cli.validators import validate_json_file, validate_json_schema
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
                               app_configApplicationType, assetApplicationType, assetNetworkType,
-                              ExperimentType, ResultType)
+                              ExperimentType, ResultType, ErrorDictType)
 from cli.utils import read_json_file, write_json_file
 from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
+from cli.settings import BASE_DIR
 
 
 class LocalApi:
     def __init__(self, config_manager: ConfigManager) -> None:
         self.__config_manager = config_manager
 
-    def create_application(self, application: str, roles: List[str], path: Path) -> None:
+    def create_application(self, application_name: str, roles: List[str], path: Path) -> None:
         """
         Creates the application by checking if the application name is unique with is_application_unique and calling
         create_application_structure.
 
         Args:
-            application: the application name
+            application_name: name of the application
             roles: a list of roles
             path: the path where the application is stored
 
@@ -34,17 +37,17 @@ class LocalApi:
         if not self.__config_manager.check_config_exists():
             self.__config_manager.create_config()
 
-        is_unique, existing_app_path = self.__is_application_unique(application)
+        is_unique, existing_app_path = self.__is_application_unique(application_name)
         if is_unique:
-            self.__create_application_structure(application, roles, path)
+            self.__create_application_structure(application_name, roles, path)
         else:
-            raise ApplicationAlreadyExists(application, existing_app_path)
+            raise ApplicationAlreadyExists(application_name, existing_app_path)
 
     def init_application(self, path: Path) -> None:
         pass
 
     def __create_application_structure(
-        self, application: str, roles: List[str], path: Path
+        self, application_name: str, roles: List[str], path: Path
     ) -> None:
         """
         Creates the application directory structure. Each application will consist of a MANIFEST.INI and two
@@ -53,19 +56,19 @@ class LocalApi:
         the list roles.
 
         Args:
-            application: the application name
+            application_name: name of the application
             roles: a list of roles
             path: the path where the application is stored
         """
 
         # code to create the local application in root dir
-        app_dir = path / application / "src"
-        config_dir = path / application / "config"
-        app_dir.mkdir(parents=True, exist_ok=True)
-        config_dir.mkdir(parents=True, exist_ok=True)
+        app_src_path = path / application_name / "src"
+        app_config_path = path / application_name / "config"
+        app_src_path.mkdir(parents=True, exist_ok=True)
+        app_config_path.mkdir(parents=True, exist_ok=True)
 
         for role in roles:
-            utils.write_file(app_dir / f"app_{role}.py", utils.get_py_dummy())
+            utils.write_file(app_src_path / f"app_{role}.py", utils.get_py_dummy())
 
         # Network.json configuration
         networks = {"networks": [], "roles": roles}
@@ -81,35 +84,36 @@ class LocalApi:
 
         # Remove already created application structure
         if not networks["networks"]:
-            shutil.rmtree(path / application)
+            shutil.rmtree(path / application_name)
             raise NoNetworkAvailable()
 
-        utils.write_json_file(config_dir / "network.json", networks)
+        utils.write_json_file(app_config_path / "network.json", networks)
 
         # Application.json configuration
         data = utils.get_dummy_application(roles)
-        utils.write_json_file(config_dir / "application.json", data)
+        utils.write_json_file(app_config_path / "application.json", data)
 
         # Result.json configuration
-        utils.write_json_file(config_dir / "result.json", {})
+        utils.write_json_file(app_config_path / "result.json", [])
 
         # Manifest.ini configuration
-        utils.write_file(path / application / "MANIFEST.ini", "")
+        utils.write_file(path / application_name / "MANIFEST.ini", "")
 
-        self.__config_manager.add_application(application, path)
+        self.__config_manager.add_application(application_name, path)
 
-    def __is_application_unique(self, application: str) -> Tuple[bool, str]:
+    def __is_application_unique(self, application_name: str) -> Tuple[bool, str]:
         """
         Calls config_manager.application_exists() to check if the application name already exists in the
         .qne/application.json root file. Here, all application names are added when an application is created.
         If the application name doesn't equal one of the application names already existing in this root file, the
         application is unique. Therefore, application_unique() returns True when application_exists() returns False.
 
+
         Args:
-            application: application name
+            application_name: name of the application
         """
 
-        is_unique, path = self.__config_manager.application_exists(application)
+        is_unique, path = self.__config_manager.application_exists(application_name)
         return not is_unique, path
 
     def list_applications(self) -> List[ApplicationType]:
@@ -123,24 +127,97 @@ class LocalApi:
         return local_applications
 
     # Todo: Update confluence scenario diagram since application_unique() and structure_valid() are swapped
-    def is_application_valid(self, application: str) -> Tuple[bool, str]:
-        if self.__is_application_unique(application) and \
-           self.__is_structure_valid(application) and \
-           self.__is_config_valid(application):
-            return True, "Valid"
+    def is_application_valid(self, application_name: str) -> ErrorDictType:
+        """
+        Function that checks if:
+        - The application is valid by validating if it exists in .qne/application.json
+        - The file and directory structure is correct
+        - The json files in the config directory contain valid json
+        - The json files passes against schema validation
 
-        return False, "Invalid"
+        Args:
+            application_name: Name of the application
 
-    def __is_structure_valid(self, application: str) -> bool:
-        pass
+        returns:
+            Returns empty list when all validations passes
+            Returns dict containing error messages of the validations that failed
+        """
+        error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
+        is_unique, _ = self.__is_application_unique(application_name)
+        if is_unique:
+            error_dict['error'].append("Application does not exist")
+        else:
+            self.__is_structure_valid(application_name, error_dict)
+            self.__is_config_valid(application_name, error_dict)
 
-    def __is_config_valid(self, application: str) -> bool:
-        pass
+        return error_dict
 
-    def get_application_config(self, application: str) -> AppConfigType:
-        app_details = self.__config_manager.get_application(application)
+    def __is_config_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
+        # Validate if json string is correct and validate against json schema's
+        app_schema_path = Path(BASE_DIR) / "schema/applications"
+        app_config_path = Path(self.__config_manager.get_application_path(application_name)) / "config"
+        files_list = ["application.json", "network.json", "result.json"]
 
-        app_config_path = Path(app_details['path']) / 'config'
+        for file in files_list:
+            if os.path.isfile(app_config_path / file):
+                json_valid, message = validate_json_file(app_config_path / file)
+                if json_valid:
+                    schema_valid, ve = validate_json_schema(app_config_path / file, app_schema_path / file)
+                    if not schema_valid:
+                        error_dict['error'].append(ve)
+                else:
+                    # application.json is checked earlier in the validation process, no need to add this message again
+                    # to error_dict (duplicate)
+                    if file != "application.json":
+                        error_dict['error'].append(message)
+
+    def __is_structure_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
+        app_dir_path = Path(self.__config_manager.get_application_path(application_name))
+        app_config_path = app_dir_path / "config"
+        app_src_path = app_dir_path / "src"
+
+        # Validate that the config, src and MANIFEST.ini structure is correct
+        if not os.path.exists(app_config_path) or \
+           not os.path.exists(app_src_path) or \
+           not os.path.isfile(app_dir_path / "MANIFEST.ini"):
+            error_dict['warning'].append(f"{app_dir_path} should contain a 'MANIFEST.ini', 'src' directory and "
+                                         f"'config' directory")
+
+        # Check if the config directory is complete
+        if os.path.exists(app_config_path):
+            if not os.path.isfile(app_config_path / "application.json") or \
+               not os.path.isfile(app_config_path / "network.json") or \
+               not os.path.isfile(app_config_path / "result.json"):
+                error_dict['warning'].append(f"{app_config_path} should contain the files 'network.json', result.json' "
+                                             f"and 'application.json'")
+
+        if os.path.exists(app_src_path) and os.path.isfile(app_config_path / "application.json"):
+            valid, message = validate_json_file(app_config_path / "application.json")
+            if valid:
+                config_application_data = read_json_file(app_config_path / "application.json")
+                config_application_roles = []
+
+                for item in config_application_data:
+                    for role in item["roles"]:
+                        config_application_roles.append(role)
+
+                # Add app_ and .py to each role in config/application.json so that it matches the python files listed
+                # in the src directory
+                application_file_names = ['app_' + role + '.py' for role in config_application_roles]
+
+                # Get all the files in the src directory
+                src_dir_files = os.listdir(app_src_path)
+
+                # Check if the roles in the config/application.json double the file names in the src directory
+                if not all(roles in src_dir_files for roles in application_file_names):
+                    error_dict['warning'].append(
+                        f"Not all the roles in {app_config_path / 'application.json'} double the file names in "
+                        f"{app_src_path}")
+            else:
+                error_dict['error'].append(message)
+
+    def get_application_config(self, application_name: str) -> AppConfigType:
+        app_config_path = Path(self.__config_manager.get_application_path(application_name)) / 'config'
         application_json_path = app_config_path / 'application.json'
         network_json_path = app_config_path / 'network.json'
 
@@ -150,8 +227,8 @@ class LocalApi:
         app_config = {"application": app_config_application, "network": app_config_network}
         return app_config
 
-    def experiments_create(self, name: str, app_config: AppConfigType , network_name: str,
-                           path: Path, application:str)-> Tuple[bool, str]:
+    def experiments_create(self, name: str, app_config: AppConfigType, network_name: str,
+                           path: Path, application: str) -> Tuple[bool, str]:
         """
         Create all the necessary resources for experiment creation
          - 1. Get the network data for the specified network_name

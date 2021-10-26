@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.decorators import log_function
-from cli.type_aliases import ApplicationType, ExperimentType, ResultType
+from cli.type_aliases import ApplicationType, ExperimentType, ResultType, ErrorDictType
 
 
 class CommandProcessor:
@@ -21,17 +21,17 @@ class CommandProcessor:
         self.__remote.logout(host=host)
 
     def applications_create(
-        self, application: str, roles: List[str], path: Path
+        self, application_name: str, roles: List[str], path: Path
     ) -> None:
-        self.__local.create_application(application, roles, path)
+        self.__local.create_application(application_name, roles, path)
 
     @log_function
     def applications_init(self, path: Path) -> None:
         self.__local.init_application(path)
 
     @log_function
-    def applications_upload(self, application: str) -> None:
-        self.__remote.upload_application(application)
+    def applications_upload(self, application_name: str) -> None:
+        self.__remote.upload_application(application_name)
 
     @log_function
     def applications_list(self, remote: bool, local: bool) -> Dict[str, List[ApplicationType]]:
@@ -57,16 +57,16 @@ class CommandProcessor:
         return app_list
 
     @log_function
-    def applications_delete(self, application: str) -> None:
-        self.__remote.delete_application(application)
+    def applications_delete(self, application_name: str) -> None:
+        self.__remote.delete_application(application_name)
 
     @log_function
-    def applications_publish(self, application: str) -> None:
-        self.__remote.publish_application(application)
+    def applications_publish(self, application_name: str) -> None:
+        self.__remote.publish_application(application_name)
 
     @log_function
-    def applications_validate(self, application: str) -> Tuple[bool, str]:
-        return self.__local.is_application_valid(application)
+    def applications_validate(self, application_name: str) -> ErrorDictType:
+        return self.__local.is_application_valid(application_name)
 
     @log_function
     def experiments_create(self, name: str, application: str, network_name: str, local: bool, path: Path) \
@@ -88,7 +88,7 @@ class CommandProcessor:
         self.__local.delete_experiment(path)
 
     @log_function
-    def __is_application_local(self, application: str) -> bool:
+    def __is_application_local(self, application_name: str) -> bool:
         pass
 
     @log_function

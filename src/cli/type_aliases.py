@@ -12,3 +12,5 @@ assetApplicationType = List[Dict[str, Any]]
 LoginFunctionType = Callable[[str, str, str], str]
 FallbackFunctionType = Callable[[], str]
 TokenFetchFunctionType = Union[LoginFunctionType, FallbackFunctionType]
+
+ErrorDictType = Dict[str, List[str]]

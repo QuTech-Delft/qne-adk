@@ -35,6 +35,7 @@ processor = CommandProcessor(local_api=local_api, remote_api=remote_api)
 
 logging.basicConfig(level=logging.INFO)
 
+
 @app.command("login")
 def login(
     host: str = typer.Argument(None),
@@ -64,7 +65,7 @@ def logout(host: str = typer.Argument(None)) -> None:
 
 @applications_app.command("create")
 def applications_create(
-    application: str = typer.Argument(..., help="Name of the application."),
+    application_name: str = typer.Argument(..., help="Name of the application."),
     roles: List[str] = typer.Argument(..., help="Names of the roles to be created."),
 ) -> None:
     """
@@ -74,7 +75,7 @@ def applications_create(
     if len(roles) <= 1:
         raise NotEnoughRoles()
 
-    validate_path_name("Application", application)
+    validate_path_name("Application", application_name)
     for role in roles:
         validate_path_name("Role", role)
 
@@ -82,8 +83,8 @@ def applications_create(
     roles = [role.lower() for role in roles]
 
     cwd = Path.cwd()
-    typer.echo(f"Create application '{application}' in directory '{cwd}'.")
-    processor.applications_create(application=application, roles=roles, path=cwd)
+    typer.echo(f"Create application '{application_name}' in directory '{cwd}'.")
+    processor.applications_create(application_name=application_name, roles=roles, path=cwd)
     typer.echo("Application successfully created.")
 
 
@@ -95,7 +96,7 @@ def applications_delete() -> None:
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
     typer.echo(f"Delete application '{application_name}'.")
-    processor.applications_delete(application=application_name)
+    processor.applications_delete(application_name=application_name)
     typer.echo("Application deleted successfully.")
 
 
@@ -120,7 +121,7 @@ def applications_upload() -> None:
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
     typer.echo(f"Upload application '{application_name}' to Quantum Network Explorer.")
-    processor.applications_upload(application=application_name)
+    processor.applications_upload(application_name=application_name)
     typer.echo("Application successfully uploaded.")
 
 
@@ -173,7 +174,7 @@ def applications_publish() -> None:
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
     typer.echo(f"Publish application '{application_name}'.")
-    processor.applications_publish(application=application_name)
+    processor.applications_publish(application_name=application_name)
     typer.echo("Request to publish application sent successfully.")
 
 
@@ -184,9 +185,19 @@ def applications_validate() -> None:
     """
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
-    typer.echo(f"Validate application '{application_name}'.")
-    processor.applications_validate(application=application_name)
-    typer.echo("Application is valid.")
+    typer.echo(f"Validate application '{application_name}'.\n")
+    error_dict = processor.applications_validate(application_name=application_name)
+
+    for key in error_dict:
+        if error_dict[key]:
+            for item in error_dict[key]:
+                typer.echo(f"{key.upper()}: {item}")
+            print("\n")
+
+    if error_dict['error'] or error_dict['warning']:
+        typer.echo("Application is invalid.")
+    else:
+        typer.echo("Application is valid.")
 
 
 @experiments_app.command("create")
