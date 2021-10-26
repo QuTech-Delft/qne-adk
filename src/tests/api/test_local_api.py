@@ -606,3 +606,185 @@ class ApplicationValidate(unittest.TestCase):
             self.assertEqual(n3_node["qubits"][0]['qubit_id'], 0)
             self.assertEqual(len(n3_node["qubits"][0]['qubit_parameters']), 1)
             self.assertDictEqual(n3_node["qubits"][0]['qubit_parameters'][0], expected_param_2_dict)
+
+    def test_get_network_nodes(self):
+        with patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock:
+            read_generic_mock.side_effect = \
+                [
+                    {
+                        "networks": {
+                            "randstad": {
+                                "name": "Randstad",
+                                "slug": "randstad",
+                                "channels": [
+                                    "amsterdam-leiden",
+                                    "leiden-the-hague",
+                                    "delft-the-hague",
+                                    "delft-rotterdam"
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "channels": [
+                            {
+                                "slug": "amsterdam-leiden",
+                                "node1": "amsterdam",
+                                "node2": "leiden",
+                                "parameters": [
+                                    "elementary-link-fidelity"
+                                ]
+                            },
+                            {
+                                "slug": "leiden-the-hague",
+                                "node1": "leiden",
+                                "node2": "the-hague",
+                                "parameters": [
+                                    "elementary-link-fidelity"
+                                ]
+                            }
+                        ]
+                    },
+                    {},
+                    {}
+                ]
+
+            config_manager = ConfigManager(config_dir=Path("path/to/application"))
+            test_local_api = LocalApi(config_manager=config_manager)
+            data = test_local_api._get_network_nodes() # pylint: disable=W0212
+            self.assertEqual(data, {'randstad': ['amsterdam', 'leiden', 'the-hague']})
+
+            # Check when only two nodes are available
+            read_generic_mock.reset_mock()
+            read_generic_mock.side_effect = \
+                [
+                    {
+                        "networks": {
+                            "randstad": {
+                                "name": "Randstad",
+                                "slug": "randstad",
+                                "channels": [
+                                    "amsterdam-leiden",
+                                    "leiden-the-hague",
+                                    "delft-the-hague",
+                                    "delft-rotterdam"
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "channels": [
+                            {
+                                "slug": "amsterdam-leiden",
+                                "node1": "amsterdam",
+                                "node2": "leiden",
+                                "parameters": [
+                                    "elementary-link-fidelity"
+                                ]
+                            },
+                        ]
+                    },
+                    {},
+                    {}
+                ]
+
+            test_local_api = LocalApi(config_manager=config_manager)
+            data = test_local_api._get_network_nodes() # pylint: disable=W0212
+            self.assertEqual(data, {'randstad': ['amsterdam', 'leiden']})
+
+    def test_network_helpers(self):
+        # pylint: disable=W0212
+        with patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock:
+            # Initialize the data for networks, channels, nodes and templates
+            read_generic_mock.side_effect = [self.mock_network_data, self.mock_channel_data,
+                                             self.mock_node_data, self.mock_template_data]
+
+            config_manager = ConfigManager(config_dir=Path("path/to/application"))
+            test_local_api = LocalApi(config_manager=config_manager)
+
+            network_info = test_local_api._get_network_info(identifier_value="network1")
+            self.assertEqual(network_info['slug'], 'network1')
+
+            network_info = test_local_api._get_network_info(identifier_value="NETWORK1")
+            self.assertIsNotNone(network_info)
+
+            network_info = test_local_api._get_network_info(identifier_value="NETWORK 1", identifier_type="name")
+            self.assertIsNotNone(network_info)
+
+            self.assertEqual(test_local_api._get_network_slug(network_name='NETWORK 1'), 'network1')
+            self.assertIsNone(test_local_api._get_network_slug(network_name='NETWORK 42'))
+
+            self.assertEqual(test_local_api._get_network_name(network_slug='network1'), 'Network 1')
+            self.assertIsNone(test_local_api._get_network_name(network_slug='network42'))
+
+            self.assertEqual(test_local_api._get_qne_network_name(network_name='NETWORK 1'), 'Network 1')
+            self.assertEqual(test_local_api._get_qne_network_name(network_name='Network 1'), 'Network 1')
+            self.assertIsNone(test_local_api._get_qne_network_name(network_name='NETWORK 42'))
+
+            expected_channel_list = ["n1-n2", "n2-n3"]
+            self.assertEqual(test_local_api._get_channels_for_network(network_slug='network1'), expected_channel_list)
+            self.assertIsNone(test_local_api._get_channels_for_network(network_slug='network-unknown'))
+
+            expected_channel_info = {
+              "slug": "n1-n2",
+              "node1": "n1",
+              "node2": "n2",
+              "parameters": [
+                    "param-1"
+                ]
+            }
+            self.assertEqual(test_local_api._get_channel_info(channel_slug='n1-n2'), expected_channel_info)
+            self.assertIsNone(test_local_api._get_channel_info(channel_slug='channel-unknown'))
+
+            expected_node_info = {
+              "name": "N1",
+              "slug": "n1",
+              "coordinates": {
+                "latitude": 52.3667,
+                "longitude": 4.8945
+              },
+              "node_parameters": [
+                "gate-fidelity"
+              ],
+              "number_of_qubits": 3,
+              "qubit_parameters": [
+                "relaxation-time",
+                "dephasing-time"
+              ]
+            }
+            self.assertEqual(test_local_api._get_node_info(node_slug='n1'), expected_node_info)
+            self.assertIsNone(test_local_api._get_node_info(node_slug='node-unknown'))
+
+            expected_template_info = {
+                "param-1": {
+                      "title": "Parameter One",
+                      "slug": "param-1",
+                      "values": [
+                        {
+                          "name": "fidelity",
+                          "default_value": 1.0,
+                          "minimum_value": 0.5,
+                          "maximum_value": 1.0,
+                          "unit": "unit-name",
+                          "scale_value": 1.0
+                        }
+                      ],
+                      "input_type": "fidelity_slider"
+                    },
+                "param-2": {
+                      "title": "Parameter 2",
+                      "slug": "param-2",
+                      "values": [
+                          {
+                              "name": "t1",
+                              "default_value": 0,
+                              "minimum_value": 0,
+                              "maximum_value": 1000,
+                              "unit": "milliseconds",
+                              "scale_value": 12.0
+                          }
+                      ],
+                      "input_type": "time"
+                    }
+            }
+            self.assertEqual(test_local_api._get_templates(), expected_template_info)
