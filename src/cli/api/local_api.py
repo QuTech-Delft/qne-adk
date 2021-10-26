@@ -756,7 +756,6 @@ class LocalApi:
 
         return output_result
 
-
     def validate_experiment(self, path: Path) -> ErrorDictType:
         """
         Validates the experiment by checking:
