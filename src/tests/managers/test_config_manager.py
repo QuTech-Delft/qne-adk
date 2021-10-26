@@ -1,4 +1,5 @@
 import unittest
+import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -77,7 +78,7 @@ class TestConfigManager(unittest.TestCase):
              patch.object(ConfigManager, "create_config") as create_config_mock, \
              patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
 
-            read_json_file_mock.return_value = {self.application: {"path": str(self.path) + "/"}}
+            read_json_file_mock.return_value = {self.application: {"path": os.path.join(str(self.path), '')}}
             check_config_exists_mock.return_value = True
 
             self.config_manager.get_application_from_path(self.path)
@@ -88,7 +89,7 @@ class TestConfigManager(unittest.TestCase):
             # Raise ApplicationDoesntExist() when the application path doesn't match any of the paths
             read_json_file_mock.reset_mock()
             check_config_exists_mock.reset_mock()
-            read_json_file_mock.return_value = {"application2": {"path": "no/matching/path/"}}
+            read_json_file_mock.return_value = {"application2": {"path": os.path.join('no', 'matching', 'path', '')}}
 
             self.assertRaises(ApplicationDoesNotExist, self.config_manager.get_application_from_path, self.path)
 
@@ -98,7 +99,7 @@ class TestConfigManager(unittest.TestCase):
             # Check_config_exists() returns True
             read_json_file_mock.reset_mock()
             check_config_exists_mock.reset_mock()
-            read_json_file_mock.return_value = {self.application: {"path": str(self.path) + "/"}}
+            read_json_file_mock.return_value = {self.application: {"path": os.path.join(str(self.path), '')}}
             check_config_exists_mock.return_value = False
             self.config_manager.get_application_from_path(self.path)
             check_config_exists_mock.assert_called_once()
