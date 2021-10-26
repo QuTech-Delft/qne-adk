@@ -116,11 +116,8 @@ class ApplicationValidate(unittest.TestCase):
 
             # If application is not unique, is_config_valid() returns an error and warning
             is_application_unique_mock.return_value = False, None
-            is_config_valid_mock.return_value = {"error": ["error"], "warning": ["warning"], "info": []}
-            is_structure_valid_mock.return_value = self.error_dict
 
-            self.assertEqual(self.local_api.is_application_valid(application_name=self.application),
-                             {"error": ["error"], "warning": ["warning"], "info": []})
+            self.assertEqual(self.local_api.is_application_valid(application_name=self.application), self.error_dict)
 
             is_application_unique_mock.assert_called_once_with(self.application)
             is_structure_valid_mock.assert_called_once_with(self.application, self.error_dict)
@@ -128,8 +125,6 @@ class ApplicationValidate(unittest.TestCase):
 
             # If application is unique
             is_application_unique_mock.reset_mock()
-            is_structure_valid_mock.reset_mock()
-            is_config_valid_mock.reset_mock()
             is_application_unique_mock.return_value = True, None
             self.assertEqual(self.local_api.is_application_valid(application_name=self.application),
                              {"error": ["Application does not exist"], "warning": [], "info": []})

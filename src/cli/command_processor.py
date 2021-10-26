@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.decorators import log_function
-from cli.type_aliases import ApplicationType, ExperimentType, ResultType
+from cli.type_aliases import ApplicationType, ExperimentType, ResultType, ErrorDictType
 
 
 class CommandProcessor:
@@ -65,7 +65,7 @@ class CommandProcessor:
         self.__remote.publish_application(application_name)
 
     @log_function
-    def applications_validate(self, application_name: str) -> Dict[str, List[str]]:
+    def applications_validate(self, application_name: str) -> ErrorDictType:
         return self.__local.is_application_valid(application_name)
 
     @log_function

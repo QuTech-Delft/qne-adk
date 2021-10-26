@@ -78,29 +78,31 @@ class TestConfigManager(unittest.TestCase):
              patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
 
             read_json_file_mock.return_value = {self.application: {"path": str(self.path) + "/"}}
-            check_config_exists_mock.return_value = False
+            check_config_exists_mock.return_value = True
 
             self.config_manager.get_application_from_path(self.path)
 
-            check_config_exists_mock.assert_called()
+            check_config_exists_mock.assert_called_once()
             read_json_file_mock.assert_called_once_with(self.config_manager.applications_config)
 
             # Raise ApplicationDoesntExist() when the application path doesn't match any of the paths
             read_json_file_mock.reset_mock()
+            check_config_exists_mock.reset_mock()
             read_json_file_mock.return_value = {"application2": {"path": "no/matching/path/"}}
 
             self.assertRaises(ApplicationDoesNotExist, self.config_manager.get_application_from_path, self.path)
 
-            check_config_exists_mock.assert_called()
+            check_config_exists_mock.assert_called_once()
             read_json_file_mock.assert_called_once_with(self.config_manager.applications_config)
 
             # Check_config_exists() returns True
             read_json_file_mock.reset_mock()
+            check_config_exists_mock.reset_mock()
             read_json_file_mock.return_value = {self.application: {"path": str(self.path) + "/"}}
-            check_config_exists_mock.return_value = True
+            check_config_exists_mock.return_value = False
             self.config_manager.get_application_from_path(self.path)
-            check_config_exists_mock.assert_called()
-            create_config_mock.assert_called()
+            check_config_exists_mock.assert_called_once()
+            create_config_mock.assert_called_once()
             read_json_file_mock.assert_called_once_with(self.config_manager.applications_config)
 
     def test_get_application_path(self):

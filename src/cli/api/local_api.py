@@ -147,12 +147,12 @@ class LocalApi:
         if is_unique:
             error_dict['error'].append("Application does not exist")
         else:
-            error_dict = self.__is_structure_valid(application_name, error_dict)
-            error_dict = self.__is_config_valid(application_name, error_dict)
+            self.__is_structure_valid(application_name, error_dict)
+            self.__is_config_valid(application_name, error_dict)
 
         return error_dict
 
-    def __is_config_valid(self, application_name: str, error_dict: ErrorDictType) -> ErrorDictType:
+    def __is_config_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
         # Validate if json string is correct and validate against json schema's
         app_schema_path = Path(BASE_DIR) / "schema/applications"
         app_config_path = Path(self.__config_manager.get_application_path(application_name)) / "config"
@@ -171,9 +171,7 @@ class LocalApi:
                     if file != "application.json":
                         error_dict['error'].append(message)
 
-        return error_dict
-
-    def __is_structure_valid(self, application_name: str, error_dict: ErrorDictType) -> ErrorDictType:
+    def __is_structure_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
         app_dir_path = Path(self.__config_manager.get_application_path(application_name))
         app_config_path = app_dir_path / "config"
         app_src_path = app_dir_path / "src"
@@ -213,12 +211,10 @@ class LocalApi:
                 # Check if the roles in the config/application.json double the file names in the src directory
                 if not all(roles in src_dir_files for roles in application_file_names):
                     error_dict['warning'].append(
-                        f"Not all the the roles in {app_config_path / 'application.json'} double the file names in "
+                        f"Not all the roles in {app_config_path / 'application.json'} double the file names in "
                         f"{app_src_path}")
             else:
                 error_dict['error'].append(message)
-
-        return error_dict
 
     def get_application_config(self, application_name: str) -> AppConfigType:
         app_config_path = Path(self.__config_manager.get_application_path(application_name)) / 'config'
