@@ -790,40 +790,45 @@ class LocalApi:
 
         experiment_json = path / 'experiment.json'
         roles = []
-        is_valid, _ = validate_json_file(experiment_json)
 
-        if is_valid:
+        is_experiment_valid, _ = validate_json_file(experiment_json)
+
+        if is_experiment_valid:
             experiment = read_json_file(experiment_json)
+            experiment_input = path / 'input'
+            is_network_valid, _ = validate_json_file(experiment_input / 'network.json')
 
-            # Get the roles from the asset
-            # TODO: Get the roles from the application configuration, not the asset? But how? Experiment and application
-            #       are no where linked?
-            for item in experiment['asset']['application']:
-                for role in item['roles']:
-                    roles.append(role.lower())
+            if is_network_valid:
+                network_data = read_json_file(experiment_input / 'network.json')
+                # Get the roles from the network
+                # TODO: Get the roles from the application configuration, not the asset? But how? Experiment and application
+                #       are no where linked?
+                for item in network_data:
+                    for role in item['roles']:
+                        print(role)
+                        roles.append(role.lower())
 
-            # Local validation
-            if local:
-                experiment_input = path / 'input'
-                if not experiment_input.exists():
-                    error_dict['warning'].append(f"{experiment_input} does not exist")
-                if experiment_input.exists():
-                    if not (experiment_input / 'network.yaml').exists() or \
-                       not (experiment_input / 'roles.yaml').exists():
-                        error_dict['warning'].append(f"{experiment_input} needs to contain the files 'network.yaml' "
-                                                     f"and 'roles.yaml'")
+                # Local validation
+                if local:
+                    if not experiment_input.exists():
+                        error_dict['warning'].append(f"{experiment_input} does not exist")
+                    if experiment_input.exists():
+                        if not (experiment_input / 'network.yaml').exists() or \
+                           not (experiment_input / 'roles.yaml').exists():
+                            error_dict['warning'].append(f"{experiment_input} needs to contain the files 'network.yaml' "
+                                                         f"and 'roles.yaml'")
 
-                    # Check if the roles from the asset match with roles.py and roles.yaml in input directory
-                    missing_files = []
-                    for item in ['app_' + s + '.py' for s in roles]:
-                        if not (experiment_input / item).is_file():
-                            missing_files.append(item)
-                    for item in [s + '.yaml' for s in roles]:
-                        if not (experiment_input / item).is_file():
-                            missing_files.append(item)
+                        # Check if the roles from the asset match with roles.py and roles.yaml in input directory
+                        missing_files = []
+                        for item in ['app_' + s + '.py' for s in roles]:
+                            if not (experiment_input / item).is_file():
+                                missing_files.append(item)
+                        for item in [s + '.yaml' for s in roles]:
+                            if not (experiment_input / item).is_file():
+                                missing_files.append(item)
 
-                    if missing_files:
-                        error_dict['warning'].append(f"{experiment_input} is missing the files: {missing_files}")
+                        if missing_files:
+                            error_dict['warning'].append(f"{experiment_input} is missing the files: {missing_files}")
 
         return error_dict
 
