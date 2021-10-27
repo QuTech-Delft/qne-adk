@@ -29,49 +29,80 @@ class TestCommandList(unittest.TestCase):
             login_output = self.runner.invoke(app, ['login', 'test_host'], input="test_username\ntest_password")
             login_mock.assert_called_once_with(host='test_host', username='test_username', password='test_password')
             self.assertEqual(login_output.exit_code, 0)
-            self.assertIn('Log in succeeded.', login_output.stdout)
+            self.assertIn('Log in succeeded', login_output.stdout)
 
     def test_logout(self):
         with patch.object(CommandProcessor, "logout") as logout_mock:
             logout_output = self.runner.invoke(app, ['logout'])
             logout_mock.assert_called_once_with(host=None)
             self.assertEqual(logout_output.exit_code, 0)
-            self.assertIn('Log out succeeded.', logout_output.stdout)
+            self.assertIn('Log out succeeded', logout_output.stdout)
 
             logout_mock.reset_mock()
             logout_output = self.runner.invoke(app, ['logout', 'qutech.com'])
             logout_mock.assert_called_once_with(host='qutech.com')
             self.assertEqual(logout_output.exit_code, 0)
-            self.assertIn('Log out succeeded.', logout_output.stdout)
+            self.assertIn('Log out succeeded', logout_output.stdout)
 
-    def test_applications_create(self):
-        with patch("cli.command_list.Path.cwd") as mock_cwd, \
-             patch("cli.utils.validate_path_name") as mock_validate_path_name, \
+    def test_applications_create_succes(self):
+        with patch("cli.command_list.Path.cwd", return_value = 'test') as mock_cwd, \
+             patch("cli.command_list.validate_path_name") as mock_validate_path_name, \
              patch.object(CommandProcessor, 'applications_create') as application_create_mock:
-
-            mock_cwd.return_value = 'test'
 
             application_create_output = self.runner.invoke(applications_app,
                                                            ['create', 'test_application', 'role1', 'role2'])
             mock_cwd.assert_called_once()
+            self.assertEqual(mock_validate_path_name.call_count, 3)
             application_create_mock.assert_called_once()
-            mock_validate_path_name.call_count = 3
             self.assertEqual(application_create_output.exit_code, 0)
-            self.assertIn('Application successfully created.', application_create_output.stdout)
+            self.assertIn('Application successfully created', application_create_output.stdout)
+
+    def test_applications_create_exceptions(self):
+        with patch("cli.command_list.Path.cwd", return_value = 'test') as mock_cwd, \
+             patch.object(CommandProcessor, 'applications_create') as application_create_mock:
 
             # Raise NotEnoughRoles when only one or less roles are given
-            self.assertRaises(NotEnoughRoles, applications_create, 'test_application', ['role1'])
+            application_create_output = self.runner.invoke(applications_app, ['create', 'test_application', 'role1'])
+            self.assertIn('The number of roles must be higher than one', application_create_output.stdout)
 
             # Raise InvalidApplicationName when the application name is invalid contains ['/', '\\', '*', ':', '?',
             # '"', '<', '>', '|']
-            self.assertRaises(InvalidPathName, applications_create, 'test_application/2', ['role1', 'role2'])
-            self.assertRaises(InvalidPathName, applications_create, 'test*application', ['role1', 'role2'])
-            self.assertRaises(InvalidPathName, applications_create, 'test\\application', ['role1', 'role2'])
+            application_create_output = self.runner.invoke(applications_app, ['create', 'test_application/2',
+                                                                              'role1', 'role2'])
+            self.assertIn('Error: Application name can\'t contain any of the following characters: [\'/\', \'\\\', '
+                          '\'*\', \':\', \'?\', \'"\', \'<\', \'>\', \'|\']', application_create_output.stdout)
+
+            application_create_output = self.runner.invoke(applications_app, ['create', 'test*application',
+                                                                              'role1', 'role2'])
+            self.assertIn('Error: Application name can\'t contain any of the following characters: [\'/\', \'\\\', '
+                          '\'*\', \':\', \'?\', \'"\', \'<\', \'>\', \'|\']', application_create_output.stdout)
+
+            application_create_output = self.runner.invoke(applications_app, ['create', 'test\\application',
+                                                                              'role1', 'role2'])
+            self.assertIn('Error: Application name can\'t contain any of the following characters: [\'/\', \'\\\', '
+                          '\'*\', \':\', \'?\', \'"\', \'<\', \'>\', \'|\']', application_create_output.stdout)
 
             # Raise InvalidRoleName when one of the roles contains ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
-            self.assertRaises(InvalidPathName, applications_create, 'test_application', ['role/1', 'role2'])
-            self.assertRaises(InvalidPathName, applications_create, 'test_application', ['role1', 'role/2'])
-            self.assertRaises(InvalidPathName, applications_create, 'test_application', ['rol/e1', 'role2'])
+            application_create_output = self.runner.invoke(applications_app, ['create', 'test_application',
+                                                                              'role/1', 'role2'])
+            self.assertIn('Error: Role name can\'t contain any of the following characters: [\'/\', \'\\\', '
+                          '\'*\', \':\', \'?\', \'"\', \'<\', \'>\', \'|\']', application_create_output.stdout)
+
+            application_create_output = self.runner.invoke(applications_app, ['create', 'test_application',
+                                                                              'role1', 'role/2'])
+            self.assertIn('Error: Role name can\'t contain any of the following characters: [\'/\', \'\\\', '
+                          '\'*\', \':\', \'?\', \'"\', \'<\', \'>\', \'|\']', application_create_output.stdout)
+
+            application_create_output = self.runner.invoke(applications_app, ['create', 'test_application',
+                                                                              'rol/e1', 'role2'])
+            self.assertIn('Error: Role name can\'t contain any of the following characters: [\'/\', \'\\\', '
+                          '\'*\', \':\', \'?\', \'"\', \'<\', \'>\', \'|\']', application_create_output.stdout)
+
+            # Raise Other Exception
+            mock_cwd.side_effect = Exception("Test")
+            application_create_output = self.runner.invoke(applications_app,
+                                                           ['create', 'test_application', 'role1', 'role2'])
+            self.assertIn("Unhandled exception: Exception('Test')", application_create_output.stdout)
 
     def test_applications_validate(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
@@ -86,7 +117,7 @@ class TestCommandList(unittest.TestCase):
             mock_cwd.assert_called_once()
             get_application_from_path_mock.assert_called_once_with(self.path)
             applications_validate_mock.assert_called_once_with(application_name=self.application)
-            self.assertIn('Application is invalid.', application_validate_output.stdout)
+            self.assertIn('Application is invalid', application_validate_output.stdout)
 
             # When only 'error' has items
             applications_validate_mock.reset_mock()
@@ -100,7 +131,7 @@ class TestCommandList(unittest.TestCase):
             mock_cwd.assert_called_once()
             get_application_from_path_mock.assert_called_once_with(self.path)
             applications_validate_mock.assert_called_once_with(application_name=self.application)
-            self.assertIn('Application is invalid.', application_validate_output.stdout)
+            self.assertIn('Application is invalid', application_validate_output.stdout)
 
             # When application is valid (no items in error, warning and info)
             applications_validate_mock.reset_mock()
@@ -114,7 +145,7 @@ class TestCommandList(unittest.TestCase):
             mock_cwd.assert_called_once()
             get_application_from_path_mock.assert_called_once_with(self.path)
             applications_validate_mock.assert_called_once_with(application_name=self.application)
-            self.assertIn('Application is valid.', application_validate_output.stdout)
+            self.assertIn('Application is valid', application_validate_output.stdout)
 
             # When application is valid with item in in 'info'
             applications_validate_mock.reset_mock()
@@ -128,7 +159,7 @@ class TestCommandList(unittest.TestCase):
             mock_cwd.assert_called_once()
             get_application_from_path_mock.assert_called_once_with(self.path)
             applications_validate_mock.assert_called_once_with(application_name=self.application)
-            self.assertIn('Application is valid.', application_validate_output.stdout)
+            self.assertIn('Application is valid', application_validate_output.stdout)
 
     def test_experiment_create(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
@@ -158,14 +189,14 @@ class TestCommandList(unittest.TestCase):
             validate_output = self.runner.invoke(experiments_app, ['validate'])
             self.assertEqual(validate_output.exit_code, 0)
             exp_validate_mock.assert_called_once_with(path='test')
-            self.assertIn("Experiment is valid.", validate_output.stdout)
+            self.assertIn("Experiment is valid", validate_output.stdout)
 
             exp_validate_mock.reset_mock()
             exp_validate_mock.return_value = False, 'lorem ipsum error'
             validate_output = self.runner.invoke(experiments_app, ['validate'])
             self.assertEqual(validate_output.exit_code, 0)
             exp_validate_mock.assert_called_once_with(path='test')
-            self.assertIn("Experiment is not valid. lorem ipsum error", validate_output.stdout)
+            self.assertIn("Experiment is not valid: lorem ipsum error", validate_output.stdout)
 
     def test_experiment_run(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd,\
@@ -175,13 +206,13 @@ class TestCommandList(unittest.TestCase):
             exp_run_output = self.runner.invoke(experiments_app, ['run'])
             exp_run_mock.assert_called_once_with(path='test', block=False)
             self.assertEqual(exp_run_output.exit_code, 0)
-            self.assertIn("Experiment has been created successfully.", exp_run_output.stdout)
+            self.assertIn("Experiment has been created successfully", exp_run_output.stdout)
 
             exp_run_mock.reset_mock()
             exp_run_output = self.runner.invoke(experiments_app, ['run', '--block'])
             exp_run_mock.assert_called_once_with(path='test', block=True)
             self.assertEqual(exp_run_output.exit_code, 0)
-            self.assertIn("Experiment has run successfully.", exp_run_output.stdout)
+            self.assertIn("Experiment has run successfully", exp_run_output.stdout)
 
     def test_experiment_results(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
@@ -191,7 +222,7 @@ class TestCommandList(unittest.TestCase):
 
             exp_results_mock.assert_called_once_with(all_results=False, show=False, path='test')
             self.assertEqual(exp_results_output.exit_code, 0)
-            self.assertIn("Result stored successfully.", exp_results_output.stdout)
+            self.assertIn("Result stored successfully", exp_results_output.stdout)
 
             exp_results_mock.reset_mock()
             exp_results_mock.return_value = ['r1', 'r2']
@@ -207,26 +238,26 @@ class TestCommandList(unittest.TestCase):
 
             result_both = self.runner.invoke(applications_app, ['list'])
             self.assertEqual(result_both.exit_code, 0)
-            self.assertIn('There are no local applications available.', result_both.stdout)
-            self.assertIn('There are no remote applications available.', result_both.stdout)
+            self.assertIn('There are no local applications available', result_both.stdout)
+            self.assertIn('There are no remote applications available', result_both.stdout)
 
             result_both = self.runner.invoke(applications_app, ['list'])
             self.assertEqual(result_both.exit_code, 0)
-            self.assertIn('There are no local applications available.', result_both.stdout)
-            self.assertIn('2 remote application(s).', result_both.stdout)
+            self.assertIn('There are no local applications available', result_both.stdout)
+            self.assertIn('2 remote application(s)', result_both.stdout)
             self.assertIn('foo',result_both.stdout)
             self.assertIn('bar', result_both.stdout)
 
             result_both = self.runner.invoke(applications_app, ['list'])
             self.assertEqual(result_both.exit_code, 0)
-            self.assertIn('1 local application(s).', result_both.stdout)
+            self.assertIn('1 local application(s)', result_both.stdout)
             self.assertIn('foo', result_both.stdout)
-            self.assertIn('There are no remote applications available.', result_both.stdout)
+            self.assertIn('There are no remote applications available', result_both.stdout)
 
             result_both = self.runner.invoke(applications_app, ['list'])
             self.assertEqual(result_both.exit_code, 0)
-            self.assertIn('1 local application(s).', result_both.stdout)
-            self.assertIn('1 remote application(s).', result_both.stdout)
+            self.assertIn('1 local application(s)', result_both.stdout)
+            self.assertIn('1 remote application(s)', result_both.stdout)
             self.assertIn('foo',result_both.stdout)
             self.assertIn('bar', result_both.stdout)
 
@@ -236,12 +267,12 @@ class TestCommandList(unittest.TestCase):
 
             result_local = self.runner.invoke(applications_app, ['list', '--local'])
             self.assertEqual(result_local.exit_code, 0)
-            self.assertIn('There are no local applications available.', result_local.stdout)
+            self.assertIn('There are no local applications available', result_local.stdout)
             self.assertNotIn('remote', result_local.stdout)
 
             result_local = self.runner.invoke(applications_app, ['list', '--local'])
             self.assertEqual(result_local.exit_code, 0)
-            self.assertIn('2 local application(s).', result_local.stdout)
+            self.assertIn('2 local application(s)', result_local.stdout)
             self.assertIn('foo', result_local.stdout)
             self.assertIn('bar', result_local.stdout)
             self.assertNotIn('remote', result_local.stdout)
@@ -252,12 +283,12 @@ class TestCommandList(unittest.TestCase):
 
             result_remote = self.runner.invoke(applications_app, ['list', '--remote'])
             self.assertEqual(result_remote.exit_code, 0)
-            self.assertIn('There are no remote applications available.', result_remote.stdout)
+            self.assertIn('There are no remote applications available', result_remote.stdout)
             self.assertNotIn('local', result_remote.stdout)
 
             result_remote = self.runner.invoke(applications_app, ['list', '--remote'])
             self.assertEqual(result_remote.exit_code, 0)
-            self.assertIn('2 remote application(s).', result_remote.stdout)
+            self.assertIn('2 remote application(s)', result_remote.stdout)
             self.assertIn('foo', result_remote.stdout)
             self.assertIn('bar', result_remote.stdout)
             self.assertNotIn('local', result_remote.stdout)
