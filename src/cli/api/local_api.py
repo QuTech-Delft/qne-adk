@@ -213,6 +213,7 @@ class LocalApi:
         return network_nodes
 
     def _get_network_nodes(self, network_slug: str) -> List[str]:
+
         """
         Loops trough all the networks in networks/networks.json and returns all the nodes belonging to network
         specified as 'network_slug'.
@@ -773,6 +774,10 @@ class LocalApi:
         - asset in the experiment.json validated against a schema validator.
         - if the network used in experiment.json is existing
         - if the nodes and channels used in experiment.json are correct and valid for that network
+<<<<<<< HEAD
+=======
+
+>>>>>>> commit for rebase
         Args:
             path: The location of the experiment
         Returns:
@@ -915,7 +920,7 @@ class LocalApi:
                         error_dict['error'].append(message)
 
     def validate_experiment_nodes(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
-    ErrorDictType) -> None:
+                                  ErrorDictType) -> None:
         """
         Validate if the amount of nodes (defined in the experiment.json file) are valid for 'network_slug' and if
         all the nodes exist and belong to this network.
@@ -949,10 +954,11 @@ class LocalApi:
                                              f"not belong to the network '{experiment_network_slug}'")
 
     def validate_experiment_channels(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
-    ErrorDictType) -> None:
+                                     ErrorDictType):
         """
         Validate if the amount of channels (defined in the experiment.json file) are valid for 'network_slug' and if
         all the channels exist and belong to this network.
+
         Args:
             experiment_file_path: The location of the experiment.json file
             experiment_data: contents of the experiment.json file
@@ -993,6 +999,7 @@ class LocalApi:
         """
         Validate the ['application'] key defined in the asset of experiment.json. Check if the roles double the roles
         that are defined in input/network.json
+
         Args:
             path: The location of the experiment
             experiment_data: contents of the experiment.json file
@@ -1019,3 +1026,4 @@ class LocalApi:
                                                          f"{experiment_roles} does not double with the roles "
                                                          f"{application_roles}' in "
                                                          f"{experiment_input_path / 'network.json'}")
+
