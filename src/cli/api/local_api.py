@@ -244,7 +244,7 @@ class LocalApi:
             roles: a list of roles
             path: the path where the application is stored
         """
-        application = application.lower()
+        application_name = application_name.lower()
 
         # code to create the local application in root dir
         app_src_path = path / application_name / "src"
@@ -657,7 +657,7 @@ class LocalApi:
             input_directory: The destination where application files need to be stored
 
         """
-        application_exists, app_path = self.__config_manager.application_exists(application=application)
+        application_exists, app_path = self.__config_manager.application_exists(application_name=application)
         if application_exists:
             app_path = Path(app_path)
             utils.copy_files(app_path / "config", input_directory, files_list=None)

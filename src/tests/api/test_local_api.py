@@ -361,7 +361,7 @@ class ApplicationValidate(unittest.TestCase):
 
             self.assertEqual(mkdir_mock.call_count, 2)
 
-            application_exists_mock.assert_called_once_with(application='app_name')
+            application_exists_mock.assert_called_once_with(application_name='app_name')
             experiment_dir = Path('dummy') / 'test'
             input_dir = experiment_dir / 'input'
             copy_files_call = [call(Path("dummy_app_path") / "config", input_dir, files_list=None),

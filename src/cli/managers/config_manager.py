@@ -106,7 +106,12 @@ class ConfigManager:
            A string of the path where there application is stored
         """
 
-        return self.get_application(application_name)['path']
+        application = self.get_application(application_name)
+        if application:
+            if 'path' in application:
+                return str(application['path'])
+
+        return None
 
     def application_exists(self, application_name: str) -> Tuple[bool, Any]:
         """

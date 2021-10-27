@@ -35,11 +35,6 @@ class TestConfigManager(unittest.TestCase):
             for app in apps:
                 self.assertIn('name', app)
 
-    def test_get_applications_no_config(self):
-        with patch('pathlib.Path.is_file',return_value=False):
-            apps = self.config_manager.get_applications()
-            self.assertEqual(len(apps), 0)
-
     def test_add_application(self):
         with patch("cli.managers.config_manager.write_json_file") as write_json_file_mock, \
              patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
