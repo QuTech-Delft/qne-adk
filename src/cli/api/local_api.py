@@ -293,8 +293,6 @@ class LocalApi:
         for role in roles:
             write_file(app_src_path / f"app_{role}.py", get_py_dummy())
 
-
-
         # Network.json configuration
         networks = {"networks": [], "roles": roles}
         temp_list = []
@@ -913,6 +911,7 @@ class LocalApi:
             if node['slug'] not in network_nodes:
                 error_dict['error'].append(f"In file {experiment_file_path}: '{node['slug']}' does not exist or does "
                                            f"not belong to the network '{experiment_network_slug}'")
+
 
     def validate_experiment_channels(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
                                      ErrorDictType) -> None:
