@@ -3,10 +3,9 @@ from pathlib import Path
 from unittest.mock import patch
 from typer.testing import CliRunner
 
-from cli.command_list import app, applications_app, experiments_app, applications_create
+from cli.command_list import app, applications_app, experiments_app
 from cli.command_processor import CommandProcessor
 from cli.managers.config_manager import ConfigManager
-from cli.exceptions import NotEnoughRoles, InvalidPathName
 
 
 class TestCommandList(unittest.TestCase):
@@ -58,8 +57,7 @@ class TestCommandList(unittest.TestCase):
             self.assertIn('Application successfully created', application_create_output.stdout)
 
     def test_applications_create_exceptions(self):
-        with patch("cli.command_list.Path.cwd", return_value = 'test') as mock_cwd, \
-             patch.object(CommandProcessor, 'applications_create') as application_create_mock:
+        with patch("cli.command_list.Path.cwd", return_value = 'test') as mock_cwd:
 
             # Raise NotEnoughRoles when only one or less roles are given
             application_create_output = self.runner.invoke(applications_app, ['create', 'test_application', 'role1'])

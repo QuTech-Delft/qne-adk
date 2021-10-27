@@ -1,9 +1,10 @@
 import functools
 import logging
-import typer
 from typing import Any, Callable
 
-from cli.exceptions import NotEnoughRoles, QneCliException
+import typer
+
+from cli.exceptions import QneCliException
 
 
 def catch_qne_cli_exceptions(func: Callable[..., Any]) -> Any:
