@@ -73,14 +73,15 @@ class CommandProcessor:
     def experiments_create(self, name: str, application: str, network_name: str, local: bool, path: Path) \
         -> None:
         if local:
-            experiment_directory = path / name
+            lower_name = name.lower()
+            experiment_directory = path / lower_name
             if experiment_directory.is_dir():
                 raise ExperimentDirectoryAlreadyExists(name, str(path))
 
             app_config = self.__local.get_application_config(application)
             if app_config:
                 if self.__local.is_network_available(network_name, app_config):
-                    self.__local.experiments_create(name=name, app_config=app_config, network_name=network_name,
+                    self.__local.experiments_create(name=lower_name, app_config=app_config, network_name=network_name,
                                                     path=path, application=application)
                 else:
                     raise NetworkNotAvailableForApplication(network_name, application)
