@@ -182,7 +182,6 @@ class LocalApi:
         """
         return {template["slug"]: template for template in self.__templates_data["templates"]}
 
-
     def _get_nodes(self) -> Dict[str, List[str]]:
         """
         Loops trough all the networks in networks/networks.json and gets all the nodes within this network.
@@ -213,7 +212,6 @@ class LocalApi:
         return network_nodes
 
     def _get_network_nodes(self, network_slug: str) -> List[str]:
-
         """
         Loops trough all the networks in networks/networks.json and returns all the nodes belonging to network
         specified as 'network_slug'.
@@ -291,7 +289,7 @@ class LocalApi:
         app_config_path.mkdir(parents=True, exist_ok=True)
 
         for role in roles:
-            utils.write_file(app_src_path / f"app_{role}.py", utils.get_py_dummy())
+            write_file(app_src_path / f"app_{role}.py", get_py_dummy())
 
 
         # Network.json configuration
@@ -312,17 +310,17 @@ class LocalApi:
             shutil.rmtree(path / application_name)
             raise NoNetworkAvailable()
 
-        utils.write_json_file(app_config_path / "network.json", networks)
+        write_json_file(app_config_path / "network.json", networks)
 
         # Application.json configuration
-        data = utils.get_dummy_application(roles)
-        utils.write_json_file(app_config_path / "application.json", data)
+        data = get_dummy_application(roles)
+        write_json_file(app_config_path / "application.json", data)
 
         # Result.json configuration
-        utils.write_json_file(app_config_path / "result.json", [])
+        write_json_file(app_config_path / "result.json", [])
 
         # Manifest.ini configuration
-        utils.write_file(path / application_name / "MANIFEST.ini", "")
+        write_file(path / application_name / "MANIFEST.ini", "")
 
 
         self.__config_manager.add_application(application_name, path)
@@ -954,7 +952,7 @@ class LocalApi:
                                              f"not belong to the network '{experiment_network_slug}'")
 
     def validate_experiment_channels(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
-                                     ErrorDictType):
+                                     ErrorDictType) -> None:
         """
         Validate if the amount of channels (defined in the experiment.json file) are valid for 'network_slug' and if
         all the channels exist and belong to this network.
@@ -1026,4 +1024,3 @@ class LocalApi:
                                                          f"{experiment_roles} does not double with the roles "
                                                          f"{application_roles}' in "
                                                          f"{experiment_input_path / 'network.json'}")
-
