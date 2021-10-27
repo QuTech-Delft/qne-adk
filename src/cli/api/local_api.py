@@ -768,8 +768,10 @@ class LocalApi:
         - asset in the experiment.json validated against a schema validator.
         - if the network used in experiment.json is existing
         - if the nodes and channels used in experiment.json are correct and valid for that network
+
         Args:
             path: The location of the experiment
+
         Returns:
             ErrorDictType: Dict[str, List[str]]: Dictionary containing error, warning and info messages of the
             validations that failed
@@ -841,6 +843,7 @@ class LocalApi:
     def validate_experiment_json_files(self, path: Path, error_dict: ErrorDictType) -> None:
         """
         This function validates if experiment.json contains valid json and if it passes schema validation.
+
         Args:
             path: The location of the experiment
             error_dict: Dictionary containing error and warning messages of the validations that failed
@@ -978,3 +981,4 @@ class LocalApi:
                 return True, None
             return schema_valid, message
         return json_valid, message
+
