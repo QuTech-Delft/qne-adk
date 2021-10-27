@@ -6,6 +6,7 @@ import shutil
 from cli import utils
 from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, JsonFileNotFound, NetworkNotFound,
                             NoNetworkAvailable, PackageNotComplete)
+from cli.validators import validate_json_file, validate_json_schema
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -14,9 +15,9 @@ from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkT
                               app_configApplicationType, assetApplicationType, assetNetworkType,
                               ExperimentType, ErrorDictType, GenericNetworkData, ResultType,
                               ChannelData, NetworkData, NodeData, TemplateData)
-from cli.validators import validate_json_file, validate_json_schema
 from cli.utils import (read_json_file, write_json_file, get_py_dummy, write_file,
                        get_dummy_application)
+
 
 
 class LocalApi:
@@ -184,6 +185,7 @@ class LocalApi:
     def _get_nodes(self) -> Dict[str, List[str]]:
         """
         Loops trough all the networks in networks/networks.json and gets all the nodes within this network.
+
         returns:
         Returns a dict of networks, each having their own list including the nodes:
         E.g.: {"randstad": ["leiden", "amsterdam", "the_hague"], "the-netherlands": ["etc..",]}
@@ -214,6 +216,7 @@ class LocalApi:
         """
         Loops trough all the networks in networks/networks.json and returns all the nodes belonging to network
         specified as 'network_slug'.
+
         returns:
         Returns a dict of a network, containing all nodes belonging to this network:
         E.g.: {"randstad": ["leiden", "amsterdam", "the_hague"]}
@@ -291,13 +294,13 @@ class LocalApi:
             write_file(app_src_path / f"app_{role}.py", get_py_dummy())
 
 
+
         # Network.json configuration
         networks = {"networks": [], "roles": roles}
         temp_list = []
 
         # Check if the network there are more network nodes available for this network compared to the
         # amount of roles given by the user
-
         for network in self._get_nodes().items():
             if len(roles) <= len(network[1]):
                 temp_list.append(network[0])
@@ -320,7 +323,6 @@ class LocalApi:
 
         # Manifest.ini configuration
         write_file(path / application_name / "MANIFEST.ini", "")
-
 
         self.__config_manager.add_application(application_name, path)
 
@@ -582,6 +584,7 @@ class LocalApi:
         """
         Prepare the asset by filling the network parameters with default values
 
+<<<<<<< HEAD
         Args:
             network_data: Network information containing channels and nodes list
             app_config: A dictionary containing application configuration information
@@ -780,6 +783,7 @@ class LocalApi:
         if experiment_json.is_file():
             # Check if experiment is local or remote
             is_valid, _ = validate_json_file(experiment_json)
+
             if is_valid:
                 experiment = read_json_file(experiment_json)
                 if 'location' in experiment['meta']['backend']:
@@ -885,6 +889,7 @@ class LocalApi:
         """
         Validate if the amount of nodes (defined in the experiment.json file) are valid for 'network_slug' and if
         all the nodes exist and belong to this network.
+
         Args:
             experiment_file_path: The location of the experiment.json file
             experiment_data: contents of the experiment.json file
@@ -973,6 +978,3 @@ class LocalApi:
                 return True, None
             return schema_valid, message
         return json_valid, message
-
-
-
