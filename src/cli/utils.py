@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 import shutil
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from cli.exceptions import MalformedJsonFile, InvalidPathName
 
@@ -114,7 +114,8 @@ def validate_path_name(obj: str, name: str) -> None:
     if any(char in name for char in invalid_chars):
         raise InvalidPathName(obj)
 
-def copy_files(source_dir: Path, destination_dir: Path) -> None:
+
+def copy_files(source_dir: Path, destination_dir: Path, files_list: Optional[List[str]] = None) -> None:
     """
     Copy all the files from source directory to destination directory.
     No sub directories are copied.
@@ -122,9 +123,12 @@ def copy_files(source_dir: Path, destination_dir: Path) -> None:
     Args:
         source_dir: directory from where files need to be copied
         destination_dir: directory where files need to be copied to
+        files_list: A list of file names which need to be copied. If None, all files in directory are copied.
 
     """
-    for file_name in os.listdir(source_dir):
+    if not files_list:
+        files_list = os.listdir(source_dir)
+    for file_name in files_list:
         full_file_name = os.path.join(source_dir, file_name)
         if os.path.isfile(full_file_name):
             shutil.copy(full_file_name, destination_dir)

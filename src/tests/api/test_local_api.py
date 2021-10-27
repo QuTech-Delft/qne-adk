@@ -364,8 +364,8 @@ class ApplicationValidate(unittest.TestCase):
             application_exists_mock.assert_called_once_with(application='app_name')
             experiment_dir = Path('dummy') / 'test'
             input_dir = experiment_dir / 'input'
-            copy_files_call = [call(Path("dummy_app_path") / "config", input_dir),
-                               call(Path("dummy_app_path") / "src", input_dir)]
+            copy_files_call = [call(Path("dummy_app_path") / "config", input_dir, files_list=None),
+                               call(Path("dummy_app_path") / "src", input_dir, files_list=None)]
             copy_files_mock.assert_has_calls(copy_files_call)
 
             expected_asset_application = [{

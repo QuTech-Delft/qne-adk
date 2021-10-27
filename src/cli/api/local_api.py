@@ -660,8 +660,8 @@ class LocalApi:
         application_exists, app_path = self.__config_manager.application_exists(application=application)
         if application_exists:
             app_path = Path(app_path)
-            utils.copy_files(app_path / "config", input_directory)
-            utils.copy_files(app_path / "src", input_directory)
+            utils.copy_files(app_path / "config", input_directory, files_list=None)
+            utils.copy_files(app_path / "src", input_directory, files_list=None)
 
     def is_network_available(self, network_name: str, app_config: AppConfigType) -> bool:
         """
