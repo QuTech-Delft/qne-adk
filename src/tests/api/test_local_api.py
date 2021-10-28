@@ -350,11 +350,18 @@ class ApplicationValidate(unittest.TestCase):
 
     def test_create_experiment(self):
         with patch("cli.api.local_api.utils.write_json_file") as write_mock, \
+             patch("cli.api.local_api.read_json_file") as read_mock, \
              patch('cli.api.local_api.Path.mkdir') as mkdir_mock, \
              patch("cli.api.local_api.utils.copy_files") as copy_files_mock, \
              patch.object(ConfigManager, "application_exists") as application_exists_mock:
 
             application_exists_mock.return_value = True, 'dummy_app_path'
+            read_mock.return_value = {
+              "roles": [
+                "sender",
+                "receiver"
+              ]
+            }
 
             self.local_api.create_experiment(name='test', app_config=self.mock_app_config, asset_network={'a': 'b'},
                                              path=Path('dummy'), application='app_name')
@@ -364,8 +371,10 @@ class ApplicationValidate(unittest.TestCase):
             application_exists_mock.assert_called_once_with(application_name='app_name')
             experiment_dir = Path('dummy') / 'test'
             input_dir = experiment_dir / 'input'
-            copy_files_call = [call(Path("dummy_app_path") / "config", input_dir, files_list=None),
-                               call(Path("dummy_app_path") / "src", input_dir, files_list=None)]
+            copy_files_call = [call(Path("dummy_app_path") / "config", input_dir,
+                                    files_list=['application.json', 'network.json', 'result.json']),
+                               call(Path("dummy_app_path") / "src", input_dir,
+                                    files_list=['app_sender.py', 'app_receiver.py'])]
             copy_files_mock.assert_has_calls(copy_files_call)
 
             expected_asset_application = [{

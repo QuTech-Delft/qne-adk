@@ -382,6 +382,18 @@ class LocalApi:
                     if file != "application.json":
                         error_dict['error'].append(message)
 
+    def __get__config_file_names(self) -> List[str]:
+        return ['application.json', 'network.json', 'result.json']
+
+    def __get_role_file_names(self, app_config_path: Path) -> List[str]:
+        config_network_data = read_json_file(app_config_path / "network.json")
+        config_application_roles = config_network_data['roles'] if 'roles' in config_network_data else []
+
+        # Add app_ and .py to each role in config/network.json so that it matches the python files listed
+        # in the src directory
+        application_file_names = ['app_' + role + '.py' for role in config_application_roles]
+        return application_file_names
+
     def __is_structure_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
         app_dir_path = Path(self.__config_manager.get_application_path(application_name))
         app_config_path = app_dir_path / "config"
@@ -405,16 +417,7 @@ class LocalApi:
         if os.path.exists(app_src_path) and os.path.isfile(app_config_path / "application.json"):
             valid, message = validate_json_file(app_config_path / "application.json")
             if valid:
-                config_application_data = read_json_file(app_config_path / "application.json")
-                config_application_roles = []
-
-                for item in config_application_data:
-                    for role in item["roles"]:
-                        config_application_roles.append(role)
-
-                # Add app_ and .py to each role in config/application.json so that it matches the python files listed
-                # in the src directory
-                application_file_names = ['app_' + role + '.py' for role in config_application_roles]
+                application_file_names = self.__get_role_file_names(app_config_path)
 
                 # Get all the files in the src directory
                 src_dir_files = os.listdir(app_src_path)
@@ -660,8 +663,9 @@ class LocalApi:
         application_exists, app_path = self.__config_manager.application_exists(application_name=application)
         if application_exists:
             app_path = Path(app_path)
-            utils.copy_files(app_path / "config", input_directory, files_list=None)
-            utils.copy_files(app_path / "src", input_directory, files_list=None)
+            utils.copy_files(app_path / "config", input_directory, files_list=self.__get__config_file_names())
+            utils.copy_files(app_path / "src", input_directory,
+                             files_list=self.__get_role_file_names(app_config_path=app_path / "config"))
 
     def is_network_available(self, network_name: str, app_config: AppConfigType) -> bool:
         """

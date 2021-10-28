@@ -14,10 +14,11 @@ from typer import Typer
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
+from cli.exceptions import NotEnoughRoles
 from cli.managers.config_manager import ConfigManager
 from cli.settings import Settings
+from cli.type_aliases import ErrorDictType
 from cli.utils import reorder_data, validate_path_name
-from cli.exceptions import NotEnoughRoles
 
 app = Typer()
 applications_app = Typer()
@@ -178,6 +179,14 @@ def applications_publish() -> None:
     typer.echo("Request to publish application sent successfully.")
 
 
+def show_validation_messages(validation_dict: ErrorDictType) -> None:
+    for key in validation_dict:
+        if validation_dict[key]:
+            for item in validation_dict[key]:
+                typer.echo(f"{key.upper()}: {item}")
+            print("\n")
+
+
 @applications_app.command("validate")
 def applications_validate() -> None:
     """
@@ -188,11 +197,7 @@ def applications_validate() -> None:
     typer.echo(f"Validate application '{application_name}'.\n")
     error_dict = processor.applications_validate(application_name=application_name)
 
-    for key in error_dict:
-        if error_dict[key]:
-            for item in error_dict[key]:
-                typer.echo(f"{key.upper()}: {item}")
-            print("\n")
+    show_validation_messages(error_dict)
 
     if error_dict['error'] or error_dict['warning']:
         typer.echo("Application is invalid.")
@@ -216,12 +221,14 @@ def experiments_create(
 
     cwd = Path.cwd()
 
-    # processor.applications_validate(application)
-    # TODO: Uncomment above line after application validate command is ready
-
-    processor.experiments_create(name=name, application=application, network_name=network_name,
-                                 local=local, path=cwd)
-    typer.echo(f"Experiment created successfully in directory {name} at location {cwd}.")
+    validate_dict = processor.applications_validate(application)
+    if validate_dict['error'] or validate_dict['warning']:
+        show_validation_messages(validate_dict)
+        typer.echo(f"Application {application} is invalid. Please fix the issues and then create an experiment.")
+    else:
+        processor.experiments_create(name=name, application=application, network_name=network_name,
+                                     local=local, path=cwd)
+        typer.echo(f"Experiment created successfully in directory {name} at location {cwd}.")
 
 
 @experiments_app.command("list")

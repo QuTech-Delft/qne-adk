@@ -136,7 +136,7 @@ class TestCommandList(unittest.TestCase):
              patch.object(CommandProcessor, 'applications_validate') as app_validate_mock, \
              patch("cli.command_list.validate_path_name") as mock_validate_path:
             mock_cwd.return_value = 'test'
-            app_validate_mock.return_value = True, ''
+            app_validate_mock.return_value = {"error": [], "warning": [], "info": []}
             experiment_create_mock.return_value = True, ''
 
             experiment_create_output = self.runner.invoke(experiments_app, ['create', 'test_exp', 'app_name',
@@ -147,7 +147,6 @@ class TestCommandList(unittest.TestCase):
                           experiment_create_output.stdout)
             experiment_create_mock.assert_called_once_with(name='test_exp', application='app_name',
                                                            network_name='network_1', local=True, path='test')
-
 
     def test_experiment_validate(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd,\
