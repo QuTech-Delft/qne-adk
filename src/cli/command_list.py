@@ -207,8 +207,8 @@ def applications_validate() -> None:
 
 @experiments_app.command("create")
 def experiments_create(
-    name: str = typer.Argument(..., help="Name of the experiment."),
-    application: str = typer.Argument(..., help="Name of the application."),
+    experiment_name: str = typer.Argument(..., help="Name of the experiment."),
+    application_name: str = typer.Argument(..., help="Name of the application."),
     network_name: str = typer.Argument(..., help="Name of the network to use."),
     local: bool = typer.Option(
         True, "--local/--remote", help="Run the application locally."
@@ -217,18 +217,18 @@ def experiments_create(
     """
     Create new experiment.
     """
-    validate_path_name("Experiment", name)
+    validate_path_name("Experiment", experiment_name)
 
     cwd = Path.cwd()
 
-    validate_dict = processor.applications_validate(application)
+    validate_dict = processor.applications_validate(application_name)
     if validate_dict['error'] or validate_dict['warning']:
         show_validation_messages(validate_dict)
-        typer.echo(f"Application {application} is invalid. Please fix the issues and then create an experiment.")
+        typer.echo(f"Application {application_name} is invalid. Please fix the issues and then create an experiment.")
     else:
-        processor.experiments_create(name=name, application=application, network_name=network_name,
-                                     local=local, path=cwd)
-        typer.echo(f"Experiment created successfully in directory {name} at location {cwd}.")
+        processor.experiments_create(experiment_name=experiment_name, application_name=application_name,
+                                     network_name=network_name, local=local, path=cwd)
+        typer.echo(f"Experiment created successfully in directory {experiment_name} at location {cwd}.")
 
 
 @experiments_app.command("list")

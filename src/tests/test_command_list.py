@@ -145,7 +145,7 @@ class TestCommandList(unittest.TestCase):
             self.assertEqual(experiment_create_output.exit_code, 0)
             self.assertIn('Experiment created successfully in directory test_exp at location test.',
                           experiment_create_output.stdout)
-            experiment_create_mock.assert_called_once_with(name='test_exp', application='app_name',
+            experiment_create_mock.assert_called_once_with(experiment_name='test_exp', application_name='app_name',
                                                            network_name='network_1', local=True, path='test')
 
     def test_experiment_validate(self):

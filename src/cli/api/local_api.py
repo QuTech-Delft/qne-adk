@@ -337,18 +337,18 @@ class LocalApi:
 
         return error_dict
 
-    def get_application_config(self, application: str) -> Optional[AppConfigType]:
+    def get_application_config(self, application_name: str) -> Optional[AppConfigType]:
         """
         Get the configuration containing input, network and roles information for the application
 
         Args:
-            application: Name of the application for which to get the configuration
+            application_name: Name of the application for which to get the configuration
 
         Returns:
             A dictionary containing application configuration information
 
         """
-        app_details = self.__config_manager.get_application(application)
+        app_details = self.__config_manager.get_application(application_name)
 
         if app_details and 'path' in app_details:
             app_config_path = Path(app_details['path']) / 'config'
@@ -430,8 +430,8 @@ class LocalApi:
             else:
                 error_dict['error'].append(message)
 
-    def experiments_create(self, name: str, app_config: AppConfigType, network_name: str,
-                           path: Path, application: str) -> None:
+    def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
+                           path: Path, application_name: str) -> None:
         """
         Create all the necessary resources for experiment creation
          - 1. Get the network data for the specified network_name
@@ -439,19 +439,19 @@ class LocalApi:
          - 3. Create experiment.json containing the meta data and asset information
 
         Args:
-            name: Name of the experiment
+            experiment_name: Name of the experiment
             app_config: A dictionary containing application configuration information
             network_name: Name of the network to use
             path: Location where the experiment directory is to be created
-            application: Name of the application for which to create experiment
+            application_name: Name of the application for which to create experiment
 
         """
         network_data: assetNetworkType = self.get_network_data(network_name=network_name)
         asset_network: assetNetworkType = self.create_asset_network(network_data=network_data,
                                                                     app_config=app_config)
 
-        self.create_experiment(name=name, app_config=app_config, asset_network=asset_network, path=path,
-                               application=application)
+        self.create_experiment(experiment_name=experiment_name, app_config=app_config, asset_network=asset_network,
+                               path=path, application_name=application_name)
 
     def get_network_data(self, network_name: str) -> assetNetworkType:
         """
@@ -496,26 +496,26 @@ class LocalApi:
         raise NetworkNotFound(network_name)
 
     def create_experiment(
-        self, name: str, app_config: AppConfigType, asset_network: assetNetworkType, path: Path, application: str
-    ) -> None:
+        self, experiment_name: str, app_config: AppConfigType, asset_network: assetNetworkType, path: Path,
+            application_name: str) -> None:
         """
         Create experiment.json with meta and asset information
 
         Args:
-            name: Name of the directory where experiment.json will be created
+            experiment_name: Name of the directory where experiment.json will be created
             app_config: A dictionary containing application configuration information
             asset_network: Filled Network parameters with default values
             path: Location where experiment directory needs to be created
-            application: Name of the application for which to create the experiment
+            application_name: Name of the application for which to create the experiment
 
         """
 
-        experiment_directory = path / name
+        experiment_directory = path / experiment_name
         experiment_directory.mkdir(parents=True)
 
         input_directory = experiment_directory / 'input'
         input_directory.mkdir(parents=True)
-        self.__copy_input_files_from_application(application, input_directory)
+        self.__copy_input_files_from_application(application_name, input_directory)
 
         experiment_json_file = experiment_directory / 'experiment.json'
         experiment_meta = {
@@ -524,7 +524,7 @@ class LocalApi:
                 "type": "local_netsquid"
              },
             "number_of_rounds": 1,
-            "description": f"{name}: experiment description"
+            "description": f"{experiment_name}: experiment description"
         }
 
         asset_application = self.__create_asset_application(app_config)
@@ -651,7 +651,7 @@ class LocalApi:
 
         return filled_parameter_item
 
-    def __copy_input_files_from_application(self,  application: str, input_directory: Path) -> None:
+    def __copy_input_files_from_application(self,  application_name: str, input_directory: Path) -> None:
         """
         Copy the input/source files of the 'application' to the 'input_directory'
 
@@ -660,7 +660,7 @@ class LocalApi:
             input_directory: The destination where application files need to be stored
 
         """
-        application_exists, app_path = self.__config_manager.application_exists(application_name=application)
+        application_exists, app_path = self.__config_manager.application_exists(application_name=application_name)
         if application_exists:
             app_path = Path(app_path)
             utils.copy_files(app_path / "config", input_directory, files_list=self.__get__config_file_names())

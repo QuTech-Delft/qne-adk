@@ -341,12 +341,14 @@ class ApplicationValidate(unittest.TestCase):
 
             get_network_data_mock.return_value = {'a': 'b'}
             create_network_asset_mock.return_value = {'c': 'd'}
-            self.local_api.experiments_create(name='name', app_config={'foo': 'bar'}, network_name='network_name',
-                                              path=Path('dummy'), application='application')
+            self.local_api.experiments_create(experiment_name='name', app_config={'foo': 'bar'},
+                                              network_name='network_name', path=Path('dummy'),
+                                              application_name='application')
             get_network_data_mock.assert_called_once_with(network_name='network_name')
             create_network_asset_mock.assert_called_once_with(network_data={'a': 'b'}, app_config={'foo': 'bar'})
-            create_exp_mock.assert_called_once_with(name='name', app_config={'foo': 'bar'}, asset_network={'c': 'd'},
-                                                    path=Path('dummy'), application='application')
+            create_exp_mock.assert_called_once_with(experiment_name='name', app_config={'foo': 'bar'},
+                                                    asset_network={'c': 'd'}, path=Path('dummy'),
+                                                    application_name='application')
 
     def test_create_experiment(self):
         with patch("cli.api.local_api.utils.write_json_file") as write_mock, \
@@ -363,8 +365,8 @@ class ApplicationValidate(unittest.TestCase):
               ]
             }
 
-            self.local_api.create_experiment(name='test', app_config=self.mock_app_config, asset_network={'a': 'b'},
-                                             path=Path('dummy'), application='app_name')
+            self.local_api.create_experiment(experiment_name='test', app_config=self.mock_app_config,
+                                             asset_network={'a': 'b'}, path=Path('dummy'), application_name='app_name')
 
             self.assertEqual(mkdir_mock.call_count, 2)
 

@@ -47,12 +47,12 @@ class ConfigManager:
     def delete_application(self, application_name: str) -> None:
         pass
 
-    def get_application(self, application: str) -> Optional[Dict[str, Any]]:
+    def get_application(self, application_name: str) -> Optional[Dict[str, Any]]:
         """
         Get details for an application
 
         Args:
-            application: Name of the application
+            application_name: Name of the application
 
         Returns:
             If application exists, a dictionary containing application details (name, path)
@@ -62,7 +62,7 @@ class ConfigManager:
         all_applications = self.get_applications()
 
         for app in all_applications:
-            if app["name"] == application.lower():
+            if app["name"] == application_name.lower():
                 return app
         return None
 

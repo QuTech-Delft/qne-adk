@@ -54,13 +54,14 @@ class TestCommandProcessor(unittest.TestCase):
             get_config_mock.return_value = {'foo': 'bar'}
             check_network_mock.return_value = True
             mock_isdir.return_value = False
-            self.processor.experiments_create(name='test_exp', application='app_name', network_name='network_1',
-                                              local=True, path=Path('test'))
+            self.processor.experiments_create(experiment_name='test_exp', application_name='app_name',
+                                              network_name='network_1', local=True, path=Path('test'))
 
             get_config_mock.assert_called_once_with('app_name')
             check_network_mock.assert_called_once_with('network_1', {'foo': 'bar'})
-            create_exp_mock.assert_called_once_with(name='test_exp', app_config={'foo': 'bar'},
-                                                    network_name='network_1', path=Path('test'), application='app_name')
+            create_exp_mock.assert_called_once_with(experiment_name='test_exp', app_config={'foo': 'bar'},
+                                                    network_name='network_1', path=Path('test'),
+                                                    application_name='app_name')
 
             create_exp_mock.reset_mock()
             get_config_mock.reset_mock()
@@ -69,8 +70,8 @@ class TestCommandProcessor(unittest.TestCase):
             check_network_mock.return_value = False
 
             with self.assertRaises(NetworkNotAvailableForApplication):
-                self.processor.experiments_create(name='test_exp', application='app_name', network_name='network_1',
-                                                  local=True, path=Path('test'))
+                self.processor.experiments_create(experiment_name='test_exp', application_name='app_name',
+                                                  network_name='network_1', local=True, path=Path('test'))
                 get_config_mock.assert_called_once_with('app_name')
                 check_network_mock.assert_called_once_with('network_1', {'foo': 'bar'})
                 create_exp_mock.assert_not_called()

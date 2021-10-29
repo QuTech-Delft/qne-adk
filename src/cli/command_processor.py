@@ -70,24 +70,37 @@ class CommandProcessor:
         return self.__local.is_application_valid(application_name)
 
     @log_function
-    def experiments_create(self, name: str, application: str, network_name: str, local: bool, path: Path) \
-        -> None:
-        if local:
-            lower_name = name.lower()
-            experiment_directory = path / lower_name
-            if experiment_directory.is_dir():
-                raise ExperimentDirectoryAlreadyExists(name, str(path))
+    def experiments_create(self, experiment_name: str, application_name: str, network_name: str, local: bool,
+                           path: Path) -> None:
+        """
+        Create the experiment directory with files at the given path for the application
+        using the specified network.
 
-            app_config = self.__local.get_application_config(application)
+        Args:
+            experiment_name: Name of the directory where experiment will be created
+            application_name: Name of the application for which to create the experiment
+            network_name: Name of the network to use for creating the experiment
+            local: Boolean flag specifying whether experiment is local or remote
+            path: Location where the experiment (directory) will be created
+
+        """
+        if local:
+            experiment_name = experiment_name.lower()
+            experiment_directory = path / experiment_name
+            if experiment_directory.is_dir():
+                raise ExperimentDirectoryAlreadyExists(experiment_name, str(path))
+
+            app_config = self.__local.get_application_config(application_name)
             if app_config:
                 if self.__local.is_network_available(network_name, app_config):
-                    self.__local.experiments_create(name=lower_name, app_config=app_config, network_name=network_name,
-                                                    path=path, application=application)
+                    self.__local.experiments_create(experiment_name=experiment_name, app_config=app_config,
+                                                    network_name=network_name, path=path,
+                                                    application_name=application_name)
                 else:
-                    raise NetworkNotAvailableForApplication(network_name, application)
+                    raise NetworkNotAvailableForApplication(network_name, application_name)
 
             else:
-                raise ApplicationNotFound(application)
+                raise ApplicationNotFound(application_name)
 
     @log_function
     def experiments_delete(self, path: Path) -> None:
