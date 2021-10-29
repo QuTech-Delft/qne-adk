@@ -1,24 +1,208 @@
 import os
-import shutil
-
-from typing import List, Optional, Tuple
 from pathlib import Path
+import shutil
+from typing import Any, cast, Dict, List, Optional, Tuple
+
 from cli import utils
-from cli.validators import validate_json_file, validate_json_schema
+from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable, NetworkNotFound
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
+from cli.settings import BASE_DIR
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
                               app_configApplicationType, assetApplicationType, assetNetworkType,
-                              ExperimentType, ResultType, ErrorDictType)
-from cli.utils import read_json_file, write_json_file
-from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
-from cli.settings import BASE_DIR
+                              ExperimentType, ErrorDictType, GenericNetworkData, ResultType,
+                              ChannelData, NetworkData, NodeData, TemplateData)
+from cli.utils import read_json_file
+from cli.validators import validate_json_file, validate_json_schema
 
 
 class LocalApi:
     def __init__(self, config_manager: ConfigManager) -> None:
         self.__config_manager = config_manager
+        self.__read_network_data()
+
+    def __read_network_data(self) -> None:
+        """
+            Initialize the data for 'networks', 'channels', 'nodes', 'templates'
+        """
+        self.__networks_data: NetworkData = self.__read_generic_data("networks")
+        self.__channels_data: ChannelData = self.__read_generic_data("channels")
+        self.__nodes_data: NodeData = self.__read_generic_data("nodes")
+        self.__templates_data: TemplateData = self.__read_generic_data("templates")
+
+    def __read_generic_data(self, entity_name: str) -> GenericNetworkData:
+        """
+            Reads the json file specified by the parameter 'entity_name'.
+            entity_name can be 'networks', 'channels', 'nodes', 'templates'
+
+            Params:
+                entity_name: The type of the data to read
+
+            Returns:
+                Data read from the json file
+        """
+        file = Path(BASE_DIR) / f"networks/{entity_name}.json"
+        generic_data: GenericNetworkData = utils.read_json_file(file)
+        return generic_data
+
+    def _get_network_info(self, identifier_value: str, identifier_type: str = "slug") -> Optional[Dict[str, Any]]:
+        """
+        Get the network information containing name, slug and channel list
+
+        Args:
+            identifier_value: Value of the identifier used to select/match the network
+            identifier_type: Possible values for identifier_type are slug, name. Default is slug
+
+        Returns:
+            Network information containing name, slug, and channel list
+        """
+
+        for _, data in self.__networks_data["networks"].items():
+            if data[identifier_type].lower() == identifier_value.lower():
+                return data
+
+        return None
+
+    def _get_network_slug(self, network_name: str) -> Optional[str]:
+        """
+        Get the slug associated with the network based on the name of the network
+
+        Args:
+            network_name: Name of the network
+
+        Returns:
+            The slug for the given network
+        """
+        network_data = self._get_network_info(identifier_value=network_name, identifier_type="name")
+        if network_data:
+            if 'slug' in network_data:
+                return str(network_data['slug'])
+
+        return None
+
+    def _get_network_name(self, network_slug: str) -> Optional[str]:
+        """
+        Get the name associated with the network based on the slug of the network
+
+        Args:
+            network_slug: Slug of the network
+
+        Returns:
+            The Name for the given network
+        """
+        network_data = self._get_network_info(network_slug)
+        if network_data:
+            if 'name' in network_data:
+                return str(network_data['name'])
+
+        return None
+
+    def _get_qne_network_name(self, network_name: str) -> Optional[str]:
+        """
+        Get the case-sensitive name of the network as defined in the networks.json
+
+        Args:
+            network_name: Provided name of the network (can be in any case)
+
+        Returns:
+            The Name for the given network as available in the networks.json
+        """
+        network_data = self._get_network_info(identifier_value=network_name, identifier_type="name")
+        if network_data:
+            if 'name' in network_data:
+                return str(network_data['name'])
+
+        return None
+
+    def _get_channels_for_network(self, network_slug: str) -> Optional[List[str]]:
+        """
+        Get the list of channels available in the network
+
+        Args:
+            network_slug: Slug of the network
+
+        Returns:
+            List of channels
+        """
+        network_data = self._get_network_info(network_slug)
+        if network_data:
+            if 'channels' in network_data:
+                return cast(List[str], network_data['channels'])
+
+        return None
+
+    def _get_channel_info(self, channel_slug: str) -> Optional[Dict[str, Any]]:
+        """
+        Get the channel information containing node & parameter information
+
+        Args:
+            channel_slug: Slug of the channel
+
+        Returns:
+            Channel information containing node & parameter information
+        """
+
+        for channel in self.__channels_data["channels"]:
+            if channel["slug"] == channel_slug:
+                return channel
+
+        return None
+
+    def _get_node_info(self, node_slug: str) -> Optional[Dict[str, Any]]:
+        """
+        Get the node information containing node parameters & qubit information
+
+        Args:
+            node_slug: Slug of the Node
+
+        Returns:
+            Node information containing node parameters & information
+        """
+
+        for node in self.__nodes_data["nodes"]:
+            if node["slug"] == node_slug:
+                return node
+
+        return None
+
+    def _get_templates(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Get all the templates information
+
+        Returns:
+            A dictionary containing key as template slug and value as template information
+        """
+        return {template["slug"]: template for template in self.__templates_data["templates"]}
+
+    def _get_network_nodes(self) -> Dict[str, List[str]]:
+        """
+        Loops trough all the networks in networks/networks.json and gets all the nodes within this network.
+
+        returns:
+        Returns a dict of networks, each having their own list including the nodes:
+        E.g.: {"randstad": ["leiden", "amsterdam", "the_hague"], "the-netherlands": ["etc..",]}
+
+        """
+
+        # Read network and see which are available
+        network_nodes: Dict[str, List[str]] = {}
+
+        data_networks = self.__networks_data
+        data_channels = self.__channels_data
+
+        for network in data_networks["networks"]:
+            for channel in data_channels["channels"]:
+                if channel["slug"] in data_networks["networks"][network]["channels"]:
+                    if data_networks["networks"][network]["slug"] not in network_nodes:
+                        network_nodes[data_networks["networks"][network]["slug"]] = []
+                    lst = network_nodes[data_networks["networks"][network]["slug"]]
+                    if channel["node1"] not in lst:
+                        lst.append(channel["node1"])
+                    if channel["node2"] not in lst:
+                        lst.append(channel["node2"])
+
+        return network_nodes
 
     def create_application(self, application_name: str, roles: List[str], path: Path) -> None:
         """
@@ -60,6 +244,7 @@ class LocalApi:
             roles: a list of roles
             path: the path where the application is stored
         """
+        application_name = application_name.lower()
 
         # code to create the local application in root dir
         app_src_path = path / application_name / "src"
@@ -76,7 +261,7 @@ class LocalApi:
 
         # Check if the network there are more network nodes available for this network compared to the
         # amount of roles given by the user
-        for network in utils.get_network_nodes().items():
+        for network in self._get_network_nodes().items():
             if len(roles) <= len(network[1]):
                 temp_list.append(network[0])
 
@@ -152,6 +337,32 @@ class LocalApi:
 
         return error_dict
 
+    def get_application_config(self, application_name: str) -> Optional[AppConfigType]:
+        """
+        Get the configuration containing input, network and roles information for the application
+
+        Args:
+            application_name: Name of the application for which to get the configuration
+
+        Returns:
+            A dictionary containing application configuration information
+
+        """
+        app_details = self.__config_manager.get_application(application_name)
+
+        if app_details and 'path' in app_details:
+            app_config_path = Path(app_details['path']) / 'config'
+            application_json_path = app_config_path / 'application.json'
+            network_json_path = app_config_path / 'network.json'
+
+            app_config_application: app_configApplicationType = utils.read_json_file(application_json_path)
+            app_config_network: app_configNetworkType = utils.read_json_file(network_json_path)
+
+            app_config = {"application": app_config_application, "network": app_config_network}
+            return app_config
+
+        return None
+
     def __is_config_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
         # Validate if json string is correct and validate against json schema's
         app_schema_path = Path(BASE_DIR) / "schema/applications"
@@ -170,6 +381,18 @@ class LocalApi:
                     # to error_dict (duplicate)
                     if file != "application.json":
                         error_dict['error'].append(message)
+
+    def __get__config_file_names(self) -> List[str]:
+        return ['application.json', 'network.json', 'result.json']
+
+    def __get_role_file_names(self, app_config_path: Path) -> List[str]:
+        config_network_data = read_json_file(app_config_path / "network.json")
+        config_application_roles = config_network_data['roles'] if 'roles' in config_network_data else []
+
+        # Add app_ and .py to each role in config/network.json so that it matches the python files listed
+        # in the src directory
+        application_file_names = ['app_' + role + '.py' for role in config_application_roles]
+        return application_file_names
 
     def __is_structure_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
         app_dir_path = Path(self.__config_manager.get_application_path(application_name))
@@ -194,16 +417,7 @@ class LocalApi:
         if os.path.exists(app_src_path) and os.path.isfile(app_config_path / "application.json"):
             valid, message = validate_json_file(app_config_path / "application.json")
             if valid:
-                config_application_data = read_json_file(app_config_path / "application.json")
-                config_application_roles = []
-
-                for item in config_application_data:
-                    for role in item["roles"]:
-                        config_application_roles.append(role)
-
-                # Add app_ and .py to each role in config/application.json so that it matches the python files listed
-                # in the src directory
-                application_file_names = ['app_' + role + '.py' for role in config_application_roles]
+                application_file_names = self.__get_role_file_names(app_config_path)
 
                 # Get all the files in the src directory
                 src_dir_files = os.listdir(app_src_path)
@@ -216,19 +430,8 @@ class LocalApi:
             else:
                 error_dict['error'].append(message)
 
-    def get_application_config(self, application_name: str) -> AppConfigType:
-        app_config_path = Path(self.__config_manager.get_application_path(application_name)) / 'config'
-        application_json_path = app_config_path / 'application.json'
-        network_json_path = app_config_path / 'network.json'
-
-        app_config_application: app_configApplicationType = read_json_file(application_json_path)
-        app_config_network: app_configNetworkType = read_json_file(network_json_path)
-
-        app_config = {"application": app_config_application, "network": app_config_network}
-        return app_config
-
-    def experiments_create(self, name: str, app_config: AppConfigType, network_name: str,
-                           path: Path, application: str) -> Tuple[bool, str]:
+    def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
+                           path: Path, application_name: str) -> None:
         """
         Create all the necessary resources for experiment creation
          - 1. Get the network data for the specified network_name
@@ -236,25 +439,21 @@ class LocalApi:
          - 3. Create experiment.json containing the meta data and asset information
 
         Args:
-            name: Name of the experiment
-            app_config:
+            experiment_name: Name of the experiment
+            app_config: A dictionary containing application configuration information
             network_name: Name of the network to use
             path: Location where the experiment directory is to be created
-            application: Name of the application for which to create experiment
-
-        Returns:
-            Returns (False, reason for failure) if experiment creation failed,
-            (True, Success) if experiment was created successfully
+            application_name: Name of the application for which to create experiment
 
         """
         network_data: assetNetworkType = self.get_network_data(network_name=network_name)
         asset_network: assetNetworkType = self.create_asset_network(network_data=network_data,
                                                                     app_config=app_config)
 
-        return self.create_experiment(name=name, app_config=app_config, asset_network=asset_network, path=path,
-                                application=application)
+        self.create_experiment(experiment_name=experiment_name, app_config=app_config, asset_network=asset_network,
+                               path=path, application_name=application_name)
 
-    def get_network_data(self, network_name: str)-> assetNetworkType:
+    def get_network_data(self, network_name: str) -> assetNetworkType:
         """
         Fetch the data for the specified network_name from the json files in networks folder
 
@@ -265,21 +464,58 @@ class LocalApi:
             The complete network information with channels & nodes
 
         """
-        return {}
+
+        channels_list = []
+        nodes_list = []
+
+        network_slug = self._get_network_slug(network_name)
+
+        if network_slug:
+            channels = self._get_channels_for_network(network_slug=network_slug)
+            if channels:
+                for channel_slug in channels:
+                    channel_info = self._get_channel_info(channel_slug=channel_slug)
+                    channels_list.append(channel_info)
+
+            all_network_nodes = self._get_network_nodes()
+            if network_slug in all_network_nodes:
+                for node_slug in all_network_nodes[network_slug]:
+                    nodes_list.append(self._get_node_info(node_slug=node_slug))
+            else:
+                raise NetworkNotFound(network_name)
+
+            qne_network_name = self._get_qne_network_name(network_name)
+
+            return {
+                "name": qne_network_name,
+                "slug": network_slug,
+                "channels": channels_list,
+                "nodes": nodes_list,
+            }
+
+        raise NetworkNotFound(network_name)
 
     def create_experiment(
-        self, name: str, app_config: AppConfigType, asset_network: assetNetworkType, path: Path, application: str
-    ) -> Tuple[bool, str]:
+        self, experiment_name: str, app_config: AppConfigType, asset_network: assetNetworkType, path: Path,
+            application_name: str) -> None:
+        """
+        Create experiment.json with meta and asset information
 
-        experiment_directory = path / name
-        if experiment_directory.is_dir():
-            return False, f'Experiment directory {name} already exists.'
+        Args:
+            experiment_name: Name of the directory where experiment.json will be created
+            app_config: A dictionary containing application configuration information
+            asset_network: Filled Network parameters with default values
+            path: Location where experiment directory needs to be created
+            application_name: Name of the application for which to create the experiment
 
+        """
+
+        experiment_directory = path / experiment_name
         experiment_directory.mkdir(parents=True)
 
         input_directory = experiment_directory / 'input'
         input_directory.mkdir(parents=True)
-        self.__copy_input_files_from_application(application, input_directory)
+        self.__copy_input_files_from_application(application_name, input_directory)
 
         experiment_json_file = experiment_directory / 'experiment.json'
         experiment_meta = {
@@ -288,24 +524,134 @@ class LocalApi:
                 "type": "local_netsquid"
              },
             "number_of_rounds": 1,
-            "description": f"{name}: experiment description"
+            "description": f"{experiment_name}: experiment description"
         }
 
         asset_application = self.__create_asset_application(app_config)
         asset = {"network": asset_network, "application": asset_application}
 
         experiment_data = {'meta': experiment_meta, 'asset': asset}
-        write_json_file(experiment_json_file, experiment_data)
+        utils.write_json_file(experiment_json_file, experiment_data)
 
-        return True, "Success"
+    def __create_asset_application(self, app_config: AppConfigType) -> assetApplicationType:
+        """
+        Prepare the asset by filling the application input parameters with default values
 
-    def __create_asset_application(self,  app_config: AppConfigType) -> assetApplicationType:
-        return []
+        Args:
+            app_config: A dictionary containing application configuration information
 
-    def create_asset_network(self,  network_data: assetNetworkType, app_config: AppConfigType) ->  assetNetworkType:
-        return {}
+        Returns:
+            Filled Application input parameters with default values
 
-    def __copy_input_files_from_application(self,  application: str, input_directory: Path) -> None:
+        """
+        input_list = []
+        if "application" in app_config:
+            for input_param in app_config["application"]:
+                item = {
+                    "roles": input_param["roles"],
+                    "values": []
+                }
+                for value in input_param["values"]:
+                    value_item = {
+                        "name": value["name"],
+                        "value": value["default_value"],
+                        "scale_value": value["scale_value"]
+                    }
+                    item["values"].append(value_item)
+
+            input_list.append(item)
+
+        return input_list
+
+    def create_asset_network(self, network_data: assetNetworkType, app_config: AppConfigType) -> assetNetworkType:
+        """
+        Prepare the asset by filling the network parameters with default values
+
+        Args:
+            network_data: Network information containing channels and nodes list
+            app_config: A dictionary containing application configuration information
+
+        Returns:
+            Filled Network parameters with default values
+
+        """
+        # pylint: disable-msg=too-many-locals
+
+        templates = {template["slug"]: template for template in self.__templates_data["templates"]}
+        node_list = network_data["nodes"]
+        channel_list = network_data["channels"]
+
+        # Fill roles information
+        network_data["roles"] = {}
+        if "network" in app_config:
+            if "roles" in app_config["network"]:
+                for index, role in enumerate(app_config["network"]["roles"]):
+                    network_data["roles"][role] = node_list[index]["slug"]
+
+        # Fill channel information (parameters)
+        for channel in channel_list:
+            filled_params_channel = []
+            for param in channel["parameters"]:
+                filled_parameter_item = self.__get_filled_template_parameter(param=param, templates=templates)
+                filled_params_channel.append(filled_parameter_item)
+
+            channel["parameters"] = filled_params_channel
+
+        # Fill Nodes information (parameters)
+        for node in node_list:
+            filled_params_node = []
+            for param in node["node_parameters"]:
+                filled_parameter_item = self.__get_filled_template_parameter(param=param, templates=templates)
+                filled_params_node.append(filled_parameter_item)
+
+            node["node_parameters"] = filled_params_node
+
+            number_of_qubits = node["number_of_qubits"]
+            node["qubits"] = []
+            for qubit_number in range(number_of_qubits):
+                qubit_item: Dict[str, Any] = {
+                    "qubit_id": qubit_number,
+                    "qubit_parameters": []
+                }
+                for param in node["qubit_parameters"]:
+                    filled_parameter_item = self.__get_filled_template_parameter(param=param, templates=templates)
+                    qubit_item["qubit_parameters"].append(filled_parameter_item)
+
+                node["qubits"].append(qubit_item)
+
+            del node["number_of_qubits"]
+            del node["qubit_parameters"]
+
+        return network_data
+
+    def __get_filled_template_parameter(self, param: str, templates: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Prepare the template parameter by filling it with default values
+
+        Args:
+            param: Name of the template parameter
+            templates: A dictionary containing information for all template parameters
+
+        Returns:
+            Filled Template parameter with default values
+
+        """
+        filled_parameter_item: Dict[str, Any] = {
+            "slug": param,
+            "values": []
+        }
+        template_data_value = templates[param]["values"]
+        for val in template_data_value:
+            item = {
+                "name": val["name"],
+                "value": val["default_value"],
+                "scale_value": val["scale_value"]
+            }
+            filled_parameter_item["values"].append(item)
+
+        return filled_parameter_item
+
+    def __copy_input_files_from_application(self,  application_name: str, input_directory: Path) -> None:
         """
         Copy the input/source files of the 'application' to the 'input_directory'
 
@@ -314,6 +660,12 @@ class LocalApi:
             input_directory: The destination where application files need to be stored
 
         """
+        application_exists, app_path = self.__config_manager.application_exists(application_name=application_name)
+        if application_exists:
+            app_path = Path(app_path)
+            utils.copy_files(app_path / "config", input_directory, files_list=self.__get__config_file_names())
+            utils.copy_files(app_path / "src", input_directory,
+                             files_list=self.__get_role_file_names(app_config_path=app_path / "config"))
 
     def is_network_available(self, network_name: str, app_config: AppConfigType) -> bool:
         """
@@ -326,7 +678,14 @@ class LocalApi:
         Returns:
             bool: True if the given network name is available in application configuration, False otherwise
         """
-        return True
+        network_slug = self._get_network_slug(network_name)
+        if network_slug:
+            if "network" in app_config:
+                if "networks" in app_config["network"]:
+                    if network_slug in app_config["network"]["networks"]:
+                        return True
+
+        return False
 
     def is_experiment_local(self, path: Path) -> bool:
         """

@@ -14,10 +14,11 @@ from typer import Typer
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
+from cli.exceptions import NotEnoughRoles
 from cli.managers.config_manager import ConfigManager
 from cli.settings import Settings
+from cli.type_aliases import ErrorDictType
 from cli.utils import reorder_data, validate_path_name
-from cli.exceptions import NotEnoughRoles
 
 app = Typer()
 applications_app = Typer()
@@ -146,7 +147,7 @@ def applications_list(
 
     applications = processor.applications_list(remote=remote, local=local)
 
-    if 'local' in applications:
+    if local:
         if len(applications['local']) == 0:
             typer.echo("There are no local applications available.")
         else:
@@ -156,7 +157,7 @@ def applications_list(
             typer.echo(tabulate(local_app_list, headers='keys'))
             typer.echo()
 
-    if 'remote' in applications:
+    if remote:
         if len(applications['remote']) == 0:
             typer.echo("There are no remote applications available.")
         else:
@@ -178,6 +179,14 @@ def applications_publish() -> None:
     typer.echo("Request to publish application sent successfully.")
 
 
+def show_validation_messages(validation_dict: ErrorDictType) -> None:
+    for key in validation_dict:
+        if validation_dict[key]:
+            for item in validation_dict[key]:
+                typer.echo(f"{key.upper()}: {item}")
+            print("\n")
+
+
 @applications_app.command("validate")
 def applications_validate() -> None:
     """
@@ -188,11 +197,7 @@ def applications_validate() -> None:
     typer.echo(f"Validate application '{application_name}'.\n")
     error_dict = processor.applications_validate(application_name=application_name)
 
-    for key in error_dict:
-        if error_dict[key]:
-            for item in error_dict[key]:
-                typer.echo(f"{key.upper()}: {item}")
-            print("\n")
+    show_validation_messages(error_dict)
 
     if error_dict['error'] or error_dict['warning']:
         typer.echo("Application is invalid.")
@@ -202,8 +207,8 @@ def applications_validate() -> None:
 
 @experiments_app.command("create")
 def experiments_create(
-    name: str = typer.Argument(..., help="Name of the experiment."),
-    application: str = typer.Argument(..., help="Name of the application."),
+    experiment_name: str = typer.Argument(..., help="Name of the experiment."),
+    application_name: str = typer.Argument(..., help="Name of the application."),
     network_name: str = typer.Argument(..., help="Name of the network to use."),
     local: bool = typer.Option(
         True, "--local/--remote", help="Run the application locally."
@@ -212,21 +217,19 @@ def experiments_create(
     """
     Create new experiment.
     """
+    validate_path_name("Experiment", experiment_name)
+
     cwd = Path.cwd()
-    typer.echo(f"Create experiment: '{name}' with network: '{network_name}' for application: '{application}'.")
 
-    is_app_valid, validation_message = processor.applications_validate(application)
-
-    if is_app_valid:
-        success, message = processor.experiments_create(name=name, application=application, network_name=network_name,
-                                                        local=local, path=cwd)
-        if success:
-            typer.echo("Experiment created successfully.")
-        else:
-            typer.echo("Experiment could not be created. " + message)
+    validate_dict = processor.applications_validate(application_name)
+    if validate_dict['error'] or validate_dict['warning']:
+        show_validation_messages(validate_dict)
+        typer.echo(f"Application {application_name} is invalid. Please fix the issues and then create an experiment.")
     else:
-        typer.echo(f"The application {application} is not valid. " + validation_message)
-        typer.echo("You can use the application validate command to check the application.")
+        processor.experiments_create(experiment_name=experiment_name, application_name=application_name,
+                                     network_name=network_name, local=local, path=cwd)
+        typer.echo(f"Experiment created successfully in directory {experiment_name} at location {cwd}.")
+
 
 @experiments_app.command("list")
 def experiments_list() -> None:

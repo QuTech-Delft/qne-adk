@@ -10,8 +10,29 @@ class MalformedJsonFile(Exception):
 class ApplicationAlreadyExists(Exception):
     """Raised when application name is not unique and already exists in .qne/application.json"""
 
-    def __init__(self, application: str, path: str) -> None:
-        super().__init__(f"Application '{application}' already exists. Application location: '{path}'")
+    def __init__(self, application_name: str, path: str) -> None:
+        super().__init__(f"Application '{application_name}' already exists. Application location: '{path}'")
+
+
+class ApplicationNotFound(Exception):
+    """ Raised when application is not found in .qne/application.json"""
+
+    def __init__(self, application_name: str) -> None:
+        super().__init__(f"Application '{application_name}' was not found.")
+
+
+class NetworkNotFound(Exception):
+    """ Raised when the specified network was not found"""
+
+    def __init__(self, network_name: str) -> None:
+        super().__init__(f"Network {network_name} was not found.")
+
+
+class NetworkNotAvailableForApplication(Exception):
+    """ Raised when the given network is not available for use in the application"""
+
+    def __init__(self, network_name: str, application_name: str) -> None:
+        super().__init__(f"Network {network_name} is not available for use in Application {application_name}")
 
 
 class NoNetworkAvailable(Exception):
@@ -50,3 +71,10 @@ class NoConfigFileExists(Exception):
 
     def __init__(self, path: Path) -> None:
         super().__init__(f"The application configuration file {path} does not exist")
+
+
+class ExperimentDirectoryAlreadyExists(Exception):
+    """ Raised when a directory for experiment already exists at the given path """
+
+    def __init__(self, experiment_name: str, path: str) -> None:
+        super().__init__(f"Directory for Experiment '{experiment_name}' already exists at location: '{path}'")

@@ -5,6 +5,7 @@ import unittest
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
+from cli.exceptions import ApplicationNotFound, ExperimentDirectoryAlreadyExists, NetworkNotAvailableForApplication
 from cli.managers.config_manager import ConfigManager
 
 
@@ -48,22 +49,42 @@ class TestCommandProcessor(unittest.TestCase):
     def test_experiments_create_local(self):
         with patch.object(LocalApi, "experiments_create") as create_exp_mock, \
              patch.object(LocalApi, "get_application_config") as get_config_mock, \
-             patch.object(LocalApi, "is_network_available") as check_network_mock:
+             patch.object(LocalApi, "is_network_available") as check_network_mock, \
+             patch("cli.command_processor.Path.is_dir") as mock_isdir:
             get_config_mock.return_value = {'foo': 'bar'}
             check_network_mock.return_value = True
-            self.processor.experiments_create(name='test_exp', application='app_name', network_name='network_1',
-                                              local=True, path='test')
+            mock_isdir.return_value = False
+            self.processor.experiments_create(experiment_name='test_exp', application_name='app_name',
+                                              network_name='network_1', local=True, path=Path('test'))
+
             get_config_mock.assert_called_once_with('app_name')
             check_network_mock.assert_called_once_with('network_1', {'foo': 'bar'})
-            create_exp_mock.assert_called_once_with(name='test_exp', app_config={'foo': 'bar'},
-                                                    network_name='network_1', path='test', application='app_name')
+            create_exp_mock.assert_called_once_with(experiment_name='test_exp', app_config={'foo': 'bar'},
+                                                    network_name='network_1', path=Path('test'),
+                                                    application_name='app_name')
 
-    def test_experiments_create_remote(self):
-        success, message = self.processor.experiments_create(name='test_exp', application='app_name',
-                                                             network_name='network_1', local=False, path='test')
+            create_exp_mock.reset_mock()
+            get_config_mock.reset_mock()
+            get_config_mock.return_value = {'foo': 'bar'}
+            check_network_mock.reset_mock()
+            check_network_mock.return_value = False
 
-        self.assertEqual(success, False)
-        self.assertEqual(message, 'Remote experiment creation is not yet enabled.')
+            with self.assertRaises(NetworkNotAvailableForApplication):
+                self.processor.experiments_create(experiment_name='test_exp', application_name='app_name',
+                                                  network_name='network_1', local=True, path=Path('test'))
+                get_config_mock.assert_called_once_with('app_name')
+                check_network_mock.assert_called_once_with('network_1', {'foo': 'bar'})
+                create_exp_mock.assert_not_called()
+
+            get_config_mock.reset_mock()
+            get_config_mock.return_value = None
+            self.assertRaises(ApplicationNotFound, self.processor.experiments_create, 'test_exp',
+                              'app_name', 'network_1', True, Path('test'))
+
+            mock_isdir.return_value = True
+            self.assertRaises(ExperimentDirectoryAlreadyExists, self.processor.experiments_create, 'test_exp',
+                              'app_name', 'network_1', True, Path('test'))
+
 
     def test_experiments_validate(self):
         with patch.object(LocalApi, "validate_experiment") as validate_exp_mock:

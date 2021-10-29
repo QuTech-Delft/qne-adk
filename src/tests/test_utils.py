@@ -1,10 +1,10 @@
 from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import call, patch, mock_open
 import unittest
 
-from cli.utils import read_json_file, write_json_file, reorder_data, get_network_nodes, get_dummy_application, \
-                      get_py_dummy, write_file, validate_path_name
 from cli.exceptions import MalformedJsonFile, InvalidPathName
+from cli.utils import copy_files, get_dummy_application, get_py_dummy, read_json_file, reorder_data, write_json_file, \
+    write_file, validate_path_name
 
 
 class TestUtils(unittest.TestCase):
@@ -68,90 +68,6 @@ class TestUtils(unittest.TestCase):
                 self.assertIn(key, item)
                 self.assertEqual(key_list[i], key)
 
-    def test_get_network_nodes(self):
-        with patch("cli.utils.Path.cwd") as cwd_mock, \
-             patch("cli.utils.open") as open_mock, \
-             patch("cli.utils.json.load") as json_load_mock:
-
-            json_load_mock.side_effect = \
-                [
-                    {
-                        "networks": {
-                            "randstad": {
-                                "name": "Randstad",
-                                "slug": "randstad",
-                                "channels": [
-                                    "amsterdam-leiden",
-                                    "leiden-the-hague",
-                                    "delft-the-hague",
-                                    "delft-rotterdam"
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        "channels": [
-                            {
-                                "slug": "amsterdam-leiden",
-                                "node1": "amsterdam",
-                                "node2": "leiden",
-                                "parameters": [
-                                    "elementary-link-fidelity"
-                                ]
-                            },
-                            {
-                                "slug": "leiden-the-hague",
-                                "node1": "leiden",
-                                "node2": "the-hague",
-                                "parameters": [
-                                    "elementary-link-fidelity"
-                                ]
-                            }
-                        ]
-                    }
-                ]
-
-            self.assertEqual(get_network_nodes(), {'randstad': ['amsterdam', 'leiden', 'the-hague']})
-            cwd_mock.call_count = 2
-            open_mock.call_count = 2
-            json_load_mock.call_count = 2
-
-            # Check when only two nodes are available
-            json_load_mock.side_effect = \
-                [
-                    {
-                        "networks": {
-                            "randstad": {
-                                "name": "Randstad",
-                                "slug": "randstad",
-                                "channels": [
-                                    "amsterdam-leiden",
-                                    "leiden-the-hague",
-                                    "delft-the-hague",
-                                    "delft-rotterdam"
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        "channels": [
-                            {
-                                "slug": "amsterdam-leiden",
-                                "node1": "amsterdam",
-                                "node2": "leiden",
-                                "parameters": [
-                                    "elementary-link-fidelity"
-                                ]
-                            },
-                        ]
-                    }
-                ]
-
-            self.assertEqual(get_network_nodes(), {'randstad': ['amsterdam', 'leiden']})
-            cwd_mock.call_count = 2
-            open_mock.call_count = 2
-            json_load_mock.call_count = 2
-
     def test_get_dummy_application(self):
         get_dummy_application(self.roles)
 
@@ -160,3 +76,20 @@ class TestUtils(unittest.TestCase):
 
     def test_validate_path_name(self):
         self.assertRaises(InvalidPathName, validate_path_name, "object", self.invalid_name)
+
+    def test_copy_files(self):
+        with patch("cli.utils.os.path.isfile") as isfile_mock, \
+             patch("cli.utils.os.listdir") as listdir_mock, \
+             patch("cli.utils.shutil.copy") as copy_mock, \
+             patch("cli.utils.os.path.join") as join_mock:
+
+            isfile_mock.return_value = True
+            listdir_mock.return_value = ['file1', 'file2']
+            join_mock.side_effect = ['file1_path', 'file2_path']
+
+            copy_files("source", "dest")
+
+            join_calls = [call("source", 'file1'), call("source", 'file2')]
+            join_mock.assert_has_calls(join_calls)
+            copy_calls = [call("file1_path", 'dest'), call("file2_path", 'dest')]
+            copy_mock.assert_has_calls(copy_calls)

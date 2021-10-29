@@ -1,6 +1,6 @@
 import os.path
 from pathlib import Path
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any
 from cli.utils import read_json_file, write_json_file
 from cli.exceptions import ApplicationDoesNotExist, NoConfigFileExists
 
@@ -20,6 +20,8 @@ class ConfigManager:
             path: the path where the application is stored
 
         """
+        # Extra check to make sure application name is stored in lowercase
+        application_name = application_name.lower()
 
         # Read json file
         apps = read_json_file(self.applications_config)
@@ -45,9 +47,24 @@ class ConfigManager:
     def delete_application(self, application_name: str) -> None:
         pass
 
-    def get_application(self, application_name: str) -> Any:
-        applications = read_json_file(self.applications_config)
-        return applications[application_name]
+    def get_application(self, application_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get details for an application
+
+        Args:
+            application_name: Name of the application
+
+        Returns:
+            If application exists, a dictionary containing application details (name, path)
+            None otherwise.
+
+        """
+        all_applications = self.get_applications()
+
+        for app in all_applications:
+            if app["name"] == application_name.lower():
+                return app
+        return None
 
     def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:
         if not self.check_config_exists():
@@ -89,7 +106,12 @@ class ConfigManager:
            A string of the path where there application is stored
         """
 
-        return self.get_application(application_name)['path']
+        application = self.get_application(application_name)
+        if application:
+            if 'path' in application:
+                return str(application['path'])
+
+        return None
 
     def application_exists(self, application_name: str) -> Tuple[bool, Any]:
         """
@@ -104,7 +126,7 @@ class ConfigManager:
         self.__cleanup_config()
         data = read_json_file(self.applications_config)
         for key in data:
-            if key == application_name:
+            if key == application_name.lower():
                 return True, data[key]['path']
 
         return False, None
@@ -119,8 +141,7 @@ class ConfigManager:
         Args:
             application_name: name of the application
         """
-        application_info = self.get_application(application_name)
-        return application_info.get('remote_id', -1)
+        return -1
 
     def update_path(self, application: str, path: str) -> None:
         pass

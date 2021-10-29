@@ -1,8 +1,10 @@
-from pathlib import Path
-from typing import Any, Dict, List
 import json
+import os
+from pathlib import Path
+import shutil
+from typing import Any, Dict, List, Optional
+
 from cli.exceptions import MalformedJsonFile, InvalidPathName
-from cli.settings import BASE_DIR
 
 
 def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
@@ -74,57 +76,26 @@ def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) 
         reordered_data.append(reordered_item)
     return reordered_data
 
-def get_network_nodes() -> Dict[str, List[str]]:
-    """
-    Loops trough all the networks in networks/networks.json and gets all the nodes within this network.
-
-    returns:
-    Returns a dict of networks, each having their own list including the nodes:
-    E.g.: {"randstad": ["leiden", "amsterdam", "the_hague"], "the-netherlands": ["etc..",]}
-
-    """
-    networks_file = Path(BASE_DIR) / "networks/networks.json"
-    channels_file = Path(BASE_DIR) / "networks/channels.json"
-
-    # Read network and see which are available
-    network_nodes: Dict[str, List[str]] = {}
-
-    data_networks = read_json_file(networks_file)
-    data_channels = read_json_file(channels_file)
-
-    for network in data_networks["networks"]:
-        for channel in data_channels["channels"]:
-            if channel["slug"] in data_networks["networks"][network]["channels"]:
-                if data_networks["networks"][network]["slug"] not in network_nodes:
-                    network_nodes[data_networks["networks"][network]["slug"]] = []
-                lst = network_nodes[data_networks["networks"][network]["slug"]]
-                if channel["node1"] not in lst:
-                    lst.append(channel["node1"])
-                if channel["node2"] not in lst:
-                    lst.append(channel["node2"])
-
-    return network_nodes
-
 
 def get_dummy_application(roles: List[Any]) -> List[Dict[str, Any]]:
     dummy_application = [
-      {
-        "title": "Title for this application",
-        "description": "Description of this application",
-        "values": [
-          {
-            "name": "x",
-            "default_value": 0,
-            "minimum_value": 0,
-            "maximum_value": 1,
-            "unit": "",
-            "scale_value": 1.0
-          }
-        ],
-        "input_type": "number",
-        "roles": roles
-      }
-    ]
+        {
+          "title": "Title for this application",
+          "description": "Description of this application",
+          "values": [
+            {
+              "name": "x",
+              "default_value": 0,
+              "minimum_value": 0,
+              "maximum_value": 1,
+              "unit": "",
+              "scale_value": 1.0
+            }
+          ],
+          "input_type": "number",
+          "roles": roles
+        }
+      ]
 
     return dummy_application
 
@@ -142,3 +113,22 @@ def validate_path_name(obj: str, name: str) -> None:
     invalid_chars = ['/', '\\', '*', ':', '?', '"', '<', '>', '|']
     if any(char in name for char in invalid_chars):
         raise InvalidPathName(obj)
+
+
+def copy_files(source_dir: Path, destination_dir: Path, files_list: Optional[List[str]] = None) -> None:
+    """
+    Copy all the files from source directory to destination directory.
+    No sub directories are copied.
+
+    Args:
+        source_dir: directory from where files need to be copied
+        destination_dir: directory where files need to be copied to
+        files_list: A list of file names which need to be copied. If None, all files in directory are copied.
+
+    """
+    if not files_list:
+        files_list = os.listdir(source_dir)
+    for file_name in files_list:
+        full_file_name = os.path.join(source_dir, file_name)
+        if os.path.isfile(full_file_name):
+            shutil.copy(full_file_name, destination_dir)
