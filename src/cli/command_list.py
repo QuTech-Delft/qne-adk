@@ -14,6 +14,7 @@ from typer import Typer
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
+from cli.decorators import catch_qne_cli_exceptions
 from cli.exceptions import NotEnoughRoles
 from cli.managers.config_manager import ConfigManager
 from cli.settings import Settings
@@ -38,36 +39,39 @@ logging.basicConfig(level=logging.INFO)
 
 
 @app.command("login")
+@catch_qne_cli_exceptions
 def login(
     host: str = typer.Argument(None),
-    username: str = typer.Option(..., prompt=True, help="Username of the remote user."),
+    username: str = typer.Option(..., prompt=True, help="Username of the remote user"),
     password: str = typer.Option(
-        ..., prompt=True, hide_input=True, help="Password of the remote user."
+        ..., prompt=True, hide_input=True, help="Password of the remote user"
     ),
 ) -> None:
     """
     Log in to a Quantum Network Explorer.
     """
-    typer.echo(f"Log in to '{host}', as user '{username}'.")
+    typer.echo(f"Log in to '{host}', as user '{username}'")
     processor.login(host=host, username=username, password=password)
-    typer.echo("Log in succeeded.")
+    typer.echo("Log in succeeded")
 
 
 @app.command("logout")
+@catch_qne_cli_exceptions
 def logout(host: str = typer.Argument(None)) -> None:
     """
     Log out from a Quantum Network Explorer.
     """
     logout_host = "active" if host is None else f"'{host}'"
-    typer.echo(f"Logging out from {logout_host} host.")
+    typer.echo(f"Logging out from {logout_host} host")
     processor.logout(host=host)
-    typer.echo("Log out succeeded.")
+    typer.echo("Log out succeeded")
 
 
 @applications_app.command("create")
+@catch_qne_cli_exceptions
 def applications_create(
-    application_name: str = typer.Argument(..., help="Name of the application."),
-    roles: List[str] = typer.Argument(..., help="Names of the roles to be created."),
+    application_name: str = typer.Argument(..., help="Name of the application"),
+    roles: List[str] = typer.Argument(..., help="Names of the roles to be created"),
 ) -> None:
     """
     Create new application. e.g.: qne application create application_name role1 role2
@@ -84,55 +88,59 @@ def applications_create(
     roles = [role.lower() for role in roles]
 
     cwd = Path.cwd()
-    typer.echo(f"Create application '{application_name}' in directory '{cwd}'.")
+    typer.echo(f"Create application '{application_name}' in directory '{cwd}'")
     processor.applications_create(application_name=application_name, roles=roles, path=cwd)
-    typer.echo("Application successfully created.")
+    typer.echo("Application successfully created")
 
 
 @applications_app.command("delete")
+@catch_qne_cli_exceptions
 def applications_delete() -> None:
     """
     Delete remote application.
     """
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
-    typer.echo(f"Delete application '{application_name}'.")
+    typer.echo(f"Delete application '{application_name}'")
     processor.applications_delete(application_name=application_name)
-    typer.echo("Application deleted successfully.")
+    typer.echo("Application deleted successfully")
 
 
 @applications_app.command("init")
+@catch_qne_cli_exceptions
 def applications_init() -> None:
     """
     Initialize an existing application.
     """
     cwd = Path.cwd()
     typer.echo(
-        f"Initialize directory '{cwd}' as a Quantum Network Explorer application."
+        f"Initialize directory '{cwd}' as a Quantum Network Explorer application"
     )
     processor.applications_init(cwd)
-    typer.echo("Directory successfully initialized.")
+    typer.echo("Directory successfully initialized")
 
 
 @applications_app.command("upload")
+@catch_qne_cli_exceptions
 def applications_upload() -> None:
     """
     Create or update a remote application.
     """
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
-    typer.echo(f"Upload application '{application_name}' to Quantum Network Explorer.")
+    typer.echo(f"Upload application '{application_name}' to Quantum Network Explorer")
     processor.applications_upload(application_name=application_name)
-    typer.echo("Application successfully uploaded.")
+    typer.echo("Application successfully uploaded")
 
 
 @applications_app.command("list")
+@catch_qne_cli_exceptions
 def applications_list(
     remote: Optional[bool] = typer.Option(
-        False, "--remote", help="List remote applications."
+        False, "--remote", help="List remote applications"
     ),
     local: Optional[bool] = typer.Option(
-        False, "--local", help="List local applications."
+        False, "--local", help="List local applications"
     ),
 ) -> None:
     """
@@ -149,9 +157,9 @@ def applications_list(
 
     if local:
         if len(applications['local']) == 0:
-            typer.echo("There are no local applications available.")
+            typer.echo("There are no local applications available")
         else:
-            typer.echo(f"{len(applications['local'])} local application(s).")
+            typer.echo(f"{len(applications['local'])} local application(s)")
             desired_order_columns = ['name', 'application_id', 'path']
             local_app_list = reorder_data(applications['local'], desired_order_columns)
             typer.echo(tabulate(local_app_list, headers='keys'))
@@ -159,24 +167,25 @@ def applications_list(
 
     if remote:
         if len(applications['remote']) == 0:
-            typer.echo("There are no remote applications available.")
+            typer.echo("There are no remote applications available")
         else:
-            typer.echo(f"{len(applications['remote'])} remote application(s).")
+            typer.echo(f"{len(applications['remote'])} remote application(s)")
             desired_order_columns = ['name', 'application_id', 'path']
             remote_app_list = reorder_data(applications['remote'], desired_order_columns)
             typer.echo(tabulate(remote_app_list, headers='keys'))
 
 
 @applications_app.command("publish")
+@catch_qne_cli_exceptions
 def applications_publish() -> None:
     """
     Request the application to be published online.
     """
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
-    typer.echo(f"Publish application '{application_name}'.")
+    typer.echo(f"Publish application '{application_name}'")
     processor.applications_publish(application_name=application_name)
-    typer.echo("Request to publish application sent successfully.")
+    typer.echo("Request to publish application sent successfully")
 
 
 def show_validation_messages(validation_dict: ErrorDictType) -> None:
@@ -188,30 +197,32 @@ def show_validation_messages(validation_dict: ErrorDictType) -> None:
 
 
 @applications_app.command("validate")
+@catch_qne_cli_exceptions
 def applications_validate() -> None:
     """
     Validate the application.
     """
     cwd = Path.cwd()
     application_name, _ = config_manager.get_application_from_path(cwd)
-    typer.echo(f"Validate application '{application_name}'.\n")
+    typer.echo(f"Validate application '{application_name}'")
     error_dict = processor.applications_validate(application_name=application_name)
 
     show_validation_messages(error_dict)
 
     if error_dict['error'] or error_dict['warning']:
-        typer.echo("Application is invalid.")
+        typer.echo("Application is invalid")
     else:
-        typer.echo("Application is valid.")
+        typer.echo("Application is valid")
 
 
 @experiments_app.command("create")
+@catch_qne_cli_exceptions
 def experiments_create(
     experiment_name: str = typer.Argument(..., help="Name of the experiment."),
     application_name: str = typer.Argument(..., help="Name of the application."),
     network_name: str = typer.Argument(..., help="Name of the network to use."),
     local: bool = typer.Option(
-        True, "--local/--remote", help="Run the application locally."
+        True, "--local/--remote", help="Run the application locally"
     ),
 ) -> None:
     """
@@ -232,77 +243,82 @@ def experiments_create(
 
 
 @experiments_app.command("list")
+@catch_qne_cli_exceptions
 def experiments_list() -> None:
     """
     List experiments.
     """
-    typer.echo("List all remote experiments.")
+    typer.echo("List all remote experiments")
     experiments = processor.experiments_list()
     for experiment in experiments:
         typer.echo(experiment)
 
 
 @experiments_app.command("delete")
+@catch_qne_cli_exceptions
 def experiments_delete() -> None:
     """
     Delete local and remote experiment files.
     """
     cwd = Path.cwd()
-    typer.echo("Delete local and remote experiment files.")
+    typer.echo("Delete local and remote experiment files")
     processor.experiments_delete(path=cwd)
-    typer.echo("Experiment deleted successfully.")
+    typer.echo("Experiment deleted successfully")
 
 
 @experiments_app.command("run")
+@catch_qne_cli_exceptions
 def experiments_run(
     block: bool = typer.Option(
-        False, "--block", help="Wait for the result to be returned."
+        False, "--block", help="Wait for the result to be returned"
     )
 ) -> None:
     """
     Execute a run of the experiment.
     """
     cwd = Path.cwd()
-    typer.echo("Run experiment.")
+    typer.echo("Run experiment")
     processor.experiments_run(path=cwd, block=block)
     if block:
-        typer.echo("Experiment has run successfully.")
+        typer.echo("Experiment has run successfully")
     else:
-        typer.echo("Experiment has been created successfully.")
+        typer.echo("Experiment has been created successfully")
 
 
 @experiments_app.command("validate")
+@catch_qne_cli_exceptions
 def experiments_validate() -> None:
     """
     Validate the experiment configuration.
     """
     cwd = Path.cwd()
-    typer.echo(f"Validate experiment at '{cwd}'.")
+    typer.echo(f"Validate experiment at '{cwd}'")
     is_valid, message = processor.experiments_validate(path=cwd)
     if is_valid:
-        typer.echo("Experiment is valid.")
+        typer.echo("Experiment is valid")
     else:
-        typer.echo("Experiment is not valid. " + message)
+        typer.echo("Experiment is not valid: " + message)
 
 
 @experiments_app.command("results")
+@catch_qne_cli_exceptions
 def experiments_results(
     all_results: bool = typer.Option(
-        False, "--all", help="Get all results for this experiment."
+        False, "--all", help="Get all results for this experiment"
     ),
     show: bool = typer.Option(
-        False, "--show", help="Show the results on screen instead of saving to file."
+        False, "--show", help="Show the results on screen instead of saving to file"
     ),
 ) -> None:
     """
     Get results for an experiment.
     """
     result_noun = "results" if all_results else "result"
-    typer.echo(f"Get {result_noun} for this experiment.")
+    typer.echo(f"Get {result_noun} for this experiment")
     cwd = Path.cwd()
     results = processor.experiments_results(all_results=all_results, show=show, path=cwd)
     if show:
         for result in results:
             typer.echo(result)
     else:
-        typer.echo(f"{result_noun.title()} stored successfully.")
+        typer.echo(f"{result_noun.title()} stored successfully")
