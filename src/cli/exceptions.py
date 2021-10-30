@@ -3,7 +3,6 @@ from pathlib import Path
 
 class QneCliException(Exception):
     """Base exception for Qne Cli exceptions"""
-    pass
 
 
 class MalformedJsonFile(QneCliException):
