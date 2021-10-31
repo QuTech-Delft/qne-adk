@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.decorators import log_function
-from cli.exceptions import ApplicationNotFound, ExperimentDirectoryAlreadyExists, NetworkNotAvailableForApplication
+from cli.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication
 from cli.type_aliases import ApplicationType, ExperimentType, ErrorDictType, ResultType
 
 
@@ -83,12 +83,17 @@ class CommandProcessor:
             local: Boolean flag specifying whether experiment is local or remote
             path: Location where the experiment (directory) will be created
 
+        Raises:
+            DirectoryAlreadyExists: Raised when directory (or file) experiment_name already exists
+
         """
         if local:
             experiment_name = experiment_name.lower()
-            experiment_directory = path / experiment_name
-            if experiment_directory.is_dir():
-                raise ExperimentDirectoryAlreadyExists(experiment_name, str(path))
+            experiment_path = path / experiment_name
+
+            # check if experiment path is already an existing dir/file
+            if experiment_path.exists():
+                raise DirectoryAlreadyExists('Experiment', str(experiment_path))
 
             app_config = self.__local.get_application_config(application_name)
             if app_config:

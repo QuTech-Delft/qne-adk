@@ -54,7 +54,8 @@ class TestCommandList(unittest.TestCase):
             self.assertEqual(mock_validate_path_name.call_count, 3)
             application_create_mock.assert_called_once()
             self.assertEqual(application_create_output.exit_code, 0)
-            self.assertIn('Application successfully created', application_create_output.stdout)
+            self.assertIn("Application 'test_application' created successfully in directory 'test'",
+                          application_create_output.stdout)
 
     def test_applications_create_exceptions(self):
         with patch("cli.command_list.Path.cwd", return_value = 'test') as mock_cwd:
@@ -62,6 +63,11 @@ class TestCommandList(unittest.TestCase):
             # Raise NotEnoughRoles when only one or less roles are given
             application_create_output = self.runner.invoke(applications_app, ['create', 'test_application', 'role1'])
             self.assertIn('The number of roles must be higher than one', application_create_output.stdout)
+
+            # Raise RolesNotUnique when roles are duplicated
+            application_create_output = self.runner.invoke(applications_app, ['create', 'test_application', 'role1',
+                                                                              'role2', 'role3', 'role2'])
+            self.assertIn('The role names must be unique', application_create_output.stdout)
 
             # Raise InvalidApplicationName when the application name is invalid contains ['/', '\\', '*', ':', '?',
             # '"', '<', '>', '|']
@@ -172,7 +178,7 @@ class TestCommandList(unittest.TestCase):
                                                                             'network_1'])
             mock_validate_path.assert_called_once_with('Experiment', 'test_exp')
             self.assertEqual(experiment_create_output.exit_code, 0)
-            self.assertIn('Experiment created successfully in directory test_exp at location test.',
+            self.assertIn("Experiment 'test_exp' created successfully in directory 'test'",
                           experiment_create_output.stdout)
             experiment_create_mock.assert_called_once_with(experiment_name='test_exp', application_name='app_name',
                                                            network_name='network_1', local=True, path='test')

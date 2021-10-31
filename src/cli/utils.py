@@ -43,6 +43,7 @@ def write_json_file(file: Path, data: Any, encoding: str = 'utf-8') -> None:
     with open(file, mode="w", encoding=encoding) as fp:
         json.dump(data, fp, indent=2)
 
+
 def write_file(file: Path, data: Any, encoding: str = 'utf-8') -> None:
     """
      Open the 'file' & write the 'data' to the 'file'

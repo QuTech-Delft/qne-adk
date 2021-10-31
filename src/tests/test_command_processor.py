@@ -1,18 +1,17 @@
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import unittest
 
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
-from cli.exceptions import ApplicationNotFound, ExperimentDirectoryAlreadyExists, NetworkNotAvailableForApplication
-from cli.managers.config_manager import ConfigManager
+from cli.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication
 
 
 class TestCommandProcessor(unittest.TestCase):
 
     def setUp(self):
-        self.config_manager = ConfigManager(config_dir=Path('dummy'))
+        self.config_manager = MagicMock(config_dir=Path('dummy'))
         self.local_api = LocalApi(config_manager=self.config_manager)
         self.remote_api = RemoteApi(config_manager=self.config_manager)
         self.processor = CommandProcessor(local_api=self.local_api, remote_api=self.remote_api)
@@ -45,15 +44,14 @@ class TestCommandProcessor(unittest.TestCase):
             self.processor.applications_validate(self.application)
             is_application_valid_mock.assert_called_once_with(self.application)
 
-
     def test_experiments_create_local(self):
         with patch.object(LocalApi, "experiments_create") as create_exp_mock, \
              patch.object(LocalApi, "get_application_config") as get_config_mock, \
              patch.object(LocalApi, "is_network_available") as check_network_mock, \
-             patch("cli.command_processor.Path.is_dir") as mock_isdir:
+             patch("cli.command_processor.Path.exists") as mock_path_exists:
             get_config_mock.return_value = {'foo': 'bar'}
             check_network_mock.return_value = True
-            mock_isdir.return_value = False
+            mock_path_exists.return_value = False
             self.processor.experiments_create(experiment_name='test_exp', application_name='app_name',
                                               network_name='network_1', local=True, path=Path('test'))
 
@@ -81,10 +79,9 @@ class TestCommandProcessor(unittest.TestCase):
             self.assertRaises(ApplicationNotFound, self.processor.experiments_create, 'test_exp',
                               'app_name', 'network_1', True, Path('test'))
 
-            mock_isdir.return_value = True
-            self.assertRaises(ExperimentDirectoryAlreadyExists, self.processor.experiments_create, 'test_exp',
+            mock_path_exists.return_value = True
+            self.assertRaises(DirectoryAlreadyExists, self.processor.experiments_create, 'test_exp',
                               'app_name', 'network_1', True, Path('test'))
-
 
     def test_experiments_validate(self):
         with patch.object(LocalApi, "validate_experiment") as validate_exp_mock:
