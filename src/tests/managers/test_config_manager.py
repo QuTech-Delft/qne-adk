@@ -1,7 +1,7 @@
 import unittest
 import os
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from cli.managers.config_manager import ConfigManager
 from cli.exceptions import ApplicationDoesNotExist, DirectoryIsFile
@@ -150,7 +150,7 @@ class TestConfigManager(unittest.TestCase):
             config_manager = ConfigManager(self.path)
             read_json_file_mock.return_value = {self.application: {"path": os.path.join(str(self.path), '')}}
 
-            app_name, application = config_manager.get_application_from_path(self.path)
+            app_name, _ = config_manager.get_application_from_path(self.path)
             self.assertEqual(app_name, self.application)
 
             read_json_file_mock.assert_called_with(config_manager.applications_config)
