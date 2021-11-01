@@ -1,8 +1,7 @@
 import unittest
 from pathlib import Path
-from unittest.mock import call, patch
+from unittest.mock import call, patch, MagicMock
 
-from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
 from cli.output_converter import OutputConverter
@@ -12,7 +11,7 @@ from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
 class ApplicationValidate(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.config_manager = ConfigManager(config_dir=Path("path/to/application"))
+        self.config_manager = MagicMock(config_dir=Path("path/to/application"))
         self.local_api = LocalApi(config_manager=self.config_manager)
 
         self.application = "test_application"
@@ -160,28 +159,18 @@ class ApplicationValidate(unittest.TestCase):
         }
 
     def test_create_application(self):
-        with patch.object(LocalApi, "_LocalApi__is_application_unique") as is_application_unique_mock, \
-             patch.object(ConfigManager, "check_config_exists") as check_config_exists_mock, \
-             patch.object(ConfigManager, "create_config") as create_config_mock, \
+        with patch.object(self.config_manager, "application_exists") as application_exists_mock, \
              patch.object(LocalApi, "_LocalApi__create_application_structure") as structure_mock:
 
-            check_config_exists_mock.return_value = True
-            is_application_unique_mock.return_value = True, self.path
+            application_exists_mock.return_value = False, self.path
             structure_mock.return_value = True
             self.local_api.create_application(self.application, self.roles, self.path)
 
-            is_application_unique_mock.assert_called_once_with(self.application)
+            application_exists_mock.assert_called_once_with(self.application)
             structure_mock.assert_called_once_with(self.application, self.roles, self.path)
 
-            # create_config should be called when check_config_exists returns false
-            check_config_exists_mock.reset_mock()
-            check_config_exists_mock.return_value = False
-            self.local_api.create_application(self.application, self.roles, self.path)
-            check_config_exists_mock.assert_called_once()
-            create_config_mock.assert_called_once()
-
             # Raise ApplicationAlreadyExists when application is not unique
-            is_application_unique_mock.return_value = False, None
+            application_exists_mock.return_value = True, None
             self.assertRaises(ApplicationAlreadyExists, self.local_api.create_application, self.application, self.roles,
                               self.path)
 
@@ -192,17 +181,15 @@ class ApplicationValidate(unittest.TestCase):
              patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
              patch("cli.api.local_api.utils.write_json_file") as write_json_file_mock, \
              patch("cli.api.local_api.utils.write_file") as write_file_mock, \
-             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=True) as application_unique_mock, \
-             patch.object(ConfigManager, "check_config_exists") as check_config_exists_mock, \
-             patch.object(ConfigManager, 'add_application') as config_manager_mock:
+             patch.object(self.config_manager, "application_exists", return_value=False) as application_exists_mock, \
+             patch.object(self.config_manager, 'add_application') as config_manager_mock:
 
-            check_config_exists_mock.return_value = True
             check_network_nodes_mock.return_value = {"dummy_network": ["network1", "network2", "network3"]}
             get_dummy_application_mock.return_value = {'application': [{'roles': ['dummy_role']}]}
-            application_unique_mock.return_value = True, self.path
+            application_exists_mock.return_value = (False, self.path)
             self.local_api.create_application(self.application, self.roles, self.path)
 
-            application_unique_mock.assert_called_once_with(self.application)
+            application_exists_mock.assert_called_once_with(self.application)
             config_manager_mock.assert_called_once_with(self.application, self.path)
             self.assertEqual(write_file_mock.call_count, 1 + len(self.roles))
             self.assertEqual(mock_mkdir.call_count, 2)
@@ -210,7 +197,7 @@ class ApplicationValidate(unittest.TestCase):
             write_file_mock.call_count = 2
             check_network_nodes_mock.assert_called_once()
             get_dummy_application_mock.assert_called_once()
-            application_unique_mock.assert_called_once_with(self.application)
+            application_exists_mock.assert_called_once_with(self.application)
             config_manager_mock.assert_called_once_with(self.application, self.path)
 
             # Raise exception when no network available
@@ -221,10 +208,8 @@ class ApplicationValidate(unittest.TestCase):
 
     def test_is_application_unique(self):
         with patch.object(LocalApi, "_LocalApi__create_application_structure", return_value=True) as structure_mock, \
-             patch.object(ConfigManager, "check_config_exists") as check_config_exists_mock, \
-             patch.object(ConfigManager, "application_exists") as application_exists_mock:
+             patch.object(self.config_manager, "application_exists") as application_exists_mock:
 
-            check_config_exists_mock.return_value = True
             application_exists_mock.return_value = True, self.path
             self.assertRaises(ApplicationAlreadyExists, self.local_api.create_application, self.application, self.roles,
                               self.path)
@@ -239,29 +224,29 @@ class ApplicationValidate(unittest.TestCase):
 
     def test_is_application_valid(self):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
-             patch.object(LocalApi, "_LocalApi__is_application_unique") as is_application_unique_mock, \
+             patch.object(self.config_manager, "application_exists") as application_exists_mock, \
              patch.object(LocalApi, "_LocalApi__is_config_valid") as is_config_valid_mock:
 
             # If application is not unique, is_config_valid() returns an error and warning
-            is_application_unique_mock.return_value = False, None
+            application_exists_mock.return_value = True, None
 
             self.assertEqual(self.local_api.is_application_valid(application_name=self.application), self.error_dict)
 
-            is_application_unique_mock.assert_called_once_with(self.application)
+            application_exists_mock.assert_called_once_with(self.application)
             is_structure_valid_mock.assert_called_once_with(self.application, self.error_dict)
             is_config_valid_mock.assert_called_once_with(self.application, self.error_dict)
 
             # If application is unique
-            is_application_unique_mock.reset_mock()
-            is_application_unique_mock.return_value = True, None
+            application_exists_mock.reset_mock()
+            application_exists_mock.return_value = False, None
             self.assertEqual(self.local_api.is_application_valid(application_name=self.application),
-                             {"error": ["Application does not exist"], "warning": [], "info": []})
-            is_application_unique_mock.assert_called_once_with(self.application)
+                             {"error": [f"Application '{self.application}' does not exist"], "warning": [], "info": []})
+            application_exists_mock.assert_called_once_with(self.application)
 
     def test__is_structure_valid(self):
-        with patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=(False, None)), \
+        with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
-             patch.object(ConfigManager, "get_application_path") as get_application_path_mock, \
+             patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
              patch("cli.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch("cli.api.local_api.read_json_file") as read_json_file_mock, \
              patch("cli.api.local_api.os.path.exists", return_value=True) as exists_mock, \
@@ -300,9 +285,9 @@ class ApplicationValidate(unittest.TestCase):
 
     def test__is_config_valid(self):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock,\
-             patch.object(LocalApi, "_LocalApi__is_application_unique", return_value=(False, None)), \
+             patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch.object(ConfigManager, "get_application_path") as get_application_path_mock, \
+             patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
              patch("cli.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch("cli.api.local_api.validate_json_schema") as validate_json_schema_mock:
 
@@ -330,7 +315,7 @@ class ApplicationValidate(unittest.TestCase):
             validate_json_file_mock.call_count = 3
 
     def test_list_applications(self):
-        with patch.object(ConfigManager, "get_applications") as get_applications_mock:
+        with patch.object(self.config_manager, "get_applications") as get_applications_mock:
             self.local_api.list_applications()
             get_applications_mock.assert_called_once()
 
@@ -355,7 +340,7 @@ class ApplicationValidate(unittest.TestCase):
              patch("cli.api.local_api.read_json_file") as read_mock, \
              patch('cli.api.local_api.Path.mkdir') as mkdir_mock, \
              patch("cli.api.local_api.utils.copy_files") as copy_files_mock, \
-             patch.object(ConfigManager, "application_exists") as application_exists_mock:
+             patch.object(self.config_manager, "application_exists") as application_exists_mock:
 
             application_exists_mock.return_value = True, 'dummy_app_path'
             read_mock.return_value = {
@@ -392,7 +377,7 @@ class ApplicationValidate(unittest.TestCase):
             write_mock.assert_called_once_with(Path('dummy') / 'test' / 'experiment.json', self.experiment_data_local)
 
     def test_get_application_config(self):
-        with patch.object(ConfigManager, "get_application") as get_application_mock, \
+        with patch.object(self.config_manager, "get_application") as get_application_mock, \
              patch("cli.api.local_api.utils.read_json_file") as read_mock:
 
             read_mock.side_effect = [[{'app': 'foo'}], {'network': 'bar'}]
@@ -493,8 +478,7 @@ class ApplicationValidate(unittest.TestCase):
             read_generic_mock.side_effect = [self.mock_network_data, self.mock_channel_data,
                                              self.mock_node_data, self.mock_template_data]
 
-            config_manager = ConfigManager(config_dir=Path("path/to/application"))
-            test_local_api = LocalApi(config_manager=config_manager)
+            test_local_api = LocalApi(config_manager=self.config_manager)
 
             data = test_local_api.get_network_data('Network 1')
             get_network_slug_mock.assert_called_once_with('Network 1')
@@ -526,8 +510,7 @@ class ApplicationValidate(unittest.TestCase):
             read_generic_mock.side_effect = [self.mock_network_data, self.mock_channel_data,
                                              self.mock_node_data, self.mock_template_data]
 
-            config_manager = ConfigManager(config_dir=Path("path/to/application"))
-            test_local_api = LocalApi(config_manager=config_manager)
+            test_local_api = LocalApi(config_manager=self.config_manager)
 
             asset_network = test_local_api.create_asset_network(network_data=mock_network_data,
                                                                 app_config=mock_app_config)
@@ -660,8 +643,7 @@ class ApplicationValidate(unittest.TestCase):
                     {}
                 ]
 
-            config_manager = ConfigManager(config_dir=Path("path/to/application"))
-            test_local_api = LocalApi(config_manager=config_manager)
+            test_local_api = LocalApi(config_manager=self.config_manager)
             data = test_local_api._get_network_nodes() # pylint: disable=W0212
             self.assertEqual(data, {'randstad': ['amsterdam', 'leiden', 'the-hague']})
 
@@ -699,7 +681,7 @@ class ApplicationValidate(unittest.TestCase):
                     {}
                 ]
 
-            test_local_api = LocalApi(config_manager=config_manager)
+            test_local_api = LocalApi(config_manager=self.config_manager)
             data = test_local_api._get_network_nodes() # pylint: disable=W0212
             self.assertEqual(data, {'randstad': ['amsterdam', 'leiden']})
 
@@ -710,8 +692,7 @@ class ApplicationValidate(unittest.TestCase):
             read_generic_mock.side_effect = [self.mock_network_data, self.mock_channel_data,
                                              self.mock_node_data, self.mock_template_data]
 
-            config_manager = ConfigManager(config_dir=Path("path/to/application"))
-            test_local_api = LocalApi(config_manager=config_manager)
+            test_local_api = LocalApi(config_manager=self.config_manager)
 
             network_info = test_local_api._get_network_info(identifier_value="network1")
             self.assertEqual(network_info['slug'], 'network1')

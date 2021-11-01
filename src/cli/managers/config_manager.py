@@ -2,13 +2,38 @@ import os.path
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 from cli.utils import read_json_file, write_json_file
-from cli.exceptions import ApplicationDoesNotExist, NoConfigFileExists
+from cli.exceptions import ApplicationDoesNotExist, DirectoryIsFile
 
 
 class ConfigManager:
     def __init__(self, config_dir: Path):
+        """ Initializes config dir, creates config path and file if it doesn't exist. When the config directory
+        happens to be a file raise an  Exception. Also does a sanity check on the content of the config """
         self.__config_dir = config_dir
+        if os.path.isfile(str(self.__config_dir)):
+            raise DirectoryIsFile(str(self.__config_dir))
+        if not os.path.isdir(str(self.__config_dir)):
+            self.__config_dir.mkdir(parents=True)
         self.applications_config = self.__config_dir / "applications.json"
+
+        if not self.check_config_exists():
+            self.__create_config()
+        else:
+            self.__cleanup_config()
+
+    def check_config_exists(self) -> bool:
+        """ Checks if the application.json config file exists in the .qne/ root directory. Returns True when it does
+        exist, False if not.
+
+        Returns:
+            True if app_config_file exists, False otherwise
+        """
+
+        return self.applications_config.is_file()
+
+    def __create_config(self) -> None:
+        """ Creates the application.json config file in the .qne/ root directory"""
+        write_json_file(self.applications_config, {})
 
     def add_application(self, application_name: str, path: Path) -> None:
         """
@@ -24,28 +49,29 @@ class ConfigManager:
         application_name = application_name.lower()
 
         # Read json file
-        apps = read_json_file(self.applications_config)
+        applications = read_json_file(self.applications_config)
 
         # Store the app path
-        apps[application_name] = {'path': os.path.join(str(path), application_name, '')}
-        write_json_file(self.applications_config, apps)
-
-    def check_config_exists(self) -> bool:
-        """ Checks if the application.json config file exists in the .qne/ root directory. Returns True when it does
-        exist, False if not.
-
-        Returns:
-            True if app_config_file exists, False otherwise
-        """
-
-        return self.applications_config.is_file()
-
-    def create_config(self) -> None:
-        """ Creates the application.json config file in the .qne/ root directory"""
-        write_json_file(self.applications_config, {})
+        applications[application_name] = {'path': os.path.join(str(path), application_name, '')}
+        write_json_file(self.applications_config, applications)
 
     def delete_application(self, application_name: str) -> None:
         pass
+
+    def get_applications(self) -> List[Dict[str, Any]]:
+        """
+        Reads the applications.json config file for getting the local applications
+
+        Returns:
+            A list of applications available in the config file
+        """
+        application_list = []
+        applications = read_json_file(self.applications_config)
+        for application_name, application_data in applications.items():
+            application_data['name'] = application_name
+            application_list.append(application_data)
+
+        return application_list
 
     def get_application(self, application_name: str) -> Optional[Dict[str, Any]]:
         """
@@ -59,59 +85,40 @@ class ConfigManager:
             None otherwise.
 
         """
-        all_applications = self.get_applications()
+        applications = self.get_applications()
 
-        for app in all_applications:
-            if app["name"] == application_name.lower():
-                return app
+        for application in applications:
+            if application["name"].lower() == application_name.lower():
+                return application
         return None
-
-    def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:
-        if not self.check_config_exists():
-            self.create_config()
-
-        data = read_json_file(self.applications_config)
-
-        for app in data:
-            if data[app]['path'].lower() == os.path.join(str(path), '').lower():
-                return app, data[app]
-
-        raise ApplicationDoesNotExist()
-
-    def get_applications(self) -> List[Dict[str, Any]]:
-        """
-        Reads the applications.json config file for getting the local applications
-
-        Returns:
-            A list of applications available in the config file
-        """
-        # cleanup config file
-        self.__cleanup_config()
-        application_list = []
-        applications = read_json_file(self.applications_config)
-        for app_name, app_data in applications.items():
-            app_data['name'] = app_name
-            application_list.append(app_data)
-
-        return application_list
 
     def get_application_path(self, application_name: str) -> Any:
         """
-        Reads the applications.json config file for getting the path using the application_name
+        Reads the applications.json config file for getting the path using the application_name.
 
         Args:
             application_name: Name of the application
 
         Returns:
-           A string of the path where there application is stored
+           A string of the path where there application is stored. None if the path is not in config or doesn't exist
         """
 
         application = self.get_application(application_name)
         if application:
-            if 'path' in application:
-                return str(application['path'])
+            if 'path' in application and os.path.exists(application['path']):
+                return application['path'].lower()
 
         return None
+
+    def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:
+        applications = read_json_file(self.applications_config)
+
+        for application_name in applications:
+            application_path = self.get_application_path(application_name)
+            if application_path is not None and application_path.lower() == os.path.join(str(path), '').lower():
+                return application_name, applications[application_name]
+
+        raise ApplicationDoesNotExist()
 
     def application_exists(self, application_name: str) -> Tuple[bool, Any]:
         """
@@ -123,11 +130,10 @@ class ConfigManager:
 
         """
 
-        self.__cleanup_config()
-        data = read_json_file(self.applications_config)
-        for key in data:
-            if key == application_name.lower():
-                return True, data[key]['path']
+        applications = read_json_file(self.applications_config)
+        for key in applications:
+            if key.lower() == application_name.lower():
+                return True, self.get_application_path(application_name)
 
         return False, None
 
@@ -168,20 +174,17 @@ class ConfigManager:
     def get_experiment(self, path: Path) -> Dict[str, str]:
         return {}
 
-    # TODO: Add __cleanup_config() to Confuence documentation
+    # TODO: Add __cleanup_config() to Confluence documentation
     def __cleanup_config(self) -> None:
-        if self.check_config_exists():
-            del_applications = []
-            applications = read_json_file(self.applications_config)
-            for app_name, app_data in applications.items():
-                if not os.path.exists(app_data['path']):
-                    del_applications.append(app_name)
+        del_applications = []
+        applications = read_json_file(self.applications_config)
+        for application_name in applications:
+            if not self.get_application_path(application_name):
+                del_applications.append(application_name)
 
-            # Delete applications without existing path
-            for app in del_applications:
-                del applications[app]
+        # Delete applications without existing path
+        for app in del_applications:
+            del applications[app]
 
-            if del_applications:
-                write_json_file(self.applications_config, applications)
-        else:
-            raise NoConfigFileExists(self.applications_config)
+        if del_applications:
+            write_json_file(self.applications_config, applications)

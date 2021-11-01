@@ -4,7 +4,7 @@ import shutil
 from typing import Any, cast, Dict, List, Optional, Tuple
 
 from cli import utils
-from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable, NetworkNotFound
+from cli.exceptions import ApplicationAlreadyExists, DirectoryAlreadyExists, NetworkNotFound, NoNetworkAvailable
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -206,7 +206,7 @@ class LocalApi:
 
     def create_application(self, application_name: str, roles: List[str], path: Path) -> None:
         """
-        Creates the application by checking if the application name is unique with is_application_unique and calling
+        Creates the application by checking if the application name does not exist and calling
         create_application_structure.
 
         Args:
@@ -217,15 +217,11 @@ class LocalApi:
         Raises:
             ApplicationAlreadyExists: Raised when application name is not unique
         """
+        application_exists, existing_application_path = self.__config_manager.application_exists(application_name)
+        if application_exists:
+            raise ApplicationAlreadyExists(application_name, existing_application_path)
 
-        if not self.__config_manager.check_config_exists():
-            self.__config_manager.create_config()
-
-        is_unique, existing_app_path = self.__is_application_unique(application_name)
-        if is_unique:
-            self.__create_application_structure(application_name, roles, path)
-        else:
-            raise ApplicationAlreadyExists(application_name, existing_app_path)
+        self.__create_application_structure(application_name, roles, path)
 
     def init_application(self, path: Path) -> None:
         pass
@@ -243,12 +239,19 @@ class LocalApi:
             application_name: name of the application
             roles: a list of roles
             path: the path where the application is stored
+        Raises:
+            DirectoryAlreadyExists: Raised when directory (or file) application_name already exists
         """
         application_name = application_name.lower()
 
+        # check if application path is already an existing dir/file
+        application_path = path / application_name
+        if application_path.exists():
+            raise DirectoryAlreadyExists('Application', str(application_path))
+
         # code to create the local application in root dir
-        app_src_path = path / application_name / "src"
-        app_config_path = path / application_name / "config"
+        app_src_path = application_path / "src"
+        app_config_path = application_path / "config"
         app_src_path.mkdir(parents=True, exist_ok=True)
         app_config_path.mkdir(parents=True, exist_ok=True)
 
@@ -286,21 +289,6 @@ class LocalApi:
 
         self.__config_manager.add_application(application_name, path)
 
-    def __is_application_unique(self, application_name: str) -> Tuple[bool, str]:
-        """
-        Calls config_manager.application_exists() to check if the application name already exists in the
-        .qne/application.json root file. Here, all application names are added when an application is created.
-        If the application name doesn't equal one of the application names already existing in this root file, the
-        application is unique. Therefore, application_unique() returns True when application_exists() returns False.
-
-
-        Args:
-            application_name: name of the application
-        """
-
-        is_unique, path = self.__config_manager.application_exists(application_name)
-        return not is_unique, path
-
     def list_applications(self) -> List[ApplicationType]:
         """
         Function to list the applications
@@ -311,7 +299,6 @@ class LocalApi:
         local_applications = self.__config_manager.get_applications()
         return local_applications
 
-    # Todo: Update confluence scenario diagram since application_unique() and structure_valid() are swapped
     def is_application_valid(self, application_name: str) -> ErrorDictType:
         """
         Function that checks if:
@@ -328,12 +315,12 @@ class LocalApi:
             Returns dict containing error messages of the validations that failed
         """
         error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
-        is_unique, _ = self.__is_application_unique(application_name)
-        if is_unique:
-            error_dict['error'].append("Application does not exist")
-        else:
+        application_exists, _ = self.__config_manager.application_exists(application_name)
+        if application_exists:
             self.__is_structure_valid(application_name, error_dict)
             self.__is_config_valid(application_name, error_dict)
+        else:
+            error_dict['error'].append(f"Application '{application_name}' does not exist")
 
         return error_dict
 
@@ -510,14 +497,14 @@ class LocalApi:
 
         """
 
-        experiment_directory = path / experiment_name
-        experiment_directory.mkdir(parents=True)
+        experiment_path = path / experiment_name
+        experiment_path.mkdir(parents=True)
 
-        input_directory = experiment_directory / 'input'
+        input_directory = experiment_path / 'input'
         input_directory.mkdir(parents=True)
         self.__copy_input_files_from_application(application_name, input_directory)
 
-        experiment_json_file = experiment_directory / 'experiment.json'
+        experiment_json_file = experiment_path / 'experiment.json'
         experiment_meta = {
             "backend": {
                 "location": "local",

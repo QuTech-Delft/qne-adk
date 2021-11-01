@@ -19,11 +19,49 @@ class ApplicationAlreadyExists(QneCliException):
         super().__init__(f"Application '{application_name}' already exists. Application location: '{path}'")
 
 
+class ApplicationDoesNotExist(QneCliException):
+    """Raised when application path (the current path the user is in) doesn't match any of the application paths in
+    .qne/application.json"""
+
+    def __init__(self) -> None:
+        super().__init__("Current directory does not appear to be a valid application directory")
+
+
 class ApplicationNotFound(QneCliException):
     """ Raised when application is not found in .qne/application.json"""
 
     def __init__(self, application_name: str) -> None:
         super().__init__(f"Application '{application_name}' was not found.")
+
+
+class DirectoryIsFile(QneCliException):
+    """ Raised when a directory we want to create is already a file """
+
+    def __init__(self, path_name: str) -> None:
+        super().__init__(f"Cannot create directory '{path_name}'. It appears to be a file already")
+
+
+class DirectoryAlreadyExists(QneCliException):
+    """ Raised when a directory already exists at the given path """
+
+    def __init__(self, obj: str, path_name: str) -> None:
+        super().__init__(f"{obj} directory '{path_name}' already exists")
+
+
+class ExperimentDirectoryAlreadyExists(QneCliException):
+    """ Raised when a directory for experiment already exists at the given path """
+
+    def __init__(self, experiment_name: str, path: str) -> None:
+        super().__init__(f"Directory for Experiment '{experiment_name}' already exists at location: '{path}'")
+
+
+class InvalidPathName(QneCliException):
+    """Raised when one of the following characters are used in an input name ['/', '\', '*', ':', '?', '"', '<', '>',
+    '|']"""
+
+    def __init__(self, obj: str) -> None:
+        super().__init__(f"{obj} name can't contain any of the following characters: ['/', '\\', '*',"
+                         f" ':', '?', '\"', '<', '>', '|']")
 
 
 class NetworkNotFound(QneCliException):
@@ -54,32 +92,8 @@ class NotEnoughRoles(QneCliException):
         super().__init__("The number of roles must be higher than one")
 
 
-class InvalidPathName(QneCliException):
-    """Raised when one of the following characters are used in an input name ['/', '\', '*', ':', '?', '"', '<', '>',
-    '|']"""
-
-    def __init__(self, obj: str) -> None:
-        super().__init__(f"{obj} name can't contain any of the following characters: ['/', '\\', '*',"
-                         f" ':', '?', '\"', '<', '>', '|']")
-
-
-class ApplicationDoesNotExist(QneCliException):
-    """Raised when application path (the current path the user is in) doesn't match any of the application paths in
-    .qne/application.json"""
+class RolesNotUnique(QneCliException):
+    """Raised when given roles are not unique"""
 
     def __init__(self) -> None:
-        super().__init__("Current directory does not appear to be a valid application directory")
-
-
-class NoConfigFileExists(QneCliException):
-    """Raised when .qne/application.json doesn't exist"""
-
-    def __init__(self, path: Path) -> None:
-        super().__init__(f"The application configuration file {path} does not exist")
-
-
-class ExperimentDirectoryAlreadyExists(QneCliException):
-    """ Raised when a directory for experiment already exists at the given path """
-
-    def __init__(self, experiment_name: str, path: str) -> None:
-        super().__init__(f"Directory for Experiment '{experiment_name}' already exists at location: '{path}'")
+        super().__init__("The role names must be unique")

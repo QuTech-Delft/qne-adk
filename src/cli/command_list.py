@@ -1,6 +1,6 @@
 """
 Entry point for the qne command-line.
-Creates the typer app and its commands
+Creates the Typer app and its commands
 """
 
 import logging
@@ -15,7 +15,7 @@ from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
 from cli.decorators import catch_qne_cli_exceptions
-from cli.exceptions import NotEnoughRoles
+from cli.exceptions import NotEnoughRoles, RolesNotUnique
 from cli.managers.config_manager import ConfigManager
 from cli.settings import Settings
 from cli.type_aliases import ErrorDictType
@@ -74,23 +74,26 @@ def applications_create(
     roles: List[str] = typer.Argument(..., help="Names of the roles to be created"),
 ) -> None:
     """
-    Create new application. e.g.: qne application create application_name role1 role2
+    Create new application.
+
+    For example: qne application create my_application Alice Bob
     """
 
+    # Check roles
     if len(roles) <= 1:
         raise NotEnoughRoles()
+    # Lowercase roles
+    roles = [role.lower() for role in roles]
+    if not all(roles.count(role) == 1 for role in roles):
+        raise RolesNotUnique()
 
     validate_path_name("Application", application_name)
     for role in roles:
         validate_path_name("Role", role)
 
-    # Lowercase roles
-    roles = [role.lower() for role in roles]
-
     cwd = Path.cwd()
-    typer.echo(f"Create application '{application_name}' in directory '{cwd}'")
     processor.applications_create(application_name=application_name, roles=roles, path=cwd)
-    typer.echo("Application successfully created")
+    typer.echo(f"Application '{application_name}' created successfully in directory '{str(cwd)}'")
 
 
 @applications_app.command("delete")
@@ -145,10 +148,6 @@ def applications_list(
 ) -> None:
     """
     List applications available to the user.
-
-    Args:
-        remote: Boolean flag to list remote applications
-        local: Boolean flag to list local applications
     """
     if not remote and not local:
         remote = local = True
@@ -189,11 +188,14 @@ def applications_publish() -> None:
 
 
 def show_validation_messages(validation_dict: ErrorDictType) -> None:
+    """
+    Show the error, warnings and info messages collected during validation.
+    """
     for key in validation_dict:
         if validation_dict[key]:
             for item in validation_dict[key]:
                 typer.echo(f"{key.upper()}: {item}")
-            print("\n")
+            # print("\n")
 
 
 @applications_app.command("validate")
@@ -218,9 +220,9 @@ def applications_validate() -> None:
 @experiments_app.command("create")
 @catch_qne_cli_exceptions
 def experiments_create(
-    experiment_name: str = typer.Argument(..., help="Name of the experiment."),
-    application_name: str = typer.Argument(..., help="Name of the application."),
-    network_name: str = typer.Argument(..., help="Name of the network to use."),
+    experiment_name: str = typer.Argument(..., help="Name of the experiment"),
+    application_name: str = typer.Argument(..., help="Name of the application"),
+    network_name: str = typer.Argument(..., help="Name of the network to use"),
     local: bool = typer.Option(
         True, "--local/--remote", help="Run the application locally"
     ),
@@ -235,11 +237,11 @@ def experiments_create(
     validate_dict = processor.applications_validate(application_name)
     if validate_dict['error'] or validate_dict['warning']:
         show_validation_messages(validate_dict)
-        typer.echo(f"Application {application_name} is invalid. Please fix the issues and then create an experiment.")
+        typer.echo(f"Application '{application_name}' is invalid. Experiment not created.")
     else:
         processor.experiments_create(experiment_name=experiment_name, application_name=application_name,
                                      network_name=network_name, local=local, path=cwd)
-        typer.echo(f"Experiment created successfully in directory {experiment_name} at location {cwd}.")
+        typer.echo(f"Experiment '{experiment_name}' created successfully in directory '{cwd}'")
 
 
 @experiments_app.command("list")
