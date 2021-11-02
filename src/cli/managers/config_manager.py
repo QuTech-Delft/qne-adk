@@ -174,7 +174,6 @@ class ConfigManager:
     def get_experiment(self, path: Path) -> Dict[str, str]:
         return {}
 
-    # TODO: Add __cleanup_config() to Confluence documentation
     def __cleanup_config(self) -> None:
         del_applications = []
         applications = read_json_file(self.applications_config)

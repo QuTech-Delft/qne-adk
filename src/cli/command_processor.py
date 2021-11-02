@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
@@ -98,6 +98,7 @@ class CommandProcessor:
             app_config = self.__local.get_application_config(application_name)
             if app_config:
                 if self.__local.is_network_available(network_name, app_config):
+                    print("tes")
                     self.__local.experiments_create(experiment_name=experiment_name, app_config=app_config,
                                                     network_name=network_name, path=path,
                                                     application_name=application_name)

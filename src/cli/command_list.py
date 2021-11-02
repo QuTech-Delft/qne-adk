@@ -265,19 +265,15 @@ def experiments_validate() -> None:
     """
     cwd = Path.cwd()
 
-    typer.echo(f"Validate experiment at '{cwd}'.")
+    experiment_name = cwd.name
+    typer.echo(f"Validate experiment '{experiment_name}'.\n")
     error_dict = processor.experiments_validate(path=cwd)
-
-    for key in error_dict:
-        if error_dict[key]:
-            for item in error_dict[key]:
-                typer.echo(f"{key.upper()}: {item}")
-            print("\n")
+    show_validation_messages(error_dict)
 
     if error_dict['error'] or error_dict['warning']:
-        typer.echo("Experiment is invalid.")
+        typer.echo("Experiment is invalid")
     else:
-        typer.echo("Experiment is valid.")
+        typer.echo("Experiment is valid")
 
 
 @experiments_app.command("results")

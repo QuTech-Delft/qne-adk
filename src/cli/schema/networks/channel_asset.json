@@ -5,11 +5,14 @@
   "description": "Channel between two Node objects as part of an Asset",
   "type": "object",
   "properties": {
-    "node_slug1": {
+    "slug": {
+      "type": "string"
+    },
+    "node1": {
       "type": "string",
       "pattern": "^[-a-zA-Z0-9_]+$"
     },
-    "node_slug2": {
+    "node2": {
       "type": "string",
       "pattern": "^[-a-zA-Z0-9_]+$"
     },

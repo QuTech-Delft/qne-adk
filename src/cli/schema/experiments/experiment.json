@@ -23,8 +23,7 @@
           },
           "required": [
             "location",
-            "type",
-            "experiment_id"
+            "type"
           ]
         },
         "number_of_rounds": {
