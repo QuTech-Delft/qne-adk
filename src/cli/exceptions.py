@@ -6,7 +6,7 @@ class QneCliException(Exception):
 
 
 class MalformedJsonFile(QneCliException):
-    """Raised when trying to read a file containing malformed json """
+    """Raised when trying to read a file containing malformed json"""
 
     def __init__(self, path: Path, e: Exception) -> None:
         super().__init__(f'The file {path} does not contain valid json. Error: {e}')
@@ -28,28 +28,35 @@ class ApplicationDoesNotExist(QneCliException):
 
 
 class ApplicationNotFound(QneCliException):
-    """ Raised when application is not found in .qne/application.json"""
+    """Raised when application is not found in .qne/application.json"""
 
     def __init__(self, application_name: str) -> None:
         super().__init__(f"Application '{application_name}' was not found.")
 
 
+class CommandNotImplemented(QneCliException):
+    """Raised when a command is used that is not yet implemented"""
+
+    def __init__(self) -> None:
+        super().__init__("Command is not yet implemented")
+
+
 class DirectoryIsFile(QneCliException):
-    """ Raised when a directory we want to create is already a file """
+    """Raised when a directory we want to create is already a file"""
 
     def __init__(self, path_name: str) -> None:
         super().__init__(f"Cannot create directory '{path_name}'. It appears to be a file already")
 
 
 class DirectoryAlreadyExists(QneCliException):
-    """ Raised when a directory already exists at the given path """
+    """Raised when a directory already exists at the given path"""
 
     def __init__(self, obj: str, path_name: str) -> None:
         super().__init__(f"{obj} directory '{path_name}' already exists")
 
 
 class ExperimentDirectoryAlreadyExists(QneCliException):
-    """ Raised when a directory for experiment already exists at the given path """
+    """Raised when a directory for experiment already exists at the given path"""
 
     def __init__(self, experiment_name: str, path: str) -> None:
         super().__init__(f"Directory for Experiment '{experiment_name}' already exists at location: '{path}'")
@@ -65,14 +72,14 @@ class InvalidPathName(QneCliException):
 
 
 class NetworkNotFound(QneCliException):
-    """ Raised when the specified network was not found"""
+    """Raised when the specified network was not found"""
 
     def __init__(self, network_name: str) -> None:
         super().__init__(f"Network {network_name} was not found.")
 
 
 class NetworkNotAvailableForApplication(QneCliException):
-    """ Raised when the given network is not available for use in the application"""
+    """Raised when the given network is not available for use in the application"""
 
     def __init__(self, network_name: str, application_name: str) -> None:
         super().__init__(f"Network {network_name} is not available for use in Application {application_name}")
