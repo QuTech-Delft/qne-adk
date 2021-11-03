@@ -1,5 +1,5 @@
-# Quantum Network Explorer CLI
-Command Line Interface to interact with the Quantum Network Explorer. With the QNE-CLI you can create your application and experiment and run it locally or remote using the commands. 
+# Quantum Network Explorer ADK
+Application Development Kit to interact with the Quantum Network Explorer. With the QNE-ADK you can create your application and experiment and run it locally or remote using the commands. 
 
 ## Installation
 To install all the required packages use:
@@ -44,7 +44,7 @@ After you registered your account, execute the following steps:
 --->
 
 ## Commands
-The QNE-CLI uses various commands to create and run your applications and experiments. All of the commands are listed below:
+The QNE-ADK uses various commands to create and run your applications and experiments. All of the commands are listed below:
 
 <!--- QNE LOGIN --->
 <details closed>
@@ -330,4 +330,4 @@ Example:
 
 
 ## More documentation
-More documentation on how to use these commands and what the purpose of the files are that are created and how to edit them can be found on the Quantum Network Explorer [website](https://beta.quantum-network.com/qne-cli)
+More documentation on how to use these commands and what the purpose of the files are that are created and how to edit them can be found on the Quantum Network Explorer [website](https://beta.quantum-network.com/adk)
