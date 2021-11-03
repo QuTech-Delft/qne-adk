@@ -26,8 +26,8 @@ def read_json_file(file_name: Path, encoding: str = 'utf-8') -> Any:
     try:
         with open(file_name, encoding=encoding) as fp:
             return json.load(fp)
-    except FileNotFoundError:
-        raise JsonFileNotFound(str(file_name))
+    except FileNotFoundError as file_error:
+        raise JsonFileNotFound(str(file_name)) from file_error
     except json.decoder.JSONDecodeError as json_error:
         raise MalformedJsonFile(str(file_name), json_error) from json_error
 
