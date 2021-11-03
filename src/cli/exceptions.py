@@ -8,7 +8,7 @@ class MalformedJsonFile(QneCliException):
     """Raised when trying to read a file containing malformed json """
 
     def __init__(self, file_name: str, e: Exception) -> None:
-        super().__init__(f'The file {file_name} does not contain valid json. Error: {e}')
+        super().__init__(f"The file '{file_name}' does not contain valid json. {e}")
 
 
 class ApplicationAlreadyExists(QneCliException):
@@ -94,7 +94,7 @@ class NotEnoughRoles(QneCliException):
 class JsonFileNotFound(QneCliException):
     """Json file not found that was expected"""
     def __init__(self, file_name: str) -> None:
-        super().__init__(f'File {file_name} not found')
+        super().__init__(f"File '{file_name}' not found")
 
 
 class PackageNotComplete(QneCliException):

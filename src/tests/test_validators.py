@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest.mock import patch
 import unittest
 
-from cli.exceptions import JsonFileNotFound, PackageNotComplete
+from cli.exceptions import JsonFileNotFound, MalformedJsonFile, PackageNotComplete
 from cli.validators import validate_json_file, validate_json_schema
 
 
@@ -106,15 +106,20 @@ class TestValidators(unittest.TestCase):
             system_mock.assert_called_once()
 
     def test_validate_json_file(self):
-        with patch("cli.validators.open") as open_mock, \
-             patch("cli.validators.json.load") as load_mock:
+        with patch("cli.validators.read_json_file") as read_json_file_mock:
 
-            validate_json_file(self.path)
-            open_mock.assert_called_once_with(self.path, encoding='utf-8')
-            load_mock.assert_called_once()
+            read_json_file_mock.return_value = '{}'
+            self.assertEqual(validate_json_file(self.path), (True, None))
+            read_json_file_mock.assert_called_once_with(self.path)
 
-            # When open fails
-            open_mock.reset_mock()
-            open_mock.return_value = False
-            validate_json_file(self.path)
-            open_mock.assert_called_once_with(self.path, encoding='utf-8')
+            # When file doesn't exist
+            read_json_file_mock.side_effect = JsonFileNotFound(f"{str(self.path)}")
+            self.assertRaises(JsonFileNotFound, validate_json_file, self.path)
+
+            # When file isn't json
+            read_json_file_mock.side_effect = MalformedJsonFile(str(self.path),
+                                                                Exception("Extra data: line 1 column 1 (char 31)"))
+            return_value, error = validate_json_file(self.path)
+            self.assertEqual(return_value, False)
+            self.assertIn(f"The file '{str(self.path)}' does not contain valid json. "
+                          f"Extra data: line 1 column 1 (char 31)", error)
