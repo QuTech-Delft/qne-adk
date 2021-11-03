@@ -4,57 +4,60 @@ from pathlib import Path
 import shutil
 from typing import Any, Dict, List, Optional
 
-from cli.exceptions import MalformedJsonFile, InvalidPathName
+from cli.exceptions import JsonFileNotFound, MalformedJsonFile, InvalidPathName
 
 
-def read_json_file(file: Path, encoding: str = 'utf-8') -> Any:
+def read_json_file(file_name: Path, encoding: str = 'utf-8') -> Any:
     """
-    Open the 'file' in 'encoding' format & read the data from the file
+    Open the file in 'encoding' format & read the data from the file
 
     Args:
-        file: Path specifying the json file to be read
+        file_name: Path specifying the json file to be read
         encoding: Encoding format in which to open the file
 
     Returns:
         The data read from json file
 
     Raises:
+        JsonFileNotFound: If the file doesn't exist
         MalformedJsonFile: If the file contains invalid json
     """
 
     try:
-        with open(file, encoding=encoding) as fp:
+        with open(file_name, encoding=encoding) as fp:
             return json.load(fp)
-    except json.decoder.JSONDecodeError as exception:
-        raise MalformedJsonFile(file, exception) from exception
+    except FileNotFoundError:
+        raise JsonFileNotFound(str(file_name))
+    except json.decoder.JSONDecodeError as json_error:
+        raise MalformedJsonFile(str(file_name), json_error) from json_error
 
 
-def write_json_file(file: Path, data: Any, encoding: str = 'utf-8') -> None:
+def write_json_file(file_name: Path, data: Any, encoding: str = 'utf-8') -> None:
     """
-    Open the 'file' & write the 'data' to the 'file'
+    Open the file & write the data to the file
 
     Args:
-        file: Path specifying the json file to be written to
+        file_name: Path specifying the json file to be written to
         data: Data to be written to file
         encoding: Encoding format in which to open the file
 
     """
 
-    with open(file, mode="w", encoding=encoding) as fp:
+    with open(file_name, mode="w", encoding=encoding) as fp:
         json.dump(data, fp, indent=2)
 
 
-def write_file(file: Path, data: Any, encoding: str = 'utf-8') -> None:
+def write_file(file_name: Path, data: Any, encoding: str = 'utf-8') -> None:
     """
-     Open the 'file' & write the 'data' to the 'file'
+     Open the file & write the data to the file
 
     Args:
-        file: Path specifying the file to be written to
+        file_name: Path specifying the file to be written to
         data: Data to be written to file
         encoding: Encoding format in which to open the file
     """
 
-    with open(file, mode="w", encoding=encoding) as fp:
+    with open(file_name, mode="w", encoding=encoding) as fp:
         fp.write(data)
 
 

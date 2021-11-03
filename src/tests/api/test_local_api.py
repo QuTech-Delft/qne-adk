@@ -5,7 +5,7 @@ from unittest.mock import call, patch, MagicMock
 from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
 from cli.output_converter import OutputConverter
-from cli.exceptions import ApplicationAlreadyExists, NoNetworkAvailable
+from cli.exceptions import ApplicationAlreadyExists, JsonFileNotFound, NoNetworkAvailable, PackageNotComplete
 
 
 class ApplicationValidate(unittest.TestCase):
@@ -157,6 +157,11 @@ class ApplicationValidate(unittest.TestCase):
             }
           ]
         }
+
+    def test_constructor(self):
+        with patch("cli.api.local_api.utils.read_json_file") as read_json_file_mock:
+            read_json_file_mock.side_effect = JsonFileNotFound("networks/networks.json")
+            self.assertRaises(PackageNotComplete, LocalApi, self.config_manager)
 
     def test_create_application(self):
         with patch.object(self.config_manager, "application_exists") as application_exists_mock, \

@@ -4,7 +4,8 @@ import shutil
 from typing import Any, cast, Dict, List, Optional, Tuple
 
 from cli import utils
-from cli.exceptions import ApplicationAlreadyExists, DirectoryAlreadyExists, NetworkNotFound, NoNetworkAvailable
+from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, JsonFileNotFound, NetworkNotFound,
+                            NoNetworkAvailable, PackageNotComplete)
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -42,8 +43,12 @@ class LocalApi:
             Returns:
                 Data read from the json file
         """
-        file = Path(BASE_DIR) / f"networks/{entity_name}.json"
-        generic_data: GenericNetworkData = utils.read_json_file(file)
+        file_name = Path(BASE_DIR) / f"networks/{entity_name}.json"
+        try:
+            generic_data: GenericNetworkData = utils.read_json_file(file_name)
+        except JsonFileNotFound:
+            raise PackageNotComplete(str(file_name)) from None
+
         return generic_data
 
     def _get_network_info(self, identifier_value: str, identifier_type: str = "slug") -> Optional[Dict[str, Any]]:
@@ -546,7 +551,7 @@ class LocalApi:
                     }
                     item["values"].append(value_item)
 
-            input_list.append(item)
+                input_list.append(item)
 
         return input_list
 
@@ -643,7 +648,7 @@ class LocalApi:
         Copy the input/source files of the 'application' to the 'input_directory'
 
         Args:
-            application: The application name for which the input files need to be copied
+            application_name: The application name for which the input files need to be copied
             input_directory: The destination where application files need to be stored
 
         """
@@ -704,17 +709,17 @@ class LocalApi:
         pass
 
     def run_experiment(self, path: Path) -> Optional[List[ResultType]]:
-        roundSetManager = RoundSetManager()
-        roundSetManager.prepare_input(path)
-        roundSetManager.process()
-        roundSetManager.terminate()
+        round_set_manager = RoundSetManager()
+        round_set_manager.prepare_input(path)
+        round_set_manager.process()
+        round_set_manager.terminate()
         return []
 
     def get_experiment(self, name: str) -> ExperimentType:
         pass
 
     def get_results(self, path: Path, all_results: bool) -> List[ResultType]:
-        outputConverter = OutputConverter('log_dir', 'output_dir')
+        output_converter = OutputConverter('log_dir', 'output_dir')
 
         result_list: List[ResultType] = []
         output_result: List[ResultType] = []
@@ -722,9 +727,9 @@ class LocalApi:
         total_rounds = self.get_experiment_rounds(path)
         if all_results:
             for round_number in range(1, total_rounds + 1):
-                output_result.append(outputConverter.convert(round_number, result_list))
+                output_result.append(output_converter.convert(round_number, result_list))
         else:
-            output_result.append(outputConverter.convert(total_rounds, result_list))
+            output_result.append(output_converter.convert(total_rounds, result_list))
 
         return output_result
 
@@ -743,5 +748,5 @@ class LocalApi:
         if not experiment_json.is_file():
             return False, 'File experiment.json not found in the current working directory'
 
-        roundSetManager = RoundSetManager()
-        return roundSetManager.validate_asset(path)
+        round_set_manager = RoundSetManager()
+        return round_set_manager.validate_asset(path)

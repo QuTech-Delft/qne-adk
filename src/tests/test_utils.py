@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest.mock import call, patch, mock_open
 import unittest
 
-from cli.exceptions import MalformedJsonFile, InvalidPathName
+from cli.exceptions import InvalidPathName, JsonFileNotFound, MalformedJsonFile
 from cli.utils import copy_files, get_dummy_application, get_py_dummy, read_json_file, reorder_data, write_json_file, \
     write_file, validate_path_name
 
@@ -37,7 +37,7 @@ class TestUtils(unittest.TestCase):
                             "}"
 
         with patch('cli.utils.open', mock_open(read_data=dummy_apps_config)):
-            data = read_json_file(Path('dummy'))
+            data = read_json_file(self.path)
             self.assertEqual(len(data), 2)
             self.assertIn('app_1', data)
             self.assertIn('app_2', data)
@@ -51,7 +51,11 @@ class TestUtils(unittest.TestCase):
                             "}"
 
         with patch('cli.utils.open', mock_open(read_data=malformed_apps_config)):
-            self.assertRaises(MalformedJsonFile, read_json_file, Path('dummy'))
+            self.assertRaises(MalformedJsonFile, read_json_file, self.path)
+
+    def test_read_json_file_not_found(self):
+        with patch('cli.utils.open', side_effect=FileNotFoundError):
+            self.assertRaises(JsonFileNotFound, read_json_file, self.path)
 
     def test_reorder_data(self):
         dict_1 = {'k1': 1, "k3": 3, "k2": 2}
@@ -87,9 +91,9 @@ class TestUtils(unittest.TestCase):
             listdir_mock.return_value = ['file1', 'file2']
             join_mock.side_effect = ['file1_path', 'file2_path']
 
-            copy_files("source", "dest")
+            copy_files(Path("source"), Path("dest"))
 
-            join_calls = [call("source", 'file1'), call("source", 'file2')]
+            join_calls = [call(Path("source"), 'file1'), call(Path("source"), 'file2')]
             join_mock.assert_has_calls(join_calls)
-            copy_calls = [call("file1_path", 'dest'), call("file2_path", 'dest')]
+            copy_calls = [call("file1_path", Path("dest")), call("file2_path", Path("dest"))]
             copy_mock.assert_has_calls(copy_calls)

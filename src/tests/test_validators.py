@@ -1,6 +1,8 @@
 from pathlib import Path
 from unittest.mock import patch
 import unittest
+
+from cli.exceptions import JsonFileNotFound, PackageNotComplete
 from cli.validators import validate_json_file, validate_json_schema
 
 
@@ -10,6 +12,20 @@ class TestValidators(unittest.TestCase):
         self.path = Path("dummy")
         self.roles = ["role1", "role2"]
         self.invalid_name = "invalid/name"
+
+    def test_json_schema_not_found(self):
+        json_file = {
+            "application": [
+                {
+                    "title": "Title for this application",
+                    "description": "Description of this application"
+                }
+            ]
+        }
+
+        with patch("cli.validators.read_json_file") as read_json_file_mock:
+            read_json_file_mock.side_effect = [json_file, JsonFileNotFound("schema/applications/application.json")]
+            self.assertRaises(PackageNotComplete, validate_json_schema, self.path, self.path)
 
     def test_validate_json_schema(self):
         with patch("cli.validators.read_json_file") as read_json_file_mock, \

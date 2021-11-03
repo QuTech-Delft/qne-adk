@@ -1,4 +1,3 @@
-from pathlib import Path
 
 
 class QneCliException(Exception):
@@ -8,8 +7,8 @@ class QneCliException(Exception):
 class MalformedJsonFile(QneCliException):
     """Raised when trying to read a file containing malformed json """
 
-    def __init__(self, path: Path, e: Exception) -> None:
-        super().__init__(f'The file {path} does not contain valid json. Error: {e}')
+    def __init__(self, file_name: str, e: Exception) -> None:
+        super().__init__(f'The file {file_name} does not contain valid json. Error: {e}')
 
 
 class ApplicationAlreadyExists(QneCliException):
@@ -90,6 +89,20 @@ class NotEnoughRoles(QneCliException):
 
     def __init__(self) -> None:
         super().__init__("The number of roles must be higher than one")
+
+
+class JsonFileNotFound(QneCliException):
+    """Json file not found that was expected"""
+    def __init__(self, file_name: str) -> None:
+        super().__init__(f'File {file_name} not found')
+
+
+class PackageNotComplete(QneCliException):
+    """Essential package file is missing"""
+
+    def __init__(self, file_name: str) -> None:
+        super().__init__(f'File {file_name} not found. This file is essential for the correct operation of '
+                         f'this package. Please reinstall the package')
 
 
 class RolesNotUnique(QneCliException):
