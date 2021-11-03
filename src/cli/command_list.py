@@ -15,7 +15,7 @@ from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.command_processor import CommandProcessor
 from cli.decorators import catch_qne_cli_exceptions
-from cli.exceptions import NotEnoughRoles, RolesNotUnique
+from cli.exceptions import NotEnoughRoles, RolesNotUnique, CommandNotImplemented
 from cli.managers.config_manager import ConfigManager
 from cli.settings import Settings
 from cli.type_aliases import ErrorDictType
@@ -50,9 +50,7 @@ def login(
     """
     Log in to a Quantum Network Explorer.
     """
-    typer.echo(f"Log in to '{host}', as user '{username}'")
-    processor.login(host=host, username=username, password=password)
-    typer.echo("Log in succeeded")
+    raise CommandNotImplemented
 
 
 @app.command("logout")
@@ -61,11 +59,7 @@ def logout(host: str = typer.Argument(None)) -> None:
     """
     Log out from a Quantum Network Explorer.
     """
-    logout_host = "active" if host is None else f"'{host}'"
-    typer.echo(f"Logging out from {logout_host} host")
-    processor.logout(host=host)
-    typer.echo("Log out succeeded")
-
+    raise CommandNotImplemented
 
 @applications_app.command("create")
 @catch_qne_cli_exceptions
@@ -102,11 +96,7 @@ def applications_delete() -> None:
     """
     Delete remote application.
     """
-    cwd = Path.cwd()
-    application_name, _ = config_manager.get_application_from_path(cwd)
-    typer.echo(f"Delete application '{application_name}'")
-    processor.applications_delete(application_name=application_name)
-    typer.echo("Application deleted successfully")
+    raise CommandNotImplemented
 
 
 @applications_app.command("init")
@@ -115,13 +105,7 @@ def applications_init() -> None:
     """
     Initialize an existing application.
     """
-    cwd = Path.cwd()
-    typer.echo(
-        f"Initialize directory '{cwd}' as a Quantum Network Explorer application"
-    )
-    processor.applications_init(cwd)
-    typer.echo("Directory successfully initialized")
-
+    raise CommandNotImplemented
 
 @applications_app.command("upload")
 @catch_qne_cli_exceptions
@@ -129,19 +113,11 @@ def applications_upload() -> None:
     """
     Create or update a remote application.
     """
-    cwd = Path.cwd()
-    application_name, _ = config_manager.get_application_from_path(cwd)
-    typer.echo(f"Upload application '{application_name}' to Quantum Network Explorer")
-    processor.applications_upload(application_name=application_name)
-    typer.echo("Application successfully uploaded")
-
+    raise CommandNotImplemented
 
 @applications_app.command("list")
 @catch_qne_cli_exceptions
 def applications_list(
-    remote: Optional[bool] = typer.Option(
-        False, "--remote", help="List remote applications"
-    ),
     local: Optional[bool] = typer.Option(
         False, "--local", help="List local applications"
     ),
@@ -149,8 +125,11 @@ def applications_list(
     """
     List applications available to the user.
     """
+    # Temporary force local only
+    remote = False
+
     if not remote and not local:
-        remote = local = True
+        local = True
 
     applications = processor.applications_list(remote=remote, local=local)
 
@@ -158,20 +137,20 @@ def applications_list(
         if len(applications['local']) == 0:
             typer.echo("There are no local applications available")
         else:
-            typer.echo(f"{len(applications['local'])} local application(s)")
             desired_order_columns = ['name', 'application_id', 'path']
             local_app_list = reorder_data(applications['local'], desired_order_columns)
             typer.echo(tabulate(local_app_list, headers='keys'))
+            typer.echo(f"{len(applications['local'])} local application(s)")
             typer.echo()
 
     if remote:
         if len(applications['remote']) == 0:
             typer.echo("There are no remote applications available")
         else:
-            typer.echo(f"{len(applications['remote'])} remote application(s)")
             desired_order_columns = ['name', 'application_id', 'path']
             remote_app_list = reorder_data(applications['remote'], desired_order_columns)
             typer.echo(tabulate(remote_app_list, headers='keys'))
+            typer.echo(f"{len(applications['remote'])} remote application(s)")
 
 
 @applications_app.command("publish")
@@ -180,11 +159,7 @@ def applications_publish() -> None:
     """
     Request the application to be published online.
     """
-    cwd = Path.cwd()
-    application_name, _ = config_manager.get_application_from_path(cwd)
-    typer.echo(f"Publish application '{application_name}'")
-    processor.applications_publish(application_name=application_name)
-    typer.echo("Request to publish application sent successfully")
+    raise CommandNotImplemented
 
 
 def show_validation_messages(validation_dict: ErrorDictType) -> None:
@@ -224,12 +199,15 @@ def experiments_create(
     application_name: str = typer.Argument(..., help="Name of the application"),
     network_name: str = typer.Argument(..., help="Name of the network to use"),
     local: bool = typer.Option(
-        True, "--local/--remote", help="Run the application locally"
+        True, "--local", help="Run the application locally"
     ),
 ) -> None:
     """
     Create new experiment.
     """
+    # Temporary force local only
+    if not local:
+        local = True
     validate_path_name("Experiment", experiment_name)
 
     cwd = Path.cwd()
@@ -250,11 +228,7 @@ def experiments_list() -> None:
     """
     List experiments.
     """
-    typer.echo("List all remote experiments")
-    experiments = processor.experiments_list()
-    for experiment in experiments:
-        typer.echo(experiment)
-
+    raise CommandNotImplemented
 
 @experiments_app.command("delete")
 @catch_qne_cli_exceptions
@@ -262,11 +236,7 @@ def experiments_delete() -> None:
     """
     Delete local and remote experiment files.
     """
-    cwd = Path.cwd()
-    typer.echo("Delete local and remote experiment files")
-    processor.experiments_delete(path=cwd)
-    typer.echo("Experiment deleted successfully")
-
+    raise CommandNotImplemented
 
 @experiments_app.command("run")
 @catch_qne_cli_exceptions
