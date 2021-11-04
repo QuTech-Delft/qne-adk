@@ -732,12 +732,12 @@ class LocalApi:
         local = True
         error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
 
-        self.validate_experiment_json(path=path, error_dict=error_dict)
-        self.validate_experiment_input(path=path, local=local, error_dict=error_dict)
+        self._validate_experiment_json(path=path, error_dict=error_dict)
+        self._validate_experiment_input(path=path, local=local, error_dict=error_dict)
 
         return error_dict
 
-    def validate_experiment_json(self, path: Path, error_dict: ErrorDictType) -> None:
+    def _validate_experiment_json(self, path: Path, error_dict: ErrorDictType) -> None:
         """
         This function validates if experiment.json contains valid json and if it passes schema validation.
 
@@ -765,17 +765,17 @@ class LocalApi:
             # Check if the chosen network exists
             if self._get_network_info(experiment_network_slug) is not None:
                 # Validate experiment nodes
-                self.validate_experiment_nodes(experiment_file_path, experiment_data, error_dict)
+                self._validate_experiment_nodes(experiment_file_path, experiment_data, error_dict)
                 # Validate experiment channels
-                self.validate_experiment_channels(experiment_file_path, experiment_data, error_dict)
+                self._validate_experiment_channels(experiment_file_path, experiment_data, error_dict)
             else:
                 error_dict["warning"].append(
                     f"In file '{experiment_file_path}': network '{experiment_network_slug}' "
                     f"does not exist")
 
-            self.validate_experiment_application(path, experiment_data, error_dict)
+            self._validate_experiment_application(path, experiment_data, error_dict)
 
-    def validate_experiment_input(self, path: Path, local: bool, error_dict: ErrorDictType) -> None:
+    def _validate_experiment_input(self, path: Path, local: bool, error_dict: ErrorDictType) -> None:
         """
         Validates if the experiment file structures input directory containing a:
         - (local only) network.json, application.json, result.json, app_role1.py, app_role2.py, ...
@@ -785,6 +785,7 @@ class LocalApi:
             local: If the experiment is a local or not
             error_dict: Dictionary containing error and warning messages of the validations that failed
         """
+        # pylint: disable-msg=too-many-nested-blocks
         experiment_input_path = path / 'input'
 
         if experiment_input_path.is_dir():
@@ -809,7 +810,7 @@ class LocalApi:
         else:
             error_dict["error"].append(f"Required directory not found: '{experiment_input_path}'")
 
-    def validate_experiment_nodes(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
+    def _validate_experiment_nodes(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
                                   ErrorDictType) -> None:
         """
         Validate if the amount of nodes (defined in the experiment.json file) are valid for 'network_slug' and if
@@ -838,7 +839,7 @@ class LocalApi:
                 error_dict["error"].append(f"In file '{experiment_file_path}': '{node['slug']}' does not exist or does "
                                            f"not belong to the network '{experiment_network_slug}'")
 
-    def validate_experiment_channels(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
+    def _validate_experiment_channels(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
                                      ErrorDictType) -> None:
         """
         Validate if the amount of channels (defined in the experiment.json file) are valid for 'network_slug' and if
@@ -854,19 +855,21 @@ class LocalApi:
         experiment_network_slug = experiment_data["asset"]["network"]["slug"]
         experiment_channels = experiment_data["asset"]["network"]["channels"]
         network_channels = self._get_channels_for_network(network_slug=experiment_network_slug)
+        if network_channels is not None:
+            if len(experiment_channels) > len(network_channels):
+                error_dict["error"].append(f"In file {experiment_file_path}: too many channels used in network "
+                                           f"'{experiment_network_slug}'. Maximum amount of channels that can be used: "
+                                           f"{len(network_channels)}")
 
-        if len(experiment_channels) > len(network_channels):
-            error_dict["error"].append(f"In file {experiment_file_path}: too many channels used in network "
-                                       f"'{experiment_network_slug}'. Maximum amount of channels that can be used: "
-                                       f"{len(network_channels)}")
+            # Check if the channels exist and belong to this network
+            for channel in experiment_channels:
+                if not channel["slug"] in network_channels:
+                    error_dict["error"].append(f"In file '{experiment_file_path}': '{channel['slug']}' does not exist "
+                                               f"or is not a valid channel for network '{experiment_network_slug}'")
+        else:
+            error_dict["error"].append(f"No channels found for network '{experiment_network_slug}'")
 
-        # Check if the channels exist and belong to this network
-        for channel in experiment_channels:
-            if not channel["slug"] in network_channels:
-                error_dict["error"].append(f"In file '{experiment_file_path}': '{channel['slug']}' does not exist or "
-                                           f"is not a valid channel for network '{experiment_network_slug}'")
-
-    def validate_experiment_application(self, path: Path, experiment_data: Dict[str, Any],
+    def _validate_experiment_application(self, path: Path, experiment_data: Dict[str, Any],
                                         error_dict: ErrorDictType) -> None:
         """
         Validate the ['application'] key defined in the asset of experiment.json. Check if the roles match the roles
@@ -896,4 +899,3 @@ class LocalApi:
             except MalformedJsonFile:
                 # The file 'network.json' will be checked against the schema in validate_experiment_input
                 pass
-
