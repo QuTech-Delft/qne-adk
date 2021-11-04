@@ -184,23 +184,7 @@ class TestCommandList(unittest.TestCase):
                                                            network_name='network_1', local=True, path='test')
 
     def test_experiment_validate(self):
-        with patch("cli.command_list.Path.cwd") as mock_cwd,\
-             patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock:
-
-            mock_cwd.return_value = 'test'
-            exp_validate_mock.return_value = True, 'ok'
-
-            validate_output = self.runner.invoke(experiments_app, ['validate'])
-            self.assertEqual(validate_output.exit_code, 0)
-            exp_validate_mock.assert_called_once_with(path='test')
-            self.assertIn("Experiment is valid", validate_output.stdout)
-
-            exp_validate_mock.reset_mock()
-            exp_validate_mock.return_value = False, 'lorem ipsum error'
-            validate_output = self.runner.invoke(experiments_app, ['validate'])
-            self.assertEqual(validate_output.exit_code, 0)
-            exp_validate_mock.assert_called_once_with(path='test')
-            self.assertIn("Experiment is not valid: lorem ipsum error", validate_output.stdout)
+        pass
 
     def test_experiment_run(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd,\

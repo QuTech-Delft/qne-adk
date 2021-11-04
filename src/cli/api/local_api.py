@@ -1,8 +1,8 @@
 import os
-from cli.exceptions import ApplicationAlreadyExists, DirectoryAlreadyExists, NetworkNotFound, NoNetworkAvailable
-from typing import Any, cast, Dict, List, Optional, Tuple
 from pathlib import Path
 import shutil
+from typing import Any, cast, Dict, List, Optional, Tuple
+
 from cli import utils
 from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, JsonFileNotFound, NetworkNotFound,
                             NoNetworkAvailable, PackageNotComplete)
@@ -15,9 +15,7 @@ from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkT
                               app_configApplicationType, assetApplicationType, assetNetworkType,
                               ExperimentType, ErrorDictType, GenericNetworkData, ResultType,
                               ChannelData, NetworkData, NodeData, TemplateData)
-from cli.utils import (read_json_file, write_json_file, get_py_dummy, write_file,
-                       get_dummy_application)
-
+from cli.validators import validate_json_file, validate_json_schema
 
 
 class LocalApi:
@@ -196,8 +194,8 @@ class LocalApi:
         # Read network
         network_nodes: Dict[str, List[str]] = {}
 
-        data_networks = read_json_file(networks_file)
-        data_channels = read_json_file(channels_file)
+        data_networks = self.__networks_data
+        data_channels = self.__channels_data
 
         for network in data_networks["networks"]:
             for channel in data_channels["channels"]:
@@ -291,7 +289,7 @@ class LocalApi:
         app_config_path.mkdir(parents=True, exist_ok=True)
 
         for role in roles:
-            write_file(app_src_path / f"app_{role}.py", get_py_dummy())
+            utils.write_file(app_src_path / f"app_{role}.py", utils.get_py_dummy())
 
         # Network.json configuration
         networks = {"networks": [], "roles": roles}
@@ -310,17 +308,17 @@ class LocalApi:
             shutil.rmtree(path / application_name)
             raise NoNetworkAvailable()
 
-        write_json_file(app_config_path / "network.json", networks)
+        utils.write_json_file(app_config_path / "network.json", networks)
 
         # Application.json configuration
-        data = get_dummy_application(roles)
-        write_json_file(app_config_path / "application.json", data)
+        data = utils.get_dummy_application(roles)
+        utils.write_json_file(app_config_path / "application.json", data)
 
         # Result.json configuration
-        write_json_file(app_config_path / "result.json", [])
+        utils.write_json_file(app_config_path / "result.json", [])
 
         # Manifest.ini configuration
-        write_file(path / application_name / "MANIFEST.ini", "")
+        utils.write_file(path / application_name / "MANIFEST.ini", "")
 
         self.__config_manager.add_application(application_name, path)
 
@@ -408,7 +406,7 @@ class LocalApi:
         return ['application.json', 'network.json', 'result.json']
 
     def __get_role_file_names(self, app_config_path: Path) -> List[str]:
-        config_network_data = read_json_file(app_config_path / "network.json")
+        config_network_data = utils.read_json_file(app_config_path / "network.json")
         config_application_roles = config_network_data['roles'] if 'roles' in config_network_data else []
 
         # Add app_ and .py to each role in config/network.json so that it matches the python files listed
@@ -582,7 +580,6 @@ class LocalApi:
         """
         Prepare the asset by filling the network parameters with default values
 
-<<<<<<< HEAD
         Args:
             network_data: Network information containing channels and nodes list
             app_config: A dictionary containing application configuration information
@@ -785,7 +782,7 @@ class LocalApi:
             is_valid, _ = validate_json_file(experiment_json)
 
             if is_valid:
-                experiment = read_json_file(experiment_json)
+                experiment = utils.read_json_file(experiment_json)
                 if 'location' in experiment['meta']['backend']:
                     if not experiment['meta']['backend']['location'] == "local":
                         error_dict['warning'].append(f"In file {experiment_json}: only 'local' is supported for "
@@ -857,7 +854,7 @@ class LocalApi:
             if not valid:
                 error_dict['error'].append(message)
             else:
-                experiment_data = read_json_file(experiment_file_path)
+                experiment_data = utils.read_json_file(experiment_file_path)
                 if 'slug' in experiment_data['asset']['network']:
                     experiment_network_slug = experiment_data['asset']['network']['slug']
                     # Check if the chosen network exists
@@ -912,7 +909,6 @@ class LocalApi:
                 error_dict['error'].append(f"In file {experiment_file_path}: '{node['slug']}' does not exist or does "
                                            f"not belong to the network '{experiment_network_slug}'")
 
-
     def validate_experiment_channels(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
                                      ErrorDictType) -> None:
         """
@@ -962,7 +958,7 @@ class LocalApi:
             is_network_valid, _ = self.check_json_file_validity(experiment_input_path / 'network.json',
                                                                 network_schema_path)
             if is_network_valid:
-                application_network_data = read_json_file(experiment_input_path / 'network.json')
+                application_network_data = utils.read_json_file(experiment_input_path / 'network.json')
                 application_roles = application_network_data['roles']
                 for item in experiment_application_data:
                     experiment_roles = item["roles"]

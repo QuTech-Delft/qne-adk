@@ -181,7 +181,7 @@ class ApplicationValidate(unittest.TestCase):
 
     def test__create_application_structure(self):
         with patch('cli.api.local_api.Path.mkdir') as mock_mkdir, \
-             patch.object(LocalApi, "_get_network_nodes") as check_network_nodes_mock, \
+             patch.object(LocalApi, "_get_nodes") as _get_nodes_mock, \
              patch("cli.api.local_api.utils.get_dummy_application") as get_dummy_application_mock, \
              patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
              patch("cli.api.local_api.utils.write_json_file") as write_json_file_mock, \
@@ -189,7 +189,7 @@ class ApplicationValidate(unittest.TestCase):
              patch.object(self.config_manager, "application_exists", return_value=False) as application_exists_mock, \
              patch.object(self.config_manager, 'add_application') as config_manager_mock:
 
-            check_network_nodes_mock.return_value = {"dummy_network": ["network1", "network2", "network3"]}
+            _get_nodes_mock.return_value = {"dummy_network": ["network1", "network2", "network3"]}
             get_dummy_application_mock.return_value = {'application': [{'roles': ['dummy_role']}]}
             application_exists_mock.return_value = (False, self.path)
             self.local_api.create_application(self.application, self.roles, self.path)
@@ -200,13 +200,13 @@ class ApplicationValidate(unittest.TestCase):
             self.assertEqual(mock_mkdir.call_count, 2)
             write_json_file_mock.call_count = 3
             write_file_mock.call_count = 2
-            check_network_nodes_mock.assert_called_once()
+            _get_nodes_mock.assert_called_once()
             get_dummy_application_mock.assert_called_once()
             application_exists_mock.assert_called_once_with(self.application)
             config_manager_mock.assert_called_once_with(self.application, self.path)
 
             # Raise exception when no network available
-            check_network_nodes_mock.return_value = {}
+            _get_nodes_mock.return_value = {}
             self.assertRaises(NoNetworkAvailable, self.local_api.create_application, self.application, self.roles,
                               self.path)
             rmtree_mock.assert_called_once()
@@ -253,7 +253,7 @@ class ApplicationValidate(unittest.TestCase):
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
              patch("cli.api.local_api.validate_json_file") as validate_json_file_mock, \
-             patch("cli.api.local_api.read_json_file") as read_json_file_mock, \
+             patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("cli.api.local_api.os.path.exists", return_value=True) as exists_mock, \
              patch("cli.api.local_api.os.path.isfile", return_value=True) as isfile_mock, \
              patch("cli.api.local_api.os.listdir") as listdir_mock:
@@ -262,7 +262,7 @@ class ApplicationValidate(unittest.TestCase):
             isfile_mock.side_effect = [True, True, True, True, True]
             get_application_path_mock.return_value = self.path
             listdir_mock.return_value = ["role1.py", "role2.py"]
-            read_json_file_mock.return_value = [{"roles": ["role1", "role2"]}]
+            get_role_file_names_mock.return_value = [{"roles": ["role1", "role2"]}]
             validate_json_file_mock.return_value = (True, None)
             self.local_api.is_application_valid(application_name=self.application)
             exists_mock.call_count = 4
@@ -342,31 +342,18 @@ class ApplicationValidate(unittest.TestCase):
 
     def test_create_experiment(self):
         with patch("cli.api.local_api.utils.write_json_file") as write_mock, \
-             patch("cli.api.local_api.read_json_file") as read_mock, \
              patch('cli.api.local_api.Path.mkdir') as mkdir_mock, \
-             patch("cli.api.local_api.utils.copy_files") as copy_files_mock, \
-             patch.object(self.config_manager, "application_exists") as application_exists_mock:
-
-            application_exists_mock.return_value = True, 'dummy_app_path'
-            read_mock.return_value = {
-              "roles": [
-                "sender",
-                "receiver"
-              ]
-            }
+             patch.object(LocalApi, "_LocalApi__copy_input_files_from_application") as copy_files_mock:
 
             self.local_api.create_experiment(experiment_name='test', app_config=self.mock_app_config,
                                              asset_network={'a': 'b'}, path=Path('dummy'), application_name='app_name')
 
             self.assertEqual(mkdir_mock.call_count, 2)
 
-            application_exists_mock.assert_called_once_with(application_name='app_name')
             experiment_dir = Path('dummy') / 'test'
             input_dir = experiment_dir / 'input'
-            copy_files_call = [call(Path("dummy_app_path") / "config", input_dir,
-                                    files_list=['application.json', 'network.json', 'result.json']),
-                               call(Path("dummy_app_path") / "src", input_dir,
-                                    files_list=['app_sender.py', 'app_receiver.py'])]
+            copy_files_call = [call('app_name', input_dir)]
+
             copy_files_mock.assert_has_calls(copy_files_call)
 
             expected_asset_application = [{
@@ -398,25 +385,7 @@ class ApplicationValidate(unittest.TestCase):
             self.assertIsNone(config)
 
     def test_validate_experiment(self):
-        with patch("cli.api.local_api.Path.is_file") as is_file_mock, \
-             patch.object(RoundSetManager, "validate_asset") as validate_asset_mock:
-
-            is_file_mock.return_value = True
-            validate_asset_mock.return_value = True, 'ok'
-            is_valid, message = self.local_api.validate_experiment(Path('dummy'))
-            is_file_mock.assert_called_once()
-            validate_asset_mock.assert_called_once_with(Path('dummy'))
-            self.assertEqual(is_valid, True)
-            self.assertEqual(message, 'ok')
-
-            is_file_mock.reset_mock()
-            is_file_mock.return_value = False
-            validate_asset_mock.reset_mock()
-            is_valid, message = self.local_api.validate_experiment(Path('dummy'))
-            is_file_mock.assert_called_once()
-            self.assertEqual(is_valid, False)
-            self.assertEqual(message, 'File experiment.json not found in the current working directory')
-            validate_asset_mock.assert_not_called()
+        pass
 
     def test_run_experiment(self):
         with patch.object(RoundSetManager, "prepare_input") as prepare_input_mock, \
@@ -464,7 +433,7 @@ class ApplicationValidate(unittest.TestCase):
             self.assertFalse(network_available)
 
     def test_get_network_data(self):
-        with patch.object(LocalApi, "_get_network_nodes") as get_network_nodes_mock, \
+        with patch.object(LocalApi, "_get_nodes") as _get_nodes_mock, \
          patch.object(LocalApi, "_get_network_slug") as get_network_slug_mock, \
          patch.object(LocalApi, "_get_channels_for_network") as get_channels_for_network_mock, \
          patch.object(LocalApi, "_get_channel_info") as get_channel_info_mock, \
@@ -473,7 +442,7 @@ class ApplicationValidate(unittest.TestCase):
             channel_info_list = [{"slug": "c1-slug"},{"slug": "c2-slug"},{"slug": "c3-slug"}]
             node_info_list = [{"slug": "n1-slug"}, {"slug": "n2-slug"}, {"slug": "n3-slug"}]
 
-            get_network_nodes_mock.return_value = {"network-slug-1": ["n1", "n2", "n3"]}
+            _get_nodes_mock.return_value = {"network-slug-1": ["n1", "n2", "n3"]}
             get_network_slug_mock.return_value = 'network-slug-1'
             get_channels_for_network_mock.return_value = ['c1', 'c2', 'c3']
             get_channel_info_mock.side_effect = channel_info_list
@@ -606,7 +575,7 @@ class ApplicationValidate(unittest.TestCase):
             self.assertEqual(len(n3_node["qubits"][0]['qubit_parameters']), 1)
             self.assertDictEqual(n3_node["qubits"][0]['qubit_parameters'][0], expected_param_2_dict)
 
-    def test_get_network_nodes(self):
+    def test_get_nodes(self):
         with patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock:
             read_generic_mock.side_effect = \
                 [
@@ -649,7 +618,7 @@ class ApplicationValidate(unittest.TestCase):
                 ]
 
             test_local_api = LocalApi(config_manager=self.config_manager)
-            data = test_local_api._get_network_nodes() # pylint: disable=W0212
+            data = test_local_api._get_nodes()  # pylint: disable=W0212
             self.assertEqual(data, {'randstad': ['amsterdam', 'leiden', 'the-hague']})
 
             # Check when only two nodes are available
@@ -687,7 +656,7 @@ class ApplicationValidate(unittest.TestCase):
                 ]
 
             test_local_api = LocalApi(config_manager=self.config_manager)
-            data = test_local_api._get_network_nodes() # pylint: disable=W0212
+            data = test_local_api._get_nodes()  # pylint: disable=W0212
             self.assertEqual(data, {'randstad': ['amsterdam', 'leiden']})
 
     def test_network_helpers(self):

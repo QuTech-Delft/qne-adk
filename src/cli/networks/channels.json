@@ -11,7 +11,7 @@
     {
       "slug": "leiden-the-hague",
       "node1": "leiden",
-      "node2": "the_hague",
+      "node2": "the-hague",
       "parameters": [
         "elementary-link-fidelity"
       ]
@@ -19,7 +19,7 @@
     {
       "slug": "delft-the-hague",
       "node1": "delft",
-      "node2": "the_hague",
+      "node2": "the-hague",
       "parameters": [
         "elementary-link-fidelity"
       ]
