@@ -115,7 +115,7 @@ class ConfigManager:
 
         for application_name in applications:
             application_path = self.get_application_path(application_name)
-            if application_path is not None and application_path.lower() == os.path.join(str(path), '').lower():
+            if application_path is not None and application_path == os.path.join(str(path), ''):
                 return application_name, applications[application_name]
 
         raise ApplicationDoesNotExist()

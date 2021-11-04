@@ -4,13 +4,6 @@ class QneCliException(Exception):
     """Base exception for Qne Cli exceptions"""
 
 
-class MalformedJsonFile(QneCliException):
-    """Raised when trying to read a file containing malformed json"""
-
-    def __init__(self, file_name: str, e: Exception) -> None:
-        super().__init__(f"The file '{file_name}' does not contain valid json. {e}")
-
-
 class ApplicationAlreadyExists(QneCliException):
     """Raised when application name is not unique and already exists in .qne/application.json"""
 
@@ -43,15 +36,15 @@ class CommandNotImplemented(QneCliException):
 class DirectoryIsFile(QneCliException):
     """Raised when a directory we want to create is already a file"""
 
-    def __init__(self, path_name: str) -> None:
-        super().__init__(f"Cannot create directory '{path_name}'. It appears to be a file already")
+    def __init__(self, path: str) -> None:
+        super().__init__(f"Cannot create directory '{path}'. It appears to be a file already")
 
 
 class DirectoryAlreadyExists(QneCliException):
     """Raised when a directory already exists at the given path"""
 
-    def __init__(self, obj: str, path_name: str) -> None:
-        super().__init__(f"{obj} directory '{path_name}' already exists")
+    def __init__(self, obj: str, path: str) -> None:
+        super().__init__(f"{obj} directory '{path}' already exists")
 
 
 class ExperimentDirectoryAlreadyExists(QneCliException):
@@ -68,6 +61,13 @@ class InvalidPathName(QneCliException):
     def __init__(self, obj: str) -> None:
         super().__init__(f"{obj} name can't contain any of the following characters: ['/', '\\', '*',"
                          f" ':', '?', '\"', '<', '>', '|']")
+
+
+class MalformedJsonFile(QneCliException):
+    """Raised when trying to read a file containing malformed json"""
+
+    def __init__(self, file_name: str, e: Exception) -> None:
+        super().__init__(f"The file '{file_name}' does not contain valid json. {e}")
 
 
 class NetworkNotFound(QneCliException):

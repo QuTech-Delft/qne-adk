@@ -170,7 +170,6 @@ def show_validation_messages(validation_dict: ErrorDictType) -> None:
         if validation_dict[key]:
             for item in validation_dict[key]:
                 typer.echo(f"{key.upper()}: {item}")
-            # print("\n")
 
 
 @applications_app.command("validate")
@@ -186,7 +185,7 @@ def applications_validate() -> None:
 
     show_validation_messages(error_dict)
 
-    if error_dict['error'] or error_dict['warning']:
+    if error_dict["error"] or error_dict["warning"]:
         typer.echo("Application is invalid")
     else:
         typer.echo("Application is valid")
@@ -213,7 +212,7 @@ def experiments_create(
     cwd = Path.cwd()
 
     validate_dict = processor.applications_validate(application_name)
-    if validate_dict['error'] or validate_dict['warning']:
+    if validate_dict["error"] or validate_dict["warning"]:
         show_validation_messages(validate_dict)
         typer.echo(f"Application '{application_name}' is invalid. Experiment not created.")
     else:
@@ -263,13 +262,13 @@ def experiments_validate() -> None:
     """
     Validate the experiment configuration.
     """
-    cwd = Path.cwd() / 'fer15e'
+    cwd = Path.cwd()
     experiment_name = cwd.name
     typer.echo(f"Validate experiment '{experiment_name}'\n")
     error_dict = processor.experiments_validate(path=cwd)
     show_validation_messages(error_dict)
 
-    if error_dict['error'] or error_dict['warning']:
+    if error_dict["error"] or error_dict["warning"]:
         typer.echo("Experiment is invalid")
     else:
         typer.echo("Experiment is valid")

@@ -10,21 +10,46 @@ from cli.utils import read_json_file
 
 
 def validate_json_file(file_name: Path) -> Tuple[bool, Any]:
+    """Checks file for existence and valid json
+
+    Args:
+        file_name: The file to check
+
+    Returns:
+        False and an error message in case the file doesn't exist or is not valid json or True and None
+    """
     try:
         read_json_file(file_name)
         return True, None
     except JsonFileNotFound as file_error:
-        raise file_error
+        return False, str(file_error)
     except MalformedJsonFile as e:
         return False, str(e)
 
 
-def validate_json_schema(instance_path: Path, schema_path: Path) -> Tuple[bool, Any]:
-    """First check input for valid json, then check input for validity of the json schema"""
+def validate_json_schema(file_name: Path, schema_path: Path) -> Tuple[bool, Any]:
+    """First read input and check for existence and valid json. Then read schema and check schema for existence.
+     Then check input for validity against the json schema.
+
+    Args:
+        file_name: The file to check
+        schema_path: The schema to check the file against
+
+    Returns:
+        False and an error message in case:
+            the input doesn't exist
+            the input is not valid json
+            the input is not valid json for the schema
+        Otherwise True and None (success)
+    Raises:
+        PackageNotComplete when the schema is not found
+    """
     try:
-        json_file = read_json_file(instance_path)
+        json_file = read_json_file(file_name)
+    except JsonFileNotFound as file_error:
+        return False, str(file_error)
     except MalformedJsonFile as malformed_json_error:
-        return False, f"In file {instance_path}: {str(malformed_json_error)}"
+        return False, f"{malformed_json_error}"
     try:
         json_schema = read_json_file(schema_path)
     except JsonFileNotFound:
@@ -40,4 +65,4 @@ def validate_json_schema(instance_path: Path, schema_path: Path) -> Tuple[bool, 
         Draft7Validator(json_schema, resolver=resolver, format_checker=draft7_format_checker).validate(json_file)
         return True, None
     except ValidationError as ve:
-        return False, f"In file {instance_path}: {ve.message}"
+        return False, f'In file {file_name}: {ve.message}'
