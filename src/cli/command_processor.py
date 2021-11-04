@@ -4,7 +4,8 @@ from typing import cast, Dict, List, Optional, Tuple
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.decorators import log_function
-from cli.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication
+from cli.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication, \
+    ResultDirectoryNotAvailable
 from cli.type_aliases import ApplicationType, ExperimentType, ErrorDictType, GeneratedResultType
 from cli import utils
 
@@ -158,7 +159,7 @@ class CommandProcessor:
     def __get_results(self, path: Path) -> GeneratedResultType:
         processed_results_directory = path / "results"
         if not processed_results_directory.is_dir():
-            raise Exception(f"Results are not available for experiment at location {path}")
+            raise ResultDirectoryNotAvailable(str(processed_results_directory))
 
         processed_result_json_file = processed_results_directory / 'processed.json'
         return cast(GeneratedResultType, utils.read_json_file(processed_result_json_file))

@@ -256,10 +256,10 @@ def experiments_run(
 
     if results:
         if "error" in results["round_result"]:
-            typer.echo("Error encountered while running the experiment.")
+            typer.echo("Error encountered while running the experiment")
             typer.echo(results["round_result"]["error"])
         else:
-            typer.echo("Experiment was run successfully. You can check the results using experiment results command.")
+            typer.echo("Experiment was run successfully. You can check the results using experiment results command")
 
 
 @experiments_app.command("validate")
@@ -299,4 +299,4 @@ def experiments_results(
     if show:
         typer.echo(results)
     else:
-        typer.echo(f"{result_noun.title()} are stored at location results/processed.json.")
+        typer.echo(f"{result_noun.title()} are stored at location results/processed.json")
