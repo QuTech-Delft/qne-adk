@@ -924,7 +924,7 @@ class LocalApi:
         # Check if the amount of channels are valid for this network
         experiment_network_slug = experiment_data['asset']['network']['slug']
         experiment_channels = experiment_data['asset']['network']['channels']
-        network_channels = [self._get_channels_for_network(experiment_network_slug)]
+        network_channels = self._get_channels_for_network(experiment_network_slug)
 
         if len(experiment_channels) > len(network_channels):
             error_dict['error'].append(f"In file {experiment_file_path}: too many channels used in network "

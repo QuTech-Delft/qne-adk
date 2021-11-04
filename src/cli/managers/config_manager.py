@@ -106,7 +106,7 @@ class ConfigManager:
         application = self.get_application(application_name)
         if application:
             if 'path' in application and os.path.exists(application['path']):
-                return application['path'].lower()
+                return application['path']
 
         return None
 
