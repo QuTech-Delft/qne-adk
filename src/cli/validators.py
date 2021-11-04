@@ -20,12 +20,16 @@ def validate_json_file(file_name: Path) -> Tuple[bool, Any]:
 
 
 def validate_json_schema(instance_path: Path, schema_path: Path) -> Tuple[bool, Any]:
+    """First check input for valid json, then check input for validity of the json schema"""
     try:
         json_file = read_json_file(instance_path)
-        try:
-            json_schema = read_json_file(schema_path)
-        except JsonFileNotFound:
-            raise PackageNotComplete(str(schema_path)) from None
+    except MalformedJsonFile as malformed_json_error:
+        return False, f"In file {instance_path}: {str(malformed_json_error)}"
+    try:
+        json_schema = read_json_file(schema_path)
+    except JsonFileNotFound:
+        raise PackageNotComplete(str(schema_path)) from None
+    try:
         if platform.system() == 'Windows':
             path = os.path.dirname(schema_path)
             json_schema_full_path = os.path.realpath(path).replace('\\', '/')

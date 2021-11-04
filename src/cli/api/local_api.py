@@ -6,7 +6,6 @@ from typing import Any, cast, Dict, List, Optional, Tuple
 from cli import utils
 from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, JsonFileNotFound, NetworkNotFound,
                             NoNetworkAvailable, PackageNotComplete)
-from cli.validators import validate_json_file, validate_json_schema
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -776,19 +775,22 @@ class LocalApi:
         error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
         experiment_json = path / 'experiment.json'
 
-        # Check if experiment.json exists
-        if experiment_json.is_file():
-            # Check if experiment is local or remote
-            is_valid, _ = validate_json_file(experiment_json)
+        # Check if experiment is local or remote
+        try:
+            experiment_schema = Path(os.path.join(BASE_DIR, 'schema', 'experiments', 'experiment.json', ''))
+            valid, message = self.check_json_file_validity(experiment_json, experiment_schema)
+            if not valid:
+                error_dict['error'].append(message)
 
-            if is_valid:
-                experiment = utils.read_json_file(experiment_json)
-                if 'location' in experiment['meta']['backend']:
-                    if not experiment['meta']['backend']['location'] == "local":
-                        error_dict['warning'].append(f"In file {experiment_json}: only 'local' is supported for "
-                                                     f"property 'location'")
-        else:
-            error_dict['error'].append(f'Required file not found: {experiment_json}')
+            experiment = utils.read_json_file(experiment_json)
+            if 'location' in experiment['meta']['backend']:
+                if not experiment['meta']['backend']['location'] == "local":
+                    error_dict['warning'].append(f"In file {experiment_json}: only 'local' is supported for "
+                                                 f"property 'location'")
+        except MalformedJsonFile as malformed_error:
+            error_dict['error'].append(f'{str(malformed_error)}')
+        # except JsonFileNotFound:
+        #     error_dict['error'].append(f'Required file not found: {experiment_json}')
 
         self.validate_experiment_structure(path=path, local=local, error_dict=error_dict)
         self.validate_experiment_json_files(path=path, error_dict=error_dict)
@@ -969,11 +971,14 @@ class LocalApi:
                                                      f"{experiment_input_path / 'network.json'}")
 
     def check_json_file_validity(self, file_path: Path, schema_path: Path) -> Tuple[bool, Any]:
-        json_valid, message = validate_json_file(file_path)
-        if json_valid:
-            schema_valid, message = validate_json_schema(file_path, schema_path)
-            if schema_valid:
-                return True, None
-            return schema_valid, message
-        return json_valid, message
+        schema_valid, message = validate_json_schema(file_path, schema_path)
+        return schema_valid, message
+
+        # json_valid, message = validate_json_file(file_path)
+        # if json_valid:
+        #     schema_valid, message = validate_json_schema(file_path, schema_path)
+        #     if schema_valid:
+        #         return True, None
+        #     return schema_valid, message
+        # return json_valid, message
 
