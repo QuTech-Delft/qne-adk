@@ -4,8 +4,9 @@ import shutil
 from typing import Any, cast, Dict, List, Optional
 
 from cli import utils
-from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, JsonFileNotFound, MalformedJsonFile,
-                            NetworkNotFound, NoNetworkAvailable, PackageNotComplete)
+from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, ExperimentDirectoryNotValid,
+                            JsonFileNotFound, MalformedJsonFile, NetworkNotFound, NoNetworkAvailable,
+                            PackageNotComplete)
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.generators.network_generator import FullyConnectedNetworkGenerator
@@ -688,8 +689,65 @@ class LocalApi:
         experiment_data = utils.read_json_file(path / "experiment.json")
         return cast(int, experiment_data["meta"]["number_of_rounds"])
 
-    def delete_experiment(self, path: Path) -> None:
-        pass
+    def delete_experiment(self, experiment_name: Optional[str], path: Path) -> bool:
+        """
+        Deletes the experiment files. When experiment name is None the current directory is taken as
+        experiment path. When experiment_name is given ./experiment_name is taken as experiment path and the
+        experiment_name directory is also deleted.
+        Only files that belong to an experiment are deleted. When a directory is not empty it is not deleted.
+
+        Args:
+            experiment_name: Optional. The experiment directory that is deleted
+            path: The location of the experiment
+
+        Returns:
+            True if the complete experiment was deleted and nothing was left
+
+        Raises:
+            ExperimentDirectoryNotValid when the experiment directory is not recognized as an experiment directory
+        """
+        input_dir_deleted = False
+        experiment_dir_deleted = False
+
+        experiment_path = path / experiment_name if experiment_name is not None else path
+
+        experiment_json = experiment_path / 'experiment.json'
+        # Check if experiment.json exists and we're dealing with an experiment directory
+        if experiment_json.is_file():
+            experiment_input_directory = experiment_path / 'input'
+            if os.path.isdir(experiment_input_directory):
+                # Delete all config files
+                config_files_list = self.__get__config_file_names()
+                for config_file in config_files_list:
+                    file_to_delete = experiment_input_directory / config_file
+                    if file_to_delete.is_file():
+                        file_to_delete.unlink()
+
+                # Delete all app_*.py files
+                for app_file in experiment_input_directory.glob('app_*.py'):
+                    app_file.unlink()
+
+                try:
+                    os.rmdir(experiment_input_directory)
+                    input_dir_deleted = True
+                except OSError:  # The directory is not empty
+                    pass
+
+            # Delete experiment.json
+            experiment_json.unlink()
+
+            # only when we called experiment delete from the parent directory and 'input' dir was removed try to remove
+            # experiment dir
+            if input_dir_deleted and experiment_name is not None:
+                try:
+                    os.rmdir(experiment_path)
+                    experiment_dir_deleted = True
+                except OSError:  # The directory is not empty
+                    pass
+        else:
+            raise ExperimentDirectoryNotValid(str(experiment_path))
+
+        return input_dir_deleted and experiment_dir_deleted
 
     def run_experiment(self, path: Path) -> ResultType:
         local_round_set: RoundSetType = {'url': 'local'}

@@ -60,8 +60,8 @@ class RemoteApi:
     ) -> None:
         pass
 
-    def delete_experiment(self, path: Path) -> None:
-        pass
+    def delete_experiment(self, experiment_name: Optional[str], path: Path) -> bool:
+        return True
 
     def list_experiments(self) -> List[ExperimentType]:
         pass

@@ -110,9 +110,9 @@ class CommandProcessor:
                 raise ApplicationNotFound(application_name)
 
     @log_function
-    def experiments_delete(self, path: Path) -> None:
-        self.__remote.delete_experiment(path)
-        self.__local.delete_experiment(path)
+    def experiments_delete(self, experiment_name: Optional[str], path: Path) -> bool:
+        return self.__remote.delete_experiment(experiment_name, path) and \
+               self.__local.delete_experiment(experiment_name, path)
 
     @log_function
     def __is_application_local(self, application_name: str) -> bool:

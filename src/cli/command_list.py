@@ -61,6 +61,7 @@ def logout(host: str = typer.Argument(None)) -> None:
     """
     raise CommandNotImplemented
 
+
 @applications_app.command("create")
 @catch_qne_cli_exceptions
 def applications_create(
@@ -107,6 +108,7 @@ def applications_init() -> None:
     """
     raise CommandNotImplemented
 
+
 @applications_app.command("upload")
 @catch_qne_cli_exceptions
 def applications_upload() -> None:
@@ -114,6 +116,7 @@ def applications_upload() -> None:
     Create or update a remote application.
     """
     raise CommandNotImplemented
+
 
 @applications_app.command("list")
 @catch_qne_cli_exceptions
@@ -199,7 +202,7 @@ def experiments_create(
     network_name: str = typer.Argument(..., help="Name of the network to use"),
     local: bool = typer.Option(
         True, "--local", help="Run the application locally"
-    ),
+    )
 ) -> None:
     """
     Create new experiment.
@@ -229,13 +232,31 @@ def experiments_list() -> None:
     """
     raise CommandNotImplemented
 
+
 @experiments_app.command("delete")
 @catch_qne_cli_exceptions
-def experiments_delete() -> None:
+def experiments_delete(
+    experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment")
+) -> None:
     """
-    Delete local and remote experiment files.
+    Delete experiment files.
+
+    When experiment_name is given ./experiment_name is taken as experiment path, otherwise current directory.
     """
-    raise CommandNotImplemented
+    # Temporary local only
+    if experiment_name is not None:
+        validate_path_name("Experiment", experiment_name)
+
+    cwd = Path.cwd()
+    deleted_completely = processor.experiments_delete(experiment_name, path=cwd)
+    if deleted_completely:
+        typer.echo("Experiment deleted successfully")
+    else:
+        if experiment_name is not None:
+            typer.echo("Experiment files deleted, one or more directories not empty")
+        else:
+            typer.echo("Experiment files deleted")
+
 
 @experiments_app.command("run")
 @catch_qne_cli_exceptions

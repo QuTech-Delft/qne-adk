@@ -1,3 +1,5 @@
+"""Exceptions for Qne Cli"""
+from pathlib import Path
 
 
 class QneCliException(Exception):
@@ -52,6 +54,13 @@ class ExperimentDirectoryAlreadyExists(QneCliException):
 
     def __init__(self, experiment_name: str, path: str) -> None:
         super().__init__(f"Directory for Experiment '{experiment_name}' already exists at location: '{path}'")
+
+
+class ExperimentDirectoryNotValid(QneCliException):
+    """Raised when experiment path (the current path the user is in) isn't identified as an experiment directory"""
+
+    def __init__(self, experiment_path: str) -> None:
+        super().__init__(f"Directory '{experiment_path}' does not appear to be a valid experiment directory")
 
 
 class InvalidPathName(QneCliException):
