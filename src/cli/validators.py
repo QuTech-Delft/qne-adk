@@ -1,26 +1,31 @@
 import platform
 import os
-import json
 from pathlib import Path
 from typing import Tuple, Any
 from jsonschema import Draft7Validator, RefResolver, draft7_format_checker
 from jsonschema.exceptions import ValidationError
+
+from cli.exceptions import JsonFileNotFound, MalformedJsonFile, PackageNotComplete
 from cli.utils import read_json_file
 
 
-def validate_json_file(instance_path: Path) -> Tuple[bool, Any]:
+def validate_json_file(file_name: Path) -> Tuple[bool, Any]:
     try:
-        with open(instance_path, encoding="utf-8") as fp:
-            json.load(fp)
+        read_json_file(file_name)
         return True, None
-    except Exception as e:
-        return False, f"{instance_path} contains invalid json. {e}"
+    except JsonFileNotFound as file_error:
+        raise file_error
+    except MalformedJsonFile as e:
+        return False, str(e)
 
 
 def validate_json_schema(instance_path: Path, schema_path: Path) -> Tuple[bool, Any]:
     try:
         json_file = read_json_file(instance_path)
-        json_schema = read_json_file(schema_path)
+        try:
+            json_schema = read_json_file(schema_path)
+        except JsonFileNotFound:
+            raise PackageNotComplete(str(schema_path)) from None
         if platform.system() == 'Windows':
             path = os.path.dirname(schema_path)
             json_schema_full_path = os.path.realpath(path).replace('\\', '/')
