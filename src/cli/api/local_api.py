@@ -710,10 +710,9 @@ class LocalApi:
         experiment_dir_deleted = False
 
         experiment_path = path / experiment_name if experiment_name is not None else path
-
         experiment_json = experiment_path / 'experiment.json'
         # Check if experiment.json exists and we're dealing with an experiment directory
-        if experiment_json.is_file():
+        if experiment_path.is_dir() and experiment_json.is_file():
             experiment_input_directory = experiment_path / 'input'
             if os.path.isdir(experiment_input_directory):
                 # Delete all config files
