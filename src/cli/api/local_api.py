@@ -747,7 +747,7 @@ class LocalApi:
         """
         experiment_file_path = path / 'experiment.json'
 
-        # Validate experiment.json (dies it exist and is valid json according to the schema
+        # Validate experiment.json (does it exist and is valid json according to the schema)
 
         experiment_schema = Path(os.path.join(BASE_DIR, 'schema', 'experiments', 'experiment.json', ''))
         valid, message = validate_json_schema(experiment_file_path, experiment_schema)
@@ -836,8 +836,8 @@ class LocalApi:
         # Check if all nodes exist and belong to this network
         for node in experiment_nodes:
             if node["slug"] not in network_nodes:
-                error_dict["error"].append(f"In file '{experiment_file_path}': '{node['slug']}' does not exist or does "
-                                           f"not belong to the network '{experiment_network_slug}'")
+                error_dict["error"].append(f"In file '{experiment_file_path}': node '{node['slug']}' does not exist "
+                                           f"or does not belong to the network '{experiment_network_slug}'")
 
     def _validate_experiment_channels(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
                                      ErrorDictType) -> None:
@@ -864,8 +864,9 @@ class LocalApi:
             # Check if the channels exist and belong to this network
             for channel in experiment_channels:
                 if not channel["slug"] in network_channels:
-                    error_dict["error"].append(f"In file '{experiment_file_path}': '{channel['slug']}' does not exist "
-                                               f"or is not a valid channel for network '{experiment_network_slug}'")
+                    error_dict["error"].append(f"In file '{experiment_file_path}': channel '{channel['slug']}' does "
+                                               f"not exist or is not a valid channel for "
+                                               f"network '{experiment_network_slug}'")
         else:
             error_dict["error"].append(f"No channels found for network '{experiment_network_slug}'")
 
