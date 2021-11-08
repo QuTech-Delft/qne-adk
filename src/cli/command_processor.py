@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import cast, Dict, List, Optional, Tuple
+from typing import cast, Dict, List, Optional
 
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
@@ -147,7 +147,6 @@ class CommandProcessor:
 
     @log_function
     def __store_results(self, results: GeneratedResultType, path: Path) -> None:
-        print(f"store_results called with {results}")
         processed_results_directory = path / "results"
         if not processed_results_directory.exists():
             processed_results_directory.mkdir(parents=True)

@@ -385,27 +385,7 @@ class ApplicationValidate(unittest.TestCase):
             self.assertIsNone(config)
 
     def test_validate_experiment(self):
-        with patch("cli.api.local_api.Path.is_file") as is_file_mock, \
-             patch.object(LocalApi, "_get_asset") as get_asset_mock, \
-             patch.object(RoundSetManager, "validate_asset") as validate_asset_mock:
-
-            is_file_mock.return_value = True
-            get_asset_mock.return_value = {}
-            validate_asset_mock.return_value= True, 'ok'
-            is_valid, message = self.local_api.validate_experiment(Path('dummy'))
-            is_file_mock.assert_called_once()
-            validate_asset_mock.assert_called_once_with(Path('dummy'))
-            self.assertEqual(is_valid, True)
-            self.assertEqual(message, 'ok')
-
-            is_file_mock.reset_mock()
-            is_file_mock.return_value = False
-            validate_asset_mock.reset_mock()
-            is_valid, message = self.local_api.validate_experiment(Path('dummy'))
-            is_file_mock.assert_called_once()
-            self.assertEqual(is_valid, False)
-            self.assertEqual(message, 'File experiment.json not found in the current working directory')
-            validate_asset_mock.assert_not_called()
+        pass
 
     def test_run_experiment(self):
         with patch.object(RoundSetManager, "prepare_input") as prepare_input_mock, \

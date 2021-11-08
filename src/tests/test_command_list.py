@@ -220,7 +220,7 @@ class TestCommandList(unittest.TestCase):
             exp_results_output = self.runner.invoke(experiments_app, ['results', '--all'])
             exp_results_mock.assert_called_once_with(all_results=True, path='test')
             self.assertEqual(exp_results_output.exit_code, 0)
-            self.assertIn("Results are stored at location results/processed.json", exp_results_output.stdout)
+            self.assertIn("Results Are stored at location results/processed.json", exp_results_output.stdout)
 
     def test_applications_list(self):
         with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
