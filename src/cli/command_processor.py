@@ -149,7 +149,7 @@ class CommandProcessor:
     def __store_results(self, results: GeneratedResultType, path: Path) -> None:
         print(f"store_results called with {results}")
         processed_results_directory = path / "results"
-        if not processed_results_directory.is_dir():
+        if not processed_results_directory.exists():
             processed_results_directory.mkdir(parents=True)
 
         processed_result_json_file = processed_results_directory / 'processed.json'

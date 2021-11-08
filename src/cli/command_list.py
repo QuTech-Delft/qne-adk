@@ -259,7 +259,7 @@ def experiments_run(
             typer.echo("Error encountered while running the experiment")
             typer.echo(results["round_result"]["error"])
         else:
-            typer.echo("Experiment was run successfully. You can check the results using experiment results command")
+            typer.echo("Experiment run successfully. Check the results using command 'experiment results'")
 
 
 @experiments_app.command("validate")
@@ -293,10 +293,10 @@ def experiments_results(
     """
     Get results for an experiment.
     """
-    result_noun = "results" if all_results else "result"
+    result_noun = "results are" if all_results else "result is"
     cwd = Path.cwd()
     results = processor.experiments_results(all_results=all_results, path=cwd)
     if show:
         typer.echo(results)
     else:
-        typer.echo(f"{result_noun.title()} are stored at location results/processed.json")
+        typer.echo(f"{result_noun.title()} stored at location results/processed.json")

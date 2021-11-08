@@ -123,4 +123,4 @@ class ResultDirectoryNotAvailable(QneCliException):
     """Raised when the result directory is not present"""
 
     def __init__(self, path: str) -> None:
-        super().__init__(f"Result directory is not available at location: {path}")
+        super().__init__(f"Result directory is not available at location: '{path}'")

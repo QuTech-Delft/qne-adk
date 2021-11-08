@@ -21,7 +21,7 @@ class OutputConverter:
         self._log_dir = log_dir
         self._output_dir = output_dir
         self._instruction_converter = instruction_converter
-        self._log_files_dir = os.path.join(log_dir, self._output_dir)
+        self._log_files_dir = os.path.join(log_dir, output_dir)
 
     def prepare_output(self) -> None:
         if not os.path.isdir(self._log_dir):
