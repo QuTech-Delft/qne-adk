@@ -691,20 +691,24 @@ class LocalApi:
 
     def delete_experiment(self, experiment_name: Optional[str], path: Path) -> bool:
         """
-        Deletes the experiment files. When experiment name is None the current directory is taken as
-        experiment path. When experiment_name is given ./experiment_name is taken as experiment path and the
-        experiment_name directory is also deleted.
+        Deletes the experiment files.
+        When experiment name is None the current directory is taken as experiment path, the experiment files and
+        directories are deleted but the current directory cannot be deleted, leaving a trace of the experiment.
+        When experiment name is given ./experiment_name is taken as experiment path and the
+        experiment_name directory can also be deleted deleting the complete experiment.
         Only files that belong to an experiment are deleted. When a directory is not empty it is not deleted.
 
         Args:
-            experiment_name: Optional. The experiment directory that is deleted
+            experiment_name: Optional. The experiment directory deleted will be ./experiment_name, otherwise the
+            current directory
             path: The location of the experiment
 
         Returns:
-            True if the complete experiment was deleted and nothing was left
+            True if the complete experiment (including directory experiment_name) was deleted, otherwise false (leaving
+            traces of the experiment)
 
         Raises:
-            ExperimentDirectoryNotValid when the experiment directory is not recognized as an experiment directory
+            ExperimentDirectoryNotValid when the experiment path is not recognized as an experiment
         """
         input_dir_deleted = False
         experiment_dir_deleted = False

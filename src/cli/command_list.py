@@ -252,10 +252,10 @@ def experiments_delete(
     if deleted_completely:
         typer.echo("Experiment deleted successfully")
     else:
-        if experiment_name is not None:
-            typer.echo("Experiment files deleted, one or more directories not empty")
-        else:
+        if experiment_name is None:
             typer.echo("Experiment files deleted")
+        else:
+            typer.echo("Experiment files deleted, directory not empty")
 
 
 @experiments_app.command("run")
