@@ -117,16 +117,16 @@ class TestCommandProcessor(unittest.TestCase):
             run_exp_mock.assert_called_once_with(Path('dummy'))
 
     def test_experiments_result(self):
-        with patch("cli.command_processor.Path.is_dir") as is_directory_mock, \
+        with patch("cli.command_processor.Path.exists") as exists_mock, \
              patch("cli.command_processor.utils.read_json_file") as read_json_mock:
 
-            is_directory_mock.return_value = True
+            exists_mock.return_value = True
             read_json_mock.return_value = {"foo": "bar"}
             result_data = self.processor.experiments_results(True, Path('dummy'))
             self.assertEqual(result_data, {"foo": "bar"})
 
-            is_directory_mock.reset_mock()
-            is_directory_mock.return_value = False
+            exists_mock.reset_mock()
+            exists_mock.return_value = False
             self.assertRaises(Exception, self.processor.experiments_results, True, False, Path('dummy'))
 
     def test_applications_list(self):
