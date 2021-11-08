@@ -4,7 +4,7 @@ from unittest.mock import call, patch, MagicMock
 
 from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
-from cli.output_converter import OutputConverter
+from cli.parsers.output_converter import OutputConverter
 from cli.exceptions import ApplicationAlreadyExists, JsonFileNotFound, NoNetworkAvailable, PackageNotComplete
 
 
@@ -388,13 +388,11 @@ class ApplicationValidate(unittest.TestCase):
         pass
 
     def test_run_experiment(self):
-        with patch.object(RoundSetManager, "prepare_input") as prepare_input_mock, \
-             patch.object(LocalApi, "_get_asset") as get_asset_mock, \
+        with patch.object(LocalApi, "_get_asset") as get_asset_mock, \
              patch.object(RoundSetManager, "process") as process_mock:
 
             self.local_api.run_experiment(Path('dummy'))
             get_asset_mock.assert_called_once()
-            prepare_input_mock.assert_called_once()
             process_mock.assert_called_once()
 
     def test_get_results(self):

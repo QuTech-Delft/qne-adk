@@ -10,6 +10,10 @@ from cli.type_aliases import GeneratedResultType, CumulativeResultType, LogEntry
 
 
 class OutputConverter:
+    """
+    Class to process the output of the application run.
+    Contains methods to convert the output from netqasm into QNE format
+    """
     ROLE_INSTRS_LOG = "instrs"
     ROLE_CLASS_COMM_LOG = "class_comm"
     ROLE_APP_LOG = "app_log"
@@ -19,7 +23,6 @@ class OutputConverter:
     def __init__(self, log_dir: str, output_dir: str,
                  instruction_converter: Optional[FullyConnectedNetworkGenerator] = None):
         self._log_dir = log_dir
-        self._output_dir = output_dir
         self._instruction_converter = instruction_converter
         self._log_files_dir = os.path.join(log_dir, output_dir)
 

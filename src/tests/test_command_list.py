@@ -187,11 +187,14 @@ class TestCommandList(unittest.TestCase):
         pass
 
     def test_experiment_run(self):
-        with patch("cli.command_list.Path.cwd") as mock_cwd,\
+        with patch("cli.command_list.Path.cwd") as mock_cwd, \
+             patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock, \
              patch.object(CommandProcessor, 'experiments_run') as exp_run_mock:
 
             mock_cwd.return_value = 'test'
+            exp_validate_mock.return_value = {"error": [], "warning": [], "info": []}
             exp_run_output = self.runner.invoke(experiments_app, ['run'])
+            exp_validate_mock.assert_called_once_with(path='test')
             exp_run_mock.assert_called_once_with(path='test', block=False)
             self.assertEqual(exp_run_output.exit_code, 0)
 

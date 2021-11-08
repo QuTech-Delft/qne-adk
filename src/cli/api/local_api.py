@@ -9,10 +9,10 @@ from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, Js
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.generators.network_generator import FullyConnectedNetworkGenerator
-from cli.output_converter import OutputConverter
+from cli.parsers.output_converter import OutputConverter
 from cli.settings import BASE_DIR
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
-                              app_configApplicationType, assetApplicationType, assetNetworkType,
+                              app_configApplicationType, AssetType, assetApplicationType, assetNetworkType,
                               ExperimentType, ErrorDictType, GenericNetworkData, GeneratedResultType,
                               ChannelData, NetworkData, NodeData, TemplateData)
 from cli.validators import validate_json_file, validate_json_schema
@@ -671,11 +671,8 @@ class LocalApi:
             bool: True if the experiment at given path is local, False otherwise
         """
         experiment_data = utils.read_json_file(path / "experiment.json")
-        if "meta" in experiment_data:
-            if "backend" in experiment_data["meta"]:
-                if "location" in experiment_data["meta"]["backend"]:
-                    if experiment_data["meta"]["backend"]["location"].strip().lower() == "local":
-                        return True
+        if experiment_data["meta"]["backend"]["location"].strip().lower() == "local":
+            return True
         return False
 
     def get_experiment_rounds(self, path: Path) -> int:
@@ -689,22 +686,17 @@ class LocalApi:
             int: Value of the number of rounds
         """
         experiment_data = utils.read_json_file(path / "experiment.json")
-        if "meta" in experiment_data:
-            if "number_of_rounds" in experiment_data["meta"]:
-                return cast(int, experiment_data["meta"]["number_of_rounds"])
-
-        return 1
+        return cast(int, experiment_data["meta"]["number_of_rounds"])
 
     def delete_experiment(self, path: Path) -> None:
         pass
 
     def run_experiment(self, path: Path) -> GeneratedResultType:
-        roundSetManager = RoundSetManager(asset=self._get_asset(path), path=path)
-        roundSetManager.prepare_input()
-        result = roundSetManager.process()
+        round_set_manager = RoundSetManager(asset=self._get_asset(path), path=path)
+        result = round_set_manager.process()
         return result
 
-    def _get_asset(self, path: Path) -> Dict[str, Any]:
+    def _get_asset(self, path: Path) -> AssetType:
         """
             Get the asset from experiment.json
 
@@ -715,7 +707,7 @@ class LocalApi:
                 A dictionary containing the asset information
         """
         experiment_data = utils.read_json_file(path / "experiment.json")
-        return cast(Dict[str, Any], experiment_data["asset"])
+        return cast(AssetType, experiment_data["asset"])
 
     def get_experiment(self, name: str) -> ExperimentType:
         pass
@@ -727,7 +719,7 @@ class LocalApi:
             instruction_converter=FullyConnectedNetworkGenerator()
         )
 
-        return output_converter.convert(round_number=1)
+        return cast(GeneratedResultType, output_converter.convert(round_number=1))
 
     def validate_experiment(self, path: Path) -> ErrorDictType:
         """

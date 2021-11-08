@@ -250,16 +250,20 @@ def experiments_run(
     cwd = Path.cwd()
 
     # Validate the experiment before executing the run command
-    # processor.experiments_validate(path=cwd)
+    validate_dict = processor.experiments_validate(path=cwd)
 
-    results = processor.experiments_run(path=cwd, block=block)
+    if validate_dict["error"] or validate_dict["warning"]:
+        show_validation_messages(validate_dict)
+        typer.echo("Experiment is invalid. Please resolve the issues and then run the experiment.")
+    else:
+        results = processor.experiments_run(path=cwd, block=block)
 
-    if results:
-        if "error" in results["round_result"]:
-            typer.echo("Error encountered while running the experiment")
-            typer.echo(results["round_result"]["error"])
-        else:
-            typer.echo("Experiment run successfully. Check the results using command 'experiment results'")
+        if results:
+            if "error" in results["round_result"]:
+                typer.echo("Error encountered while running the experiment")
+                typer.echo(results["round_result"]["error"])
+            else:
+                typer.echo("Experiment run successfully. Check the results using command 'experiment results'")
 
 
 @experiments_app.command("validate")

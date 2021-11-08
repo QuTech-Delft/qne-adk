@@ -157,7 +157,7 @@ class CommandProcessor:
     @log_function
     def __get_results(self, path: Path) -> GeneratedResultType:
         processed_results_directory = path / "results"
-        if not processed_results_directory.is_dir():
+        if not processed_results_directory.exists():
             raise ResultDirectoryNotAvailable(str(processed_results_directory))
 
         processed_result_json_file = processed_results_directory / 'processed.json'

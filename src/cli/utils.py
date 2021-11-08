@@ -8,10 +8,13 @@ from cli.exceptions import JsonFileNotFound, MalformedJsonFile, InvalidPathName
 
 
 class ComplexEncoder(json.JSONEncoder):
+    """
+    Class to properly encode the complex numbers into json
+    """
     def default(self, o: object) -> Any:
         if isinstance(o, complex):
             return [o.real, o.imag]
-         # Let the base class default method raise the TypeError
+        # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, o)
 
 

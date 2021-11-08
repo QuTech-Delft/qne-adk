@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Type, Optional
 import logging
 
 from cli.type_aliases import DefaultPayloadType, InstructionType, LogEntryType, QuantumStateType
-from cli.encoders import JSONEncoder
+from cli.parsers.encoders import JSONEncoder
 
 
 class BaseInstruction(ABC):
