@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "file:qubit.json",
+  "title": "Qubit",
+  "description": "Qubit present at a Node",
+  "type": "object",
+  "properties": {
+    "qubit_id": {
+      "type": "integer"
+    },
+    "qubit_parameters": {
+      "type": "array",
+      "items": {
+        "$ref": "file:template.json"
+      }
+    }
+  },
+  "additionalProperties": false
+}

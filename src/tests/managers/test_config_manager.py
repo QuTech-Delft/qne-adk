@@ -163,6 +163,11 @@ class TestConfigManager(unittest.TestCase):
 
             read_json_file_mock.assert_called_with(config_manager.applications_config)
 
+            # Raise ApplicationDoesntExist() when the application path is case sensitive DUMMY != dummy
+            read_json_file_mock.reset_mock()
+            read_json_file_mock.return_value = {self.application: {"path": os.path.join(str(self.path), '')}}
+            self.assertRaises(ApplicationDoesNotExist, config_manager.get_application_from_path, str(self.path).upper())
+
     def test_get_application_path(self):
         with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
              patch('cli.managers.config_manager.os.path.isdir', return_value=True), \

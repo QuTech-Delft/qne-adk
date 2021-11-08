@@ -1,11 +1,11 @@
 import os
 from pathlib import Path
 import shutil
-from typing import Any, cast, Dict, List, Optional, Tuple
+from typing import Any, cast, Dict, List, Optional
 
 from cli import utils
-from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, JsonFileNotFound, NetworkNotFound,
-                            NoNetworkAvailable, PackageNotComplete)
+from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, JsonFileNotFound, MalformedJsonFile,
+                            NetworkNotFound, NoNetworkAvailable, PackageNotComplete)
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.output_converter import OutputConverter
@@ -14,7 +14,6 @@ from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkT
                               app_configApplicationType, assetApplicationType, assetNetworkType,
                               ExperimentType, ErrorDictType, GenericNetworkData, ResultType,
                               ChannelData, NetworkData, NodeData, TemplateData)
-from cli.utils import read_json_file
 from cli.validators import validate_json_file, validate_json_schema
 
 
@@ -43,7 +42,7 @@ class LocalApi:
             Returns:
                 Data read from the json file
         """
-        file_name = Path(BASE_DIR) / f"networks/{entity_name}.json"
+        file_name = Path(BASE_DIR) / f'networks/{entity_name}.json'
         try:
             generic_data: GenericNetworkData = utils.read_json_file(file_name)
         except JsonFileNotFound:
@@ -115,8 +114,8 @@ class LocalApi:
         """
         network_data = self._get_network_info(identifier_value=network_name, identifier_type="name")
         if network_data:
-            if 'name' in network_data:
-                return str(network_data['name'])
+            if "name" in network_data:
+                return str(network_data["name"])
 
         return None
 
@@ -132,8 +131,8 @@ class LocalApi:
         """
         network_data = self._get_network_info(network_slug)
         if network_data:
-            if 'channels' in network_data:
-                return cast(List[str], network_data['channels'])
+            if "channels" in network_data:
+                return cast(List[str], network_data["channels"])
 
         return None
 
@@ -186,26 +185,24 @@ class LocalApi:
 
         returns:
         Returns a dict of networks, each having their own list including the nodes:
-        E.g.: {"randstad": ["leiden", "amsterdam", "the_hague"], "the-netherlands": ["etc..",]}
-
+        E.g.: {"randstad": ["leiden", "amsterdam", "the-hague"], "the-netherlands": ["etc..",]}
         """
-
-        # Read network and see which are available
+        # Read network
         network_nodes: Dict[str, List[str]] = {}
 
         data_networks = self.__networks_data
         data_channels = self.__channels_data
 
         for network in data_networks["networks"]:
+            channel_lst = []
             for channel in data_channels["channels"]:
                 if channel["slug"] in data_networks["networks"][network]["channels"]:
-                    if data_networks["networks"][network]["slug"] not in network_nodes:
-                        network_nodes[data_networks["networks"][network]["slug"]] = []
-                    lst = network_nodes[data_networks["networks"][network]["slug"]]
-                    if channel["node1"] not in lst:
-                        lst.append(channel["node1"])
-                    if channel["node2"] not in lst:
-                        lst.append(channel["node2"])
+                    if channel["node1"] not in channel_lst:
+                        channel_lst.append(channel["node1"])
+                    if channel["node2"] not in channel_lst:
+                        channel_lst.append(channel["node2"])
+
+            network_nodes[data_networks["networks"][network]["slug"]] = channel_lst
 
         return network_nodes
 
@@ -255,13 +252,13 @@ class LocalApi:
             raise DirectoryAlreadyExists('Application', str(application_path))
 
         # code to create the local application in root dir
-        app_src_path = application_path / "src"
-        app_config_path = application_path / "config"
+        app_src_path = application_path / 'src'
+        app_config_path = application_path / 'config'
         app_src_path.mkdir(parents=True, exist_ok=True)
         app_config_path.mkdir(parents=True, exist_ok=True)
 
         for role in roles:
-            utils.write_file(app_src_path / f"app_{role}.py", utils.get_py_dummy())
+            utils.write_file(app_src_path / f'app_{role}.py', utils.get_py_dummy())
 
         # Network.json configuration
         networks = {"networks": [], "roles": roles}
@@ -280,17 +277,17 @@ class LocalApi:
             shutil.rmtree(path / application_name)
             raise NoNetworkAvailable()
 
-        utils.write_json_file(app_config_path / "network.json", networks)
+        utils.write_json_file(app_config_path / 'network.json', networks)
 
         # Application.json configuration
         data = utils.get_dummy_application(roles)
-        utils.write_json_file(app_config_path / "application.json", data)
+        utils.write_json_file(app_config_path / 'application.json', data)
 
         # Result.json configuration
-        utils.write_json_file(app_config_path / "result.json", [])
+        utils.write_json_file(app_config_path / 'result.json', [])
 
         # Manifest.ini configuration
-        utils.write_file(path / application_name / "MANIFEST.ini", "")
+        utils.write_file(path / application_name / 'MANIFEST.ini', '')
 
         self.__config_manager.add_application(application_name, path)
 
@@ -325,7 +322,7 @@ class LocalApi:
             self.__is_structure_valid(application_name, error_dict)
             self.__is_config_valid(application_name, error_dict)
         else:
-            error_dict['error'].append(f"Application '{application_name}' does not exist")
+            error_dict["error"].append(f"Application '{application_name}' does not exist")
 
         return error_dict
 
@@ -342,8 +339,8 @@ class LocalApi:
         """
         app_details = self.__config_manager.get_application(application_name)
 
-        if app_details and 'path' in app_details:
-            app_config_path = Path(app_details['path']) / 'config'
+        if app_details and "path" in app_details:
+            app_config_path = Path(app_details["path"]) / 'config'
             application_json_path = app_config_path / 'application.json'
             network_json_path = app_config_path / 'network.json'
 
@@ -357,29 +354,21 @@ class LocalApi:
 
     def __is_config_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
         # Validate if json string is correct and validate against json schema's
-        app_schema_path = Path(BASE_DIR) / "schema/applications"
-        app_config_path = Path(self.__config_manager.get_application_path(application_name)) / "config"
-        files_list = ["application.json", "network.json", "result.json"]
+        app_schema_path = Path(BASE_DIR) / 'schema/applications'
+        app_config_path = Path(self.__config_manager.get_application_path(application_name)) / 'config'
 
-        for file in files_list:
+        for file in self.__get__config_file_names():
             if os.path.isfile(app_config_path / file):
-                json_valid, message = validate_json_file(app_config_path / file)
-                if json_valid:
-                    schema_valid, ve = validate_json_schema(app_config_path / file, app_schema_path / file)
-                    if not schema_valid:
-                        error_dict['error'].append(ve)
-                else:
-                    # application.json is checked earlier in the validation process, no need to add this message again
-                    # to error_dict (duplicate)
-                    if file != "application.json":
-                        error_dict['error'].append(message)
+                schema_valid, ve = validate_json_schema(app_config_path / file, app_schema_path / file)
+                if not schema_valid:
+                    error_dict["error"].append(ve)
 
     def __get__config_file_names(self) -> List[str]:
         return ['application.json', 'network.json', 'result.json']
 
     def __get_role_file_names(self, app_config_path: Path) -> List[str]:
-        config_network_data = read_json_file(app_config_path / "network.json")
-        config_application_roles = config_network_data['roles'] if 'roles' in config_network_data else []
+        config_network_data = utils.read_json_file(app_config_path / 'network.json')
+        config_application_roles = config_network_data["roles"] if "roles" in config_network_data else []
 
         # Add app_ and .py to each role in config/network.json so that it matches the python files listed
         # in the src directory
@@ -388,39 +377,37 @@ class LocalApi:
 
     def __is_structure_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
         app_dir_path = Path(self.__config_manager.get_application_path(application_name))
-        app_config_path = app_dir_path / "config"
-        app_src_path = app_dir_path / "src"
+        app_config_path = app_dir_path / 'config'
+        app_src_path = app_dir_path / 'src'
 
         # Validate that the config, src and MANIFEST.ini structure is correct
-        if not os.path.exists(app_config_path) or \
-           not os.path.exists(app_src_path) or \
-           not os.path.isfile(app_dir_path / "MANIFEST.ini"):
-            error_dict['warning'].append(f"{app_dir_path} should contain a 'MANIFEST.ini', 'src' directory and "
+        if not app_config_path.is_dir() or \
+           not app_src_path.is_dir() or \
+           not (app_dir_path / 'MANIFEST.ini').is_file():
+            error_dict["warning"].append(f"{app_dir_path} should contain a 'MANIFEST.ini', 'src' directory and "
                                          f"'config' directory")
 
         # Check if the config directory is complete
-        if os.path.exists(app_config_path):
-            if not os.path.isfile(app_config_path / "application.json") or \
-               not os.path.isfile(app_config_path / "network.json") or \
-               not os.path.isfile(app_config_path / "result.json"):
-                error_dict['warning'].append(f"{app_config_path} should contain the files 'network.json', result.json' "
-                                             f"and 'application.json'")
+        if app_config_path.is_dir():
+            for file in self.__get__config_file_names():
+                if not (app_config_path / file).is_file():
+                    error_dict["warning"].append(f"{app_config_path} should contain the file '{file}'")
 
-        if os.path.exists(app_src_path) and os.path.isfile(app_config_path / "application.json"):
-            valid, message = validate_json_file(app_config_path / "application.json")
+        if app_src_path.is_dir() and (app_config_path / 'application.json').is_file():
+            valid, message = validate_json_file(app_config_path / 'application.json')
             if valid:
                 application_file_names = self.__get_role_file_names(app_config_path)
 
                 # Get all the files in the src directory
                 src_dir_files = os.listdir(app_src_path)
 
-                # Check if the roles in the config/application.json double the file names in the src directory
+                # Check if the roles in the config/application.json match as file names in the src directory
                 if not all(roles in src_dir_files for roles in application_file_names):
-                    error_dict['warning'].append(
-                        f"Not all the roles in {app_config_path / 'application.json'} double the file names in "
+                    error_dict["warning"].append(
+                        f"Not all the roles in {app_config_path / 'application.json'} match the file names in "
                         f"{app_src_path}")
             else:
-                error_dict['error'].append(message)
+                error_dict["error"].append(message)
 
     def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
                            path: Path, application_name: str) -> None:
@@ -448,13 +435,10 @@ class LocalApi:
     def get_network_data(self, network_name: str) -> assetNetworkType:
         """
         Fetch the data for the specified network_name from the json files in networks folder
-
         Args:
             network_name: Name of the network whose data needs to be fetched
-
         Returns:
             The complete network information with channels & nodes
-
         """
 
         channels_list = []
@@ -469,9 +453,9 @@ class LocalApi:
                     channel_info = self._get_channel_info(channel_slug=channel_slug)
                     channels_list.append(channel_info)
 
-            all_network_nodes = self._get_network_nodes()
-            if network_slug in all_network_nodes:
-                for node_slug in all_network_nodes[network_slug]:
+            network_nodes = self._get_network_nodes()
+            if network_slug in network_nodes:
+                for node_slug in network_nodes[network_slug]:
                     nodes_list.append(self._get_node_info(node_slug=node_slug))
             else:
                 raise NetworkNotFound(network_name)
@@ -505,36 +489,32 @@ class LocalApi:
         experiment_path = path / experiment_name
         experiment_path.mkdir(parents=True)
 
-        input_directory = experiment_path / 'input'
-        input_directory.mkdir(parents=True)
-        self.__copy_input_files_from_application(application_name, input_directory)
+        experiment_input_path = experiment_path / 'input'
+        experiment_input_path.mkdir(parents=True)
+        self.__copy_input_files_from_application(application_name, experiment_input_path)
 
         experiment_json_file = experiment_path / 'experiment.json'
         experiment_meta = {
             "backend": {
                 "location": "local",
                 "type": "local_netsquid"
-             },
+            },
             "number_of_rounds": 1,
             "description": f"{experiment_name}: experiment description"
         }
-
         asset_application = self.__create_asset_application(app_config)
         asset = {"network": asset_network, "application": asset_application}
 
-        experiment_data = {'meta': experiment_meta, 'asset': asset}
+        experiment_data = {"meta": experiment_meta, "asset": asset}
         utils.write_json_file(experiment_json_file, experiment_data)
 
     def __create_asset_application(self, app_config: AppConfigType) -> assetApplicationType:
         """
         Prepare the asset by filling the application input parameters with default values
-
         Args:
             app_config: A dictionary containing application configuration information
-
         Returns:
             Filled Application input parameters with default values
-
         """
         input_list = []
         if "application" in app_config:
@@ -643,7 +623,7 @@ class LocalApi:
 
         return filled_parameter_item
 
-    def __copy_input_files_from_application(self,  application_name: str, input_directory: Path) -> None:
+    def __copy_input_files_from_application(self, application_name: str, input_directory: Path) -> None:
         """
         Copy the input/source files of the 'application' to the 'input_directory'
 
@@ -655,9 +635,9 @@ class LocalApi:
         application_exists, app_path = self.__config_manager.application_exists(application_name=application_name)
         if application_exists:
             app_path = Path(app_path)
-            utils.copy_files(app_path / "config", input_directory, files_list=self.__get__config_file_names())
-            utils.copy_files(app_path / "src", input_directory,
-                             files_list=self.__get_role_file_names(app_config_path=app_path / "config"))
+            utils.copy_files(app_path / 'config', input_directory, files_list=self.__get__config_file_names())
+            utils.copy_files(app_path / 'src', input_directory,
+                             files_list=self.__get_role_file_names(app_config_path=app_path / 'config'))
 
     def is_network_available(self, network_name: str, app_config: AppConfigType) -> bool:
         """
@@ -733,20 +713,190 @@ class LocalApi:
 
         return output_result
 
-    def validate_experiment(self, path: Path) -> Tuple[bool, str]:
-        # TODO: Add any other validation which should be done
+    def validate_experiment(self, path: Path) -> ErrorDictType:
         """
         Validates the experiment by checking:
         - if the structure is correct and consists of an experiment.json
         - (For local run) experiment directory contains an input directory with the correct files
-        - (For local run) check the python & yaml files for correct syntax (possible?)
         - content of experiment.json is valid JSON
         - asset in the experiment.json validated against a schema validator.
+        - if the network used in experiment.json is existing
+        - if the nodes and channels used in experiment.json are correct and valid for that network
+
+        Args:
+            path: The location of the experiment
+
+        Returns:
+            Dictionary containing lists of error, warning and info messages of the validations that failed
+        """
+        local = True
+        error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
+
+        self._validate_experiment_json(path=path, error_dict=error_dict)
+        self._validate_experiment_input(path=path, local=local, error_dict=error_dict)
+
+        return error_dict
+
+    def _validate_experiment_json(self, path: Path, error_dict: ErrorDictType) -> None:
+        """
+        This function validates if experiment.json contains valid json and if it passes schema validation.
+
+        Args:
+            path: The location of the experiment
+            error_dict: Dictionary containing error and warning messages of the validations that failed
+        """
+        experiment_file_path = path / 'experiment.json'
+
+        # Validate experiment.json (does it exist and is valid json according to the schema)
+
+        experiment_schema = Path(os.path.join(BASE_DIR, 'schema', 'experiments', 'experiment.json', ''))
+        valid, message = validate_json_schema(experiment_file_path, experiment_schema)
+        if not valid:
+            error_dict["error"].append(message)
+        else:
+            # Check if experiment is local or remote
+            experiment_data = utils.read_json_file(experiment_file_path)
+            # location is required field in schema
+            if not experiment_data["meta"]["backend"]["location"] == "local":
+                error_dict["warning"].append(f"In file '{experiment_file_path}': only 'local' is supported for "
+                                             f"property 'location'")
+            # slug is now also a required field
+            experiment_network_slug = experiment_data["asset"]["network"]["slug"]
+            # Check if the chosen network exists
+            if self._get_network_info(experiment_network_slug) is not None:
+                # Validate experiment nodes
+                self._validate_experiment_nodes(experiment_file_path, experiment_data, error_dict)
+                # Validate experiment channels
+                self._validate_experiment_channels(experiment_file_path, experiment_data, error_dict)
+            else:
+                error_dict["warning"].append(
+                    f"In file '{experiment_file_path}': network '{experiment_network_slug}' "
+                    f"does not exist")
+
+            self._validate_experiment_application(path, experiment_data, error_dict)
+
+    def _validate_experiment_input(self, path: Path, local: bool, error_dict: ErrorDictType) -> None:
+        """
+        Validates if the experiment file structures input directory containing a:
+        - (local only) network.json, application.json, result.json, app_role1.py, app_role2.py, ...
+
+        Args:
+            path: The location of the experiment
+            local: If the experiment is a local or not
+            error_dict: Dictionary containing error and warning messages of the validations that failed
+        """
+        # pylint: disable-msg=too-many-nested-blocks
+        experiment_input_path = path / 'input'
+
+        if experiment_input_path.is_dir():
+            if local:
+                for file in self.__get__config_file_names():
+                    if (experiment_input_path / file).is_file():
+                        app_schema_path = Path(os.path.join(BASE_DIR), 'schema', 'applications', '')
+                        valid, message = validate_json_schema(experiment_input_path / file, app_schema_path / file)
+                        if valid:
+                            if file == 'network.json':
+                                # Check if the app files for the roles from network.json exist in the
+                                # experiment/input directory
+                                application_file_names = self.__get_role_file_names(experiment_input_path)
+                                for application_file_name in application_file_names:
+                                    if not (experiment_input_path / application_file_name).is_file():
+                                        error_dict["error"].append(f"'{experiment_input_path}' is missing the file: "
+                                                                   f"'{application_file_name}'")
+                        else:
+                            error_dict["error"].append(message)
+                    else:
+                        error_dict["error"].append(f"'{experiment_input_path}' should contain the file '{file}'")
+        else:
+            error_dict["error"].append(f"Required directory not found: '{experiment_input_path}'")
+
+    def _validate_experiment_nodes(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
+                                  ErrorDictType) -> None:
+        """
+        Validate if the amount of nodes (defined in the experiment.json file) are valid for 'network_slug' and if
+        all the nodes exist and belong to this network.
+
+        Args:
+            experiment_file_path: The location of the experiment.json file
+            experiment_data: contents of the experiment.json file
+            error_dict: Dictionary containing error and warning messages of the validations that failed
+        """
+        experiment_network_slug = experiment_data["asset"]["network"]["slug"]
+
+        # Check if the amount of nodes are valid for this network
+        experiment_nodes = experiment_data["asset"]["network"]["nodes"]
+
+        all_network_nodes = self._get_network_nodes()
+        network_nodes = all_network_nodes[experiment_network_slug]
+        if len(experiment_nodes) > len(network_nodes):
+            error_dict["error"].append(f"In file '{experiment_file_path}': too many nodes used in network "
+                                       f"'{experiment_network_slug}'. Maximum amount of nodes that can be used: "
+                                       f"{len(network_nodes)}")
+
+        # Check if all nodes exist and belong to this network
+        for node in experiment_nodes:
+            if node["slug"] not in network_nodes:
+                error_dict["error"].append(f"In file '{experiment_file_path}': node '{node['slug']}' does not exist "
+                                           f"or does not belong to the network '{experiment_network_slug}'")
+
+    def _validate_experiment_channels(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
+                                     ErrorDictType) -> None:
+        """
+        Validate if the amount of channels (defined in the experiment.json file) are valid for 'network_slug' and if
+        all the channels exist and belong to this network.
+
+        Args:
+            experiment_file_path: The location of the experiment.json file
+            experiment_data: contents of the experiment.json file
+            error_dict: Dictionary containing error and warning messages of the validations that failed
         """
 
-        experiment_json = path / 'experiment.json'
-        if not experiment_json.is_file():
-            return False, 'File experiment.json not found in the current working directory'
+        # Check if the amount of channels are valid for this network
+        experiment_network_slug = experiment_data["asset"]["network"]["slug"]
+        experiment_channels = experiment_data["asset"]["network"]["channels"]
+        network_channels = self._get_channels_for_network(network_slug=experiment_network_slug)
+        if network_channels is not None:
+            if len(experiment_channels) > len(network_channels):
+                error_dict["error"].append(f"In file {experiment_file_path}: too many channels used in network "
+                                           f"'{experiment_network_slug}'. Maximum amount of channels that can be used: "
+                                           f"{len(network_channels)}")
 
-        round_set_manager = RoundSetManager()
-        return round_set_manager.validate_asset(path)
+            # Check if the channels exist and belong to this network
+            for channel in experiment_channels:
+                if not channel["slug"] in network_channels:
+                    error_dict["error"].append(f"In file '{experiment_file_path}': channel '{channel['slug']}' does "
+                                               f"not exist or is not a valid channel for "
+                                               f"network '{experiment_network_slug}'")
+        else:
+            error_dict["error"].append(f"No channels found for network '{experiment_network_slug}'")
+
+    def _validate_experiment_application(self, path: Path, experiment_data: Dict[str, Any],
+                                        error_dict: ErrorDictType) -> None:
+        """
+        Validate the ['application'] key defined in the asset of experiment.json. Check if the roles match the roles
+        that are defined in input/network.json
+
+        Args:
+            path: The location of the experiment
+            experiment_data: contents of the experiment.json file
+            error_dict: Dictionary containing error and warning messages of the validations that failed
+        """
+
+        experiment_application_data = experiment_data["asset"]["application"]
+        experiment_input_path = path / 'input'
+
+        # Check if the roles defined in experiment.json ['application'] match the roles defined in input/network.json
+        if (experiment_input_path / 'network.json').is_file():
+            try:
+                application_network_data = utils.read_json_file(experiment_input_path / 'network.json')
+                application_roles = application_network_data["roles"] if "roles" in application_network_data else []
+                for experiment_application_item in experiment_application_data:
+                    experiment_roles = experiment_application_item["roles"]
+                    if not set(experiment_roles).issubset(application_roles):
+                        error_dict["warning"].append(f"In file '{path / 'experiment.json'}': not all experiment roles "
+                                                     f"{experiment_roles} are defined as application roles "
+                                                     f"{application_roles}' in "
+                                                     f"'{experiment_input_path / 'network.json'}'")
+            except MalformedJsonFile:
+                # The file 'network.json' will be checked against the schema in validate_experiment_input
+                pass

@@ -106,7 +106,7 @@ class ConfigManager:
         application = self.get_application(application_name)
         if application:
             if 'path' in application and os.path.exists(application['path']):
-                return application['path'].lower()
+                return application['path']
 
         return None
 
@@ -115,7 +115,7 @@ class ConfigManager:
 
         for application_name in applications:
             application_path = self.get_application_path(application_name)
-            if application_path is not None and application_path.lower() == os.path.join(str(path), '').lower():
+            if application_path is not None and application_path == os.path.join(str(path), ''):
                 return application_name, applications[application_name]
 
         raise ApplicationDoesNotExist()
@@ -174,7 +174,6 @@ class ConfigManager:
     def get_experiment(self, path: Path) -> Dict[str, str]:
         return {}
 
-    # TODO: Add __cleanup_config() to Confluence documentation
     def __cleanup_config(self) -> None:
         del_applications = []
         applications = read_json_file(self.applications_config)

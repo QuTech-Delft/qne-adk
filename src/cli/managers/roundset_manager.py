@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import Tuple
+from typing import Any
+from cli.type_aliases import ErrorDictType
 
 
 class RoundSetManager:
@@ -9,8 +10,8 @@ class RoundSetManager:
     def process(self) -> None:
         pass
 
-    def validate_asset(self, path: Path) -> Tuple[bool, str]:
-        return True, 'Valid'
+    def validate_asset(self, path: Path, error_dict: ErrorDictType) -> Any:
+        pass
 
     def prepare_input(self, path: Path) -> None:
         pass

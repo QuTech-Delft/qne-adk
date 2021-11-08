@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
@@ -137,7 +137,7 @@ class CommandProcessor:
         return self.__remote.list_experiments()
 
     @log_function
-    def experiments_validate(self, path: Path) -> Tuple[bool, str]:
+    def experiments_validate(self, path: Path) -> ErrorDictType:
         return self.__local.validate_experiment(path)
 
     @log_function

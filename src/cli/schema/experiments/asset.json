@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "file:asset.json",
+  "title": "Asset",
+  "description": "Asset belonging to an experiment",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "url": {
+      "type": "string",
+      "format": "uri-reference",
+      "readOnly": true
+    },
+    "network": {
+      "$ref": "file:../networks/network_asset.json"
+    },
+    "application": {
+      "type": "array",
+      "items": {
+        "$ref": "file:../networks/roletemplate.json"
+      }
+    },
+    "experiment": {
+      "type": "string",
+      "format": "uri-reference"
+    }
+  },
+  "required": [
+    "network",
+    "application"
+  ],
+  "additionalProperties": false
+}
