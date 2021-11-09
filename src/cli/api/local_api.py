@@ -13,7 +13,7 @@ from cli.parsers.output_converter import OutputConverter
 from cli.settings import BASE_DIR
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
                               app_configApplicationType, AssetType, assetApplicationType, assetNetworkType,
-                              ExperimentType, ErrorDictType, GenericNetworkData, GeneratedResultType,
+                              ExperimentType, ErrorDictType, GenericNetworkData, ResultType, RoundSetType,
                               ChannelData, NetworkData, NodeData, TemplateData)
 from cli.validators import validate_json_file, validate_json_schema
 
@@ -691,8 +691,9 @@ class LocalApi:
     def delete_experiment(self, path: Path) -> None:
         pass
 
-    def run_experiment(self, path: Path) -> GeneratedResultType:
-        round_set_manager = RoundSetManager(asset=self._get_asset(path), path=path)
+    def run_experiment(self, path: Path) -> ResultType:
+        local_round_set: RoundSetType = {'url': 'local'}
+        round_set_manager = RoundSetManager(round_set=local_round_set, asset=self._get_asset(path), path=path)
         result = round_set_manager.process()
         return result
 
@@ -712,14 +713,15 @@ class LocalApi:
     def get_experiment(self, name: str) -> ExperimentType:
         pass
 
-    def get_results(self, path: Path) -> GeneratedResultType:
+    def get_results(self, path: Path) -> ResultType:
         output_converter = OutputConverter(
+            round_set={'url': 'local'},
             log_dir=str(path / "raw_output"),
             output_dir="LAST",
             instruction_converter=FullyConnectedNetworkGenerator()
         )
 
-        return cast(GeneratedResultType, output_converter.convert(round_number=1))
+        return cast(ResultType, output_converter.convert(round_number=1))
 
     def validate_experiment(self, path: Path) -> ErrorDictType:
         """

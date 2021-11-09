@@ -6,7 +6,7 @@ import yaml
 from cli.generators.network_generator import FullyConnectedNetworkGenerator
 from cli.generators.instruction_generator import InstructionGenerator
 from cli.generators.result_generator import ResultGenerator
-from cli.type_aliases import GeneratedResultType, CumulativeResultType, LogEntryType
+from cli.type_aliases import ResultType, CumulativeResultType, LogEntryType, RoundSetType
 
 
 class OutputConverter:
@@ -20,9 +20,10 @@ class OutputConverter:
     ROLE_LOG_TYPES = [ROLE_INSTRS_LOG, ROLE_CLASS_COMM_LOG, ROLE_APP_LOG]
     GENERIC_LOG_FILES = ["network_log.yaml"]
 
-    def __init__(self, log_dir: str, output_dir: str,
+    def __init__(self, round_set: RoundSetType, log_dir: str, output_dir: str,
                  instruction_converter: Optional[FullyConnectedNetworkGenerator] = None):
         self._log_dir = log_dir
+        self._round_set = round_set
         self._instruction_converter = instruction_converter
         self._log_files_dir = os.path.join(log_dir, output_dir)
 
@@ -116,8 +117,7 @@ class OutputConverter:
 
         return sorted(logs, key=lambda l: l['WCT'])  # type:ignore[no-any-return]
 
-
-    def convert(self, round_number: int) -> GeneratedResultType:
+    def convert(self, round_number: int) -> ResultType:
         """Convert result and log files into a Result format compatible with the QNE
 
         NetSquid logs all actions that are performed in the applications. These log_entries are converted into
@@ -146,7 +146,7 @@ class OutputConverter:
         round_result = self.__read_yaml_file(result_file)
 
         cumulative_result: CumulativeResultType = {}
-        result = ResultGenerator.generate(round_number, round_result, instructions, cumulative_result)
+        result = ResultGenerator.generate(self._round_set, round_number, round_result, instructions, cumulative_result)
         return result
 
     def __clean(self) -> None:

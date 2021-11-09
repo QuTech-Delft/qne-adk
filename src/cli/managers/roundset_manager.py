@@ -9,7 +9,7 @@ from cli.parsers.input_parser import InputParser
 from cli.parsers.output_converter import OutputConverter
 from cli.generators.network_generator import FullyConnectedNetworkGenerator
 from cli.generators.result_generator import ErrorResultGenerator
-from cli.type_aliases import ErrorDictType, GeneratedResultType
+from cli.type_aliases import ResultType, RoundSetType
 
 
 class RoundSetManager:
@@ -19,8 +19,9 @@ class RoundSetManager:
     Uses the OutputConverter class to process the output of netqasm and convert it to a result in QNE format.
     If the application run fails, then an error result is generated containing the reason for failure.
     """
-    def __init__(self, asset: Dict[str, Any], path: Path) -> None:
+    def __init__(self, round_set: RoundSetType, asset: Dict[str, Any], path: Path) -> None:
         self.__asset = asset
+        self.__round_set = round_set
         self.__path = path
         self.__input_dir = str(path / "input")
         self.__log_dir = str(path / "raw_output")
@@ -31,12 +32,13 @@ class RoundSetManager:
             network_generator=self.__fully_connected_network_generator
         )
         self.__output_converter = OutputConverter(
+            round_set=self.__round_set,
             log_dir=self.__log_dir,
             output_dir=self.__output_dir,
             instruction_converter=self.__fully_connected_network_generator
         )
 
-    def process(self) -> GeneratedResultType:
+    def process(self) -> ResultType:
         """
         Process a round by running the application on simulator.
 
@@ -67,14 +69,11 @@ class RoundSetManager:
             round_failed = True
 
         if round_failed:
-            result = ErrorResultGenerator.generate(round_number, exception_type, message, trace)
+            result = ErrorResultGenerator.generate(self.__round_set, round_number, exception_type, message, trace)
         else:
             result = self.__output_converter.convert(round_number)
 
         return result
-
-    def validate_asset(self, path: Path, error_dict: ErrorDictType) -> Any:
-        pass
 
     def __clean(self) -> None:
         """Cleans up all files in the input directory.

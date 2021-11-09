@@ -303,4 +303,4 @@ def experiments_results(
     if show:
         typer.echo(results)
     else:
-        typer.echo(f"{result_noun.title()} stored at location results/processed.json")
+        typer.echo(f"{result_noun.title()} stored at location {cwd}/results/processed.json")
