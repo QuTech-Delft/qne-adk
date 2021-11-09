@@ -2,10 +2,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import call, patch, MagicMock
 
-from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
+from cli.exceptions import (ApplicationAlreadyExists, ExperimentDirectoryNotValid, JsonFileNotFound,
+                            NoNetworkAvailable, PackageNotComplete)
+from cli.managers.roundset_manager import RoundSetManager
 from cli.parsers.output_converter import OutputConverter
-from cli.exceptions import ApplicationAlreadyExists, JsonFileNotFound, NoNetworkAvailable, PackageNotComplete
 
 
 class ApplicationValidate(unittest.TestCase):
@@ -383,6 +384,131 @@ class ApplicationValidate(unittest.TestCase):
             get_application_mock.return_value = {}
             config = self.local_api.get_application_config('test')
             self.assertIsNone(config)
+
+    def test_delete_experiment_with_experiment_dir(self):
+        with patch("cli.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
+             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+             patch.object(LocalApi, "_LocalApi__get__config_file_names", return_value=['application.json',
+                                                                                       'network.json',
+                                                                                       'result.json']), \
+             patch.object(LocalApi, "_LocalApi__get_role_file_names", return_value=['role1_app.py', 'role2_app.py']), \
+             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+
+            is_dir_mock.return_value = False
+            is_file_mock.return_value = False
+            self.assertRaises(ExperimentDirectoryNotValid, self.local_api.delete_experiment, 'exp_dir', self.path)
+
+            is_dir_mock.side_effect = [True, True]
+            is_file_mock.side_effect = [True, True, True, True, True, True]
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+
+            self.assertEqual(unlink_mock.call_count, 6)
+            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertTrue(delete_experiment_output)
+
+            # no directory ./input
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, False]
+            is_file_mock.side_effect = [True]
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 1)
+            self.assertEqual(rmdir_mock.call_count, 1)
+            self.assertTrue(delete_experiment_output)
+
+            # 1 app_role.py not a file
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, True]
+            is_file_mock.side_effect = [True, True, True, False, True, True]
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 5)
+            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertTrue(delete_experiment_output)
+
+            # rmdir directory ./input fails
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            rmdir_mock.side_effect = OSError
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, True]
+            is_file_mock.side_effect = [True, True, True, True, True, True]
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 6)
+            self.assertEqual(rmdir_mock.call_count, 1)
+            self.assertFalse(delete_experiment_output)
+
+            # rmdir directory experiment_path fails
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            rmdir_mock.side_effect = [None, OSError]
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, True]
+            is_file_mock.side_effect = [True, True, True, True, True, True]
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 6)
+            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertFalse(delete_experiment_output)
+
+    def test_delete_experiment_no_experiment_dir(self):
+        with patch("cli.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
+             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+             patch.object(LocalApi, "_LocalApi__get__config_file_names", return_value=['application.json',
+                                                                                       'network.json',
+                                                                                       'result.json']), \
+             patch.object(LocalApi, "_LocalApi__get_role_file_names", return_value=['role1_app.py', 'role2_app.py']), \
+             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+
+            is_dir_mock.return_value = False
+            is_file_mock.return_value = False
+            self.assertRaises(ExperimentDirectoryNotValid, self.local_api.delete_experiment, None, self.path)
+
+            is_dir_mock.side_effect = [True, True]
+            is_file_mock.side_effect = [True, True, True, True, True, True]
+            delete_experiment_output = self.local_api.delete_experiment(None, path=Path('dummy'))
+
+            self.assertEqual(unlink_mock.call_count, 6)
+            self.assertEqual(rmdir_mock.call_count, 1)
+            self.assertFalse(delete_experiment_output)
+
+            # no directory ./input
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, False]
+            is_file_mock.side_effect = [True]
+            delete_experiment_output = self.local_api.delete_experiment(None, path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 1)
+            self.assertEqual(rmdir_mock.call_count, 0)
+            self.assertFalse(delete_experiment_output)
+
+            # rmdir directory ./input fails
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            rmdir_mock.side_effect = OSError
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, True]
+            is_file_mock.side_effect = [True, True, True, True, True, True]
+            delete_experiment_output = self.local_api.delete_experiment(None, path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 6)
+            self.assertEqual(rmdir_mock.call_count, 1)
+            self.assertFalse(delete_experiment_output)
 
     def test_validate_experiment(self):
         pass

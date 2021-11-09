@@ -717,24 +717,33 @@ class LocalApi:
         experiment_json = experiment_path / 'experiment.json'
         # Check if experiment.json exists and we're dealing with an experiment directory
         if experiment_path.is_dir() and experiment_json.is_file():
-            experiment_input_directory = experiment_path / 'input'
-            if os.path.isdir(experiment_input_directory):
+            experiment_input_path = experiment_path / 'input'
+            if experiment_input_path.is_dir():
                 # Delete all config files
                 config_files_list = self.__get__config_file_names()
                 for config_file in config_files_list:
-                    file_to_delete = experiment_input_directory / config_file
+                    file_to_delete = experiment_input_path / config_file
                     if file_to_delete.is_file():
+                        if config_file == 'network.json':
+                            # Delete the app files for the roles from network.json from the
+                            # experiment/input directory
+                            application_file_names = [experiment_input_path / application_file_name for
+                                                      application_file_name in
+                                                      self.__get_role_file_names(experiment_input_path)]
+                            for app_file in application_file_names:
+                                if app_file.is_file():
+                                    app_file.unlink()
+
                         file_to_delete.unlink()
 
-                # Delete all app_*.py files
-                for app_file in experiment_input_directory.glob('app_*.py'):
-                    app_file.unlink()
-
                 try:
-                    os.rmdir(experiment_input_directory)
+                    os.rmdir(experiment_input_path)
                     input_dir_deleted = True
                 except OSError:  # The directory is not empty
                     pass
+            else:
+                # no dir actually counts as deleted
+                input_dir_deleted = True
 
             # Delete experiment.json
             experiment_json.unlink()
