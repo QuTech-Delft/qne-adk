@@ -4,17 +4,17 @@ from typing import Any, Callable
 
 import typer
 
-from cli.exceptions import QneCliException
+from adk.exceptions import QneAdkException
 
 
-def catch_qne_cli_exceptions(func: Callable[..., Any]) -> Any:
+def catch_qne_adk_exceptions(func: Callable[..., Any]) -> Any:
     """ Decorator function to catch exceptions and print an error message """
     @functools.wraps(func)
     def catch_exceptions(*args: Any, **kwargs: Any) -> Any:
         try:
             func(*args, **kwargs)
-        except QneCliException as qne_cli_exception:
-            message = f"Error: {str(qne_cli_exception)}"
+        except QneAdkException as qne_adk_exception:
+            message = f"Error: {str(qne_adk_exception)}"
             typer.echo(message)
         except Exception as exception:
             message = f"Unhandled exception: {repr(exception)}"

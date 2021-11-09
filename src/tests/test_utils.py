@@ -2,8 +2,8 @@ from pathlib import Path
 from unittest.mock import call, patch, mock_open
 import unittest
 
-from cli.exceptions import InvalidPathName, JsonFileNotFound, MalformedJsonFile
-from cli.utils import copy_files, get_dummy_application, get_py_dummy, read_json_file, reorder_data, write_json_file, \
+from adk.exceptions import InvalidPathName, JsonFileNotFound, MalformedJsonFile
+from adk.utils import copy_files, get_dummy_application, get_py_dummy, read_json_file, reorder_data, write_json_file, \
     write_file, validate_path_name
 
 
@@ -15,15 +15,15 @@ class TestUtils(unittest.TestCase):
         self.invalid_name = "invalid/name"
 
     def test_write_json_file(self):
-        with patch("cli.utils.open") as open_mock, \
-             patch("cli.utils.json.dump") as json_dump_mock:
+        with patch("adk.utils.open") as open_mock, \
+             patch("adk.utils.json.dump") as json_dump_mock:
 
             write_json_file(self.path, {})
             open_mock.assert_called_once()
             json_dump_mock.assert_called_once()
 
     def test_write_file(self):
-        with patch("cli.utils.open") as open_mock:
+        with patch("adk.utils.open") as open_mock:
 
             write_file(self.path, {})
             open_mock.assert_called_once()
@@ -36,7 +36,7 @@ class TestUtils(unittest.TestCase):
                                               "\"application_id\": 2}" \
                             "}"
 
-        with patch('cli.utils.open', mock_open(read_data=dummy_apps_config)):
+        with patch('adk.utils.open', mock_open(read_data=dummy_apps_config)):
             data = read_json_file(self.path)
             self.assertEqual(len(data), 2)
             self.assertIn('app_1', data)
@@ -50,11 +50,11 @@ class TestUtils(unittest.TestCase):
                             "\"application_id\" 2}" \
                             "}"
 
-        with patch('cli.utils.open', mock_open(read_data=malformed_apps_config)):
+        with patch('adk.utils.open', mock_open(read_data=malformed_apps_config)):
             self.assertRaises(MalformedJsonFile, read_json_file, self.path)
 
     def test_read_json_file_not_found(self):
-        with patch('cli.utils.open', side_effect=FileNotFoundError):
+        with patch('adk.utils.open', side_effect=FileNotFoundError):
             self.assertRaises(JsonFileNotFound, read_json_file, self.path)
 
     def test_reorder_data(self):
@@ -82,10 +82,10 @@ class TestUtils(unittest.TestCase):
         self.assertRaises(InvalidPathName, validate_path_name, "object", self.invalid_name)
 
     def test_copy_files(self):
-        with patch("cli.utils.os.path.isfile") as isfile_mock, \
-             patch("cli.utils.os.listdir") as listdir_mock, \
-             patch("cli.utils.shutil.copy") as copy_mock, \
-             patch("cli.utils.os.path.join") as join_mock:
+        with patch("adk.utils.os.path.isfile") as isfile_mock, \
+             patch("adk.utils.os.listdir") as listdir_mock, \
+             patch("adk.utils.shutil.copy") as copy_mock, \
+             patch("adk.utils.os.path.join") as join_mock:
 
             isfile_mock.return_value = True
             listdir_mock.return_value = ['file1', 'file2']

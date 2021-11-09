@@ -1,8 +1,8 @@
 import os.path
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
-from cli.utils import read_json_file, write_json_file
-from cli.exceptions import ApplicationDoesNotExist, DirectoryIsFile
+from adk.utils import read_json_file, write_json_file
+from adk.exceptions import ApplicationDoesNotExist, DirectoryIsFile
 
 
 class ConfigManager:

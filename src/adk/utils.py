@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 from typing import Any, Dict, List, Optional, Type
 
-from cli.exceptions import JsonFileNotFound, MalformedJsonFile, InvalidPathName
+from adk.exceptions import JsonFileNotFound, MalformedJsonFile, InvalidPathName
 
 
 class ComplexEncoder(json.JSONEncoder):

@@ -5,8 +5,8 @@ from typing import Tuple, Any
 from jsonschema import Draft7Validator, RefResolver, draft7_format_checker
 from jsonschema.exceptions import ValidationError
 
-from cli.exceptions import JsonFileNotFound, MalformedJsonFile, PackageNotComplete
-from cli.utils import read_json_file
+from adk.exceptions import JsonFileNotFound, MalformedJsonFile, PackageNotComplete
+from adk.utils import read_json_file
 
 
 def validate_json_file(file_name: Path) -> Tuple[bool, Any]:

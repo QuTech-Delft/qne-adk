@@ -5,11 +5,11 @@ import subprocess
 from subprocess import CalledProcessError, TimeoutExpired
 from typing import Any, Dict
 
-from cli.parsers.input_parser import InputParser
-from cli.parsers.output_converter import OutputConverter
-from cli.generators.network_generator import FullyConnectedNetworkGenerator
-from cli.generators.result_generator import ErrorResultGenerator
-from cli.type_aliases import ResultType, RoundSetType
+from adk.parsers.input_parser import InputParser
+from adk.parsers.output_converter import OutputConverter
+from adk.generators.network_generator import FullyConnectedNetworkGenerator
+from adk.generators.result_generator import ErrorResultGenerator
+from adk.type_aliases import ResultType, RoundSetType
 
 
 class RoundSetManager:

@@ -3,20 +3,20 @@ from pathlib import Path
 import shutil
 from typing import Any, cast, Dict, List, Optional
 
-from cli import utils
-from cli.exceptions import (ApplicationAlreadyExists, ApplicationDoesNotExist, DirectoryAlreadyExists,
+from adk import utils
+from adk.exceptions import (ApplicationAlreadyExists, ApplicationDoesNotExist, DirectoryAlreadyExists,
                             ExperimentDirectoryNotValid, JsonFileNotFound, MalformedJsonFile, NetworkNotFound,
                             NoNetworkAvailable, PackageNotComplete)
-from cli.managers.config_manager import ConfigManager
-from cli.managers.roundset_manager import RoundSetManager
-from cli.generators.network_generator import FullyConnectedNetworkGenerator
-from cli.parsers.output_converter import OutputConverter
-from cli.settings import BASE_DIR
-from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
+from adk.managers.config_manager import ConfigManager
+from adk.managers.roundset_manager import RoundSetManager
+from adk.generators.network_generator import FullyConnectedNetworkGenerator
+from adk.parsers.output_converter import OutputConverter
+from adk.settings import BASE_DIR
+from adk.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
                               app_configApplicationType, AssetType, assetApplicationType, assetNetworkType,
                               ExperimentType, ErrorDictType, GenericNetworkData, ResultType, RoundSetType,
                               ChannelData, NetworkData, NodeData, TemplateData)
-from cli.validators import validate_json_file, validate_json_schema
+from adk.validators import validate_json_file, validate_json_schema
 
 
 class LocalApi:

@@ -2,10 +2,10 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 import unittest
 
-from cli.api.local_api import LocalApi
-from cli.api.remote_api import RemoteApi
-from cli.command_processor import CommandProcessor
-from cli.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication
+from adk.api.local_api import LocalApi
+from adk.api.remote_api import RemoteApi
+from adk.command_processor import CommandProcessor
+from adk.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication
 
 
 class TestCommandProcessor(unittest.TestCase):
@@ -68,7 +68,7 @@ class TestCommandProcessor(unittest.TestCase):
         with patch.object(LocalApi, "experiments_create") as create_exp_mock, \
              patch.object(LocalApi, "get_application_config") as get_config_mock, \
              patch.object(LocalApi, "is_network_available") as check_network_mock, \
-             patch("cli.command_processor.Path.exists") as mock_path_exists:
+             patch("adk.command_processor.Path.exists") as mock_path_exists:
             get_config_mock.return_value = {'foo': 'bar'}
             check_network_mock.return_value = True
             mock_path_exists.return_value = False

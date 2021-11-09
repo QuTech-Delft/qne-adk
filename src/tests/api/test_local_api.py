@@ -2,11 +2,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import call, patch, MagicMock
 
-from cli.api.local_api import LocalApi
-from cli.exceptions import (ApplicationAlreadyExists, ApplicationDoesNotExist, ExperimentDirectoryNotValid,
+from adk.api.local_api import LocalApi
+from adk.exceptions import (ApplicationAlreadyExists, ApplicationDoesNotExist, ExperimentDirectoryNotValid,
                             JsonFileNotFound, NoNetworkAvailable, PackageNotComplete)
-from cli.managers.roundset_manager import RoundSetManager
-from cli.parsers.output_converter import OutputConverter
+from adk.managers.roundset_manager import RoundSetManager
+from adk.parsers.output_converter import OutputConverter
 
 
 class AppValidate(unittest.TestCase):
@@ -161,7 +161,7 @@ class AppValidate(unittest.TestCase):
 
 class ApplicationValidate(AppValidate):
     def test_constructor(self):
-        with patch("cli.api.local_api.utils.read_json_file") as read_json_file_mock:
+        with patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock:
             read_json_file_mock.side_effect = JsonFileNotFound("networks/networks.json")
             self.assertRaises(PackageNotComplete, LocalApi, self.config_manager)
 
@@ -182,12 +182,12 @@ class ApplicationValidate(AppValidate):
                               self.path)
 
     def test__create_application_structure(self):
-        with patch('cli.api.local_api.Path.mkdir') as mock_mkdir, \
+        with patch('adk.api.local_api.Path.mkdir') as mock_mkdir, \
              patch.object(LocalApi, "_get_network_nodes") as _get_nodes_mock, \
-             patch("cli.api.local_api.utils.get_dummy_application") as get_dummy_application_mock, \
-             patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
-             patch("cli.api.local_api.utils.write_json_file") as write_json_file_mock, \
-             patch("cli.api.local_api.utils.write_file") as write_file_mock, \
+             patch("adk.api.local_api.utils.get_dummy_application") as get_dummy_application_mock, \
+             patch("adk.api.local_api.shutil.rmtree") as rmtree_mock, \
+             patch("adk.api.local_api.utils.write_json_file") as write_json_file_mock, \
+             patch("adk.api.local_api.utils.write_file") as write_file_mock, \
              patch.object(self.config_manager, "application_exists", return_value=False) as application_exists_mock, \
              patch.object(self.config_manager, 'add_application') as config_manager_mock:
 
@@ -254,11 +254,11 @@ class ApplicationValidate(AppValidate):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
-             patch("cli.api.local_api.validate_json_file") as validate_json_file_mock, \
+             patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
-             patch("cli.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch("cli.api.local_api.os.listdir") as listdir_mock:
+             patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("adk.api.local_api.os.listdir") as listdir_mock:
 
             is_dir_mock.side_effect = [True, True, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
@@ -354,10 +354,10 @@ class ApplicationValidate(AppValidate):
     def test__is_config_valid(self):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock,\
              patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
-             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
              patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
-             patch("cli.api.local_api.validate_json_file") as validate_json_file_mock, \
-             patch("cli.api.local_api.validate_json_schema") as validate_json_schema_mock:
+             patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
+             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock:
 
             # If is_file() is true and validate_json_file is true
             is_structure_valid_mock.return_value = self.error_dict
@@ -596,8 +596,8 @@ class ExperimentValidate(AppValidate):
                                                     application_name='application')
 
     def test_create_experiment(self):
-        with patch("cli.api.local_api.utils.write_json_file") as write_mock, \
-             patch('cli.api.local_api.Path.mkdir') as mkdir_mock, \
+        with patch("adk.api.local_api.utils.write_json_file") as write_mock, \
+             patch('adk.api.local_api.Path.mkdir') as mkdir_mock, \
              patch.object(LocalApi, "_LocalApi__copy_input_files_from_application") as copy_files_mock:
 
             self.local_api.create_experiment(experiment_name='test', app_config=self.mock_app_config,
@@ -624,8 +624,8 @@ class ExperimentValidate(AppValidate):
             write_mock.assert_called_once_with(Path('dummy') / 'test' / 'experiment.json', self.experiment_data_local)
 
     def test_delete_experiment_invalid_experiment_dir(self):
-        with patch("cli.api.local_api.Path.is_dir", return_value=False), \
-             patch("cli.api.local_api.Path.is_file", return_value=False):
+        with patch("cli.adk.local_api.Path.is_dir", return_value=False), \
+             patch("cli.adk.local_api.Path.is_file", return_value=False):
 
             self.assertRaises(ExperimentDirectoryNotValid, self.local_api.delete_experiment, 'exp_dir', self.path)
 

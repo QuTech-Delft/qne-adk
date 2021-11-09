@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from cli.type_aliases import (FallbackFunctionType, LoginFunctionType,
+from adk.type_aliases import (FallbackFunctionType, LoginFunctionType,
                               TokenFetchFunctionType)
 
 
