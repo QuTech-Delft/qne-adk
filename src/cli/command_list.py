@@ -247,6 +247,7 @@ def experiments_delete(
     if experiment_name is not None:
         validate_path_name("Experiment", experiment_name)
 
+    cwd = Path('d:\\dev\\qne-cli\\qne-cli\\exp23')
     cwd = Path.cwd()
     deleted_completely = processor.experiments_delete(experiment_name, path=cwd)
     if deleted_completely:
