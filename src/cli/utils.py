@@ -82,8 +82,10 @@ def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) 
 
 
 def get_dummy_application(roles: List[Any]) -> List[Dict[str, Any]]:
-    dummy_application = [
-        {
+    dummy_application = []
+
+    for role in roles:
+        single_input = {
           "title": "Title for this application",
           "description": "Description of this application",
           "values": [
@@ -94,18 +96,39 @@ def get_dummy_application(roles: List[Any]) -> List[Dict[str, Any]]:
               "maximum_value": 1,
               "unit": "",
               "scale_value": 1.0
-            }
+            },
           ],
           "input_type": "number",
-          "roles": roles
+          "roles": [role]
         }
-      ]
+
+        dummy_application.append(single_input)
+
+    input_with_all_roles = {
+      "title": "Title for this input",
+      "description": "This input is available for multiple roles",
+      "values": [
+        {
+          "name": "y",
+          "default_value": 0,
+          "minimum_value": 0,
+          "maximum_value": 1,
+          "unit": "",
+          "scale_value": 1.0
+        }
+      ],
+      "input_type": "number",
+      "roles": roles
+    }
+
+    dummy_application.append(input_with_all_roles)
 
     return dummy_application
 
 
 def get_py_dummy() -> str:
-    dummy_main = 'def main():\n    # Put your code here\n    return {}\n\n\nif __name__ == "__main__": \n    main()\n'
+    dummy_main = 'def main(app_config=None):\n    # Put your code here\n    return {}\n\n\n' \
+                 'if __name__ == "__main__": \n    main()\n'
 
     return dummy_main
 
