@@ -9,8 +9,7 @@ from cli.managers.roundset_manager import RoundSetManager
 from cli.parsers.output_converter import OutputConverter
 
 
-class ApplicationValidate(unittest.TestCase):
-
+class AppValidate(unittest.TestCase):
     def setUp(self) -> None:
         self.config_manager = MagicMock(config_dir=Path("path/to/application"))
         self.local_api = LocalApi(config_manager=self.config_manager)
@@ -23,7 +22,7 @@ class ApplicationValidate(unittest.TestCase):
             "backend": {
                 "location": "local",
                 "type": "local_netsquid"
-             },
+            },
             "number_of_rounds": 1,
             "description": ""
         }
@@ -62,103 +61,105 @@ class ApplicationValidate(unittest.TestCase):
         }
 
         self.channel_info_list = [{"slug": "c1-slug", "parameters": ["param-1", "param-2"]},
-                             {"slug": "c2-slug", "parameters": ["param-1"]},
-                             {"slug": "c3-slug", "parameters": ["param-2"]}]
+                                  {"slug": "c2-slug", "parameters": ["param-1"]},
+                                  {"slug": "c3-slug", "parameters": ["param-2"]}]
 
         self.node_info_list = [{"slug": "n1-slug", "node_parameters": ["param-1", "param-2"], "number_of_qubits": 2,
-                           "qubit_parameters": ["param-1", "param-2"]},
-                          {"slug": "n2-slug", "node_parameters": ["param-2"], "number_of_qubits": 1,
-                           "qubit_parameters": ["param-1"]},
-                          {"slug": "n3-slug", "node_parameters": ["param-1"], "number_of_qubits": 1,
-                           "qubit_parameters": ["param-2"]}]
+                                "qubit_parameters": ["param-1", "param-2"]},
+                               {"slug": "n2-slug", "node_parameters": ["param-2"], "number_of_qubits": 1,
+                                "qubit_parameters": ["param-1"]},
+                               {"slug": "n3-slug", "node_parameters": ["param-1"], "number_of_qubits": 1,
+                                "qubit_parameters": ["param-2"]}]
 
         self.mock_network_data = {
-          "networks": {
-            "network1": {
-                "name": "Network 1",
-                "slug": "network1",
-                "channels": [
-                    "n1-n2",
-                    "n2-n3"
-                ]
+            "networks": {
+                "network1": {
+                    "name": "Network 1",
+                    "slug": "network1",
+                    "channels": [
+                        "n1-n2",
+                        "n2-n3"
+                    ]
+                }
             }
-          }
         }
         self.mock_channel_data = {
-          "channels": [
-            {
-              "slug": "n1-n2",
-              "node1": "n1",
-              "node2": "n2",
-              "parameters": [
-                    "param-1"
-                ]
-            },
-           {
-              "slug": "n2-n3",
-              "node1": "n2",
-              "node2": "n3",
-              "parameters": [
-                  "param-2"
-              ]
-           }
-          ]
+            "channels": [
+                {
+                    "slug": "n1-n2",
+                    "node1": "n1",
+                    "node2": "n2",
+                    "parameters": [
+                        "param-1"
+                    ]
+                },
+                {
+                    "slug": "n2-n3",
+                    "node1": "n2",
+                    "node2": "n3",
+                    "parameters": [
+                        "param-2"
+                    ]
+                }
+            ]
         }
         self.mock_node_data = {
-          "nodes": [
-            {
-              "name": "N1",
-              "slug": "n1",
-              "coordinates": {
-                "latitude": 52.3667,
-                "longitude": 4.8945
-              },
-              "node_parameters": [
-                "gate-fidelity"
-              ],
-              "number_of_qubits": 3,
-              "qubit_parameters": [
-                "relaxation-time",
-                "dephasing-time"
-              ]
-            }
-          ]
+            "nodes": [
+                {
+                    "name": "N1",
+                    "slug": "n1",
+                    "coordinates": {
+                        "latitude": 52.3667,
+                        "longitude": 4.8945
+                    },
+                    "node_parameters": [
+                        "gate-fidelity"
+                    ],
+                    "number_of_qubits": 3,
+                    "qubit_parameters": [
+                        "relaxation-time",
+                        "dephasing-time"
+                    ]
+                }
+            ]
         }
         self.mock_template_data = {
-          "templates": [
-            {
-              "title": "Parameter One",
-              "slug": "param-1",
-              "values": [
+            "templates": [
                 {
-                  "name": "fidelity",
-                  "default_value": 1.0,
-                  "minimum_value": 0.5,
-                  "maximum_value": 1.0,
-                  "unit": "unit-name",
-                  "scale_value": 1.0
+                    "title": "Parameter One",
+                    "slug": "param-1",
+                    "values": [
+                        {
+                            "name": "fidelity",
+                            "default_value": 1.0,
+                            "minimum_value": 0.5,
+                            "maximum_value": 1.0,
+                            "unit": "unit-name",
+                            "scale_value": 1.0
+                        }
+                    ],
+                    "input_type": "fidelity_slider"
+                },
+                {
+                    "title": "Parameter 2",
+                    "slug": "param-2",
+                    "values": [
+                        {
+                            "name": "t1",
+                            "default_value": 0,
+                            "minimum_value": 0,
+                            "maximum_value": 1000,
+                            "unit": "milliseconds",
+                            "scale_value": 12.0
+                        }
+                    ],
+                    "input_type": "time"
                 }
-              ],
-              "input_type": "fidelity_slider"
-            },
-            {
-              "title": "Parameter 2",
-              "slug": "param-2",
-              "values": [
-                  {
-                      "name": "t1",
-                      "default_value": 0,
-                      "minimum_value": 0,
-                      "maximum_value": 1000,
-                      "unit": "milliseconds",
-                      "scale_value": 12.0
-                  }
-              ],
-              "input_type": "time"
-            }
-          ]
+            ]
         }
 
+
+class ApplicationValidate(AppValidate):
     def test_constructor(self):
         with patch("cli.api.local_api.utils.read_json_file") as read_json_file_mock:
             read_json_file_mock.side_effect = JsonFileNotFound("networks/networks.json")
@@ -325,6 +326,24 @@ class ApplicationValidate(unittest.TestCase):
             self.local_api.list_applications()
             get_applications_mock.assert_called_once()
 
+    def test_get_application_config(self):
+        with patch.object(self.config_manager, "get_application") as get_application_mock, \
+             patch("cli.api.local_api.utils.read_json_file") as read_mock:
+
+            read_mock.side_effect = [[{'app': 'foo'}], {'network': 'bar'}]
+            get_application_mock.return_value = {'path': 'some-path'}
+            config = self.local_api.get_application_config('test')
+            get_application_mock.assert_called_once_with('test')
+            self.assertEqual(read_mock.call_count, 2)
+            self.assertDictEqual(config, {'application': [{'app': 'foo'}], 'network': {'network': 'bar'}})
+
+            get_application_mock.reset_mock()
+            get_application_mock.return_value = {}
+            config = self.local_api.get_application_config('test')
+            self.assertIsNone(config)
+
+
+class ExperimentValidate(AppValidate):
     def test_experiments_create(self):
         with patch.object(LocalApi, "get_network_data") as get_network_data_mock, \
              patch.object(LocalApi, "create_asset_network") as create_network_asset_mock, \
@@ -361,7 +380,7 @@ class ApplicationValidate(unittest.TestCase):
                     "roles": ["Sender"],
                     "values": [{"name": "phi", "value": 0.0, "scale_value": "pi"},
                                {"name": "theta", "value": 0.0, "scale_value": 2.0}
-                              ]
+                               ]
                 }
             ]
             self.experiment_data_local['meta']['description'] = 'test: experiment description'
@@ -369,145 +388,172 @@ class ApplicationValidate(unittest.TestCase):
 
             write_mock.assert_called_once_with(Path('dummy') / 'test' / 'experiment.json', self.experiment_data_local)
 
-    def test_get_application_config(self):
-        with patch.object(self.config_manager, "get_application") as get_application_mock, \
-             patch("cli.api.local_api.utils.read_json_file") as read_mock:
+    def test_delete_experiment_invalid_experiment_dir(self):
+        with patch("cli.api.local_api.Path.is_dir", return_value=False), \
+             patch("cli.api.local_api.Path.is_file", return_value=False):
 
-            read_mock.side_effect = [[{'app': 'foo'}], {'network': 'bar'}]
-            get_application_mock.return_value = {'path': 'some-path'}
-            config = self.local_api.get_application_config('test')
-            get_application_mock.assert_called_once_with('test')
-            self.assertEqual(read_mock.call_count, 2)
-            self.assertDictEqual(config, {'application': [{'app': 'foo'}], 'network': {'network': 'bar'}})
+            self.assertRaises(ExperimentDirectoryNotValid, self.local_api.delete_experiment, 'exp_dir', self.path)
 
-            get_application_mock.reset_mock()
-            get_application_mock.return_value = {}
-            config = self.local_api.get_application_config('test')
-            self.assertIsNone(config)
+    def test_delete_experiment_result_dir(self):
+        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("cli.api.local_api.Path.is_file") as is_file_mock, \
+             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+
+            # processed.json not a file
+            is_dir_mock.side_effect = [True, False, False, True]
+            is_file_mock.side_effect = [True, False]
+
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 1)
+            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertTrue(delete_experiment_output)
+
+            # processed.json is a file
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, False, False, True]
+            is_file_mock.side_effect = [True, True]
+
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 2)
+            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertTrue(delete_experiment_output)
+
+            # rmdir directory ./result fails
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, False, False, True]
+            is_file_mock.side_effect = [True, True]
+            rmdir_mock.side_effect = [OSError, None]
+
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 2)
+            self.assertEqual(rmdir_mock.call_count, 1)
+            self.assertFalse(delete_experiment_output)
+
+    def test_delete_experiment_raw_output_dir(self):
+        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("cli.api.local_api.Path.is_file") as is_file_mock, \
+             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+             patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
+             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+
+            # directory ./raw_output deleted
+            is_dir_mock.side_effect = [True, False, True, False]
+            is_file_mock.side_effect = [True]
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 1)
+            self.assertEqual(rmtree_mock.call_count, 1)
+            self.assertEqual(rmdir_mock.call_count, 1)
+            self.assertTrue(delete_experiment_output)
+
+    def test_delete_experiment_input_dir(self):
+        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("cli.api.local_api.Path.is_file") as is_file_mock, \
+             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+             patch.object(LocalApi, "_LocalApi__get_config_file_names", return_value=['application.json',
+                                                                                      'network.json']), \
+             patch.object(LocalApi, "_LocalApi__get_simulator_file_names", return_value=['roles.yaml',
+                                                                                         'network.yaml']), \
+             patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
+             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+
+            # network.json found
+            is_dir_mock.side_effect = [True, True, False, False]
+            is_file_mock.side_effect = [True, True, True, True, True, True, True, True, True]
+            rmdir_mock.side_effect = [None, None]
+
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 9)
+            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertTrue(delete_experiment_output)
+
+            # rmdir directory ./result fails
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, True, False, False]
+            is_file_mock.side_effect = [True, True, True, True, True, True, True, True, True]
+            rmdir_mock.side_effect = [OSError, None]
+
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 9)
+            self.assertEqual(rmdir_mock.call_count, 1)
+            self.assertFalse(delete_experiment_output)
+
+            # network.json not found
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, True, False, False]
+            is_file_mock.side_effect = [True, True, False, True, True]
+            rmdir_mock.side_effect = [None, None]
+
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 4)
+            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertTrue(delete_experiment_output)
 
     def test_delete_experiment_with_experiment_dir(self):
         with patch("cli.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
              patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
              patch("cli.api.local_api.Path.unlink") as unlink_mock, \
-             patch.object(LocalApi, "_LocalApi__get__config_file_names", return_value=['application.json',
-                                                                                       'network.json',
-                                                                                       'result.json']), \
-             patch.object(LocalApi, "_LocalApi__get_role_file_names", return_value=['role1_app.py', 'role2_app.py']), \
+             patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
+             patch.object(LocalApi, "_LocalApi__get_config_file_names", return_value=['application.json',
+                                                                                      'network.json']), \
+             patch.object(LocalApi, "_LocalApi__get_simulator_file_names", return_value=['roles.yaml',
+                                                                                         'network.yaml']), \
+             patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
              patch("cli.api.local_api.os.rmdir") as rmdir_mock:
 
-            is_dir_mock.return_value = False
-            is_file_mock.return_value = False
-            self.assertRaises(ExperimentDirectoryNotValid, self.local_api.delete_experiment, 'exp_dir', self.path)
-
-            is_dir_mock.side_effect = [True, True]
-            is_file_mock.side_effect = [True, True, True, True, True, True]
             delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
-
-            self.assertEqual(unlink_mock.call_count, 6)
-            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertEqual(unlink_mock.call_count, 10)
+            self.assertEqual(rmdir_mock.call_count, 3)
+            self.assertEqual(rmtree_mock.call_count, 1)
             self.assertTrue(delete_experiment_output)
-
-            # no directory ./input
-            unlink_mock.reset_mock()
-            rmdir_mock.reset_mock()
-            is_dir_mock.reset_mock()
-            is_file_mock.reset_mock()
-
-            is_dir_mock.side_effect = [True, False]
-            is_file_mock.side_effect = [True]
-            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
-            self.assertEqual(unlink_mock.call_count, 1)
-            self.assertEqual(rmdir_mock.call_count, 1)
-            self.assertTrue(delete_experiment_output)
-
-            # 1 app_role.py not a file
-            unlink_mock.reset_mock()
-            rmdir_mock.reset_mock()
-            is_dir_mock.reset_mock()
-            is_file_mock.reset_mock()
-
-            is_dir_mock.side_effect = [True, True]
-            is_file_mock.side_effect = [True, True, True, False, True, True]
-            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
-            self.assertEqual(unlink_mock.call_count, 5)
-            self.assertEqual(rmdir_mock.call_count, 2)
-            self.assertTrue(delete_experiment_output)
-
-            # rmdir directory ./input fails
-            unlink_mock.reset_mock()
-            rmdir_mock.reset_mock()
-            rmdir_mock.side_effect = OSError
-            is_dir_mock.reset_mock()
-            is_file_mock.reset_mock()
-
-            is_dir_mock.side_effect = [True, True]
-            is_file_mock.side_effect = [True, True, True, True, True, True]
-            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
-            self.assertEqual(unlink_mock.call_count, 6)
-            self.assertEqual(rmdir_mock.call_count, 1)
-            self.assertFalse(delete_experiment_output)
 
             # rmdir directory experiment_path fails
             unlink_mock.reset_mock()
             rmdir_mock.reset_mock()
-            rmdir_mock.side_effect = [None, OSError]
             is_dir_mock.reset_mock()
             is_file_mock.reset_mock()
 
-            is_dir_mock.side_effect = [True, True]
-            is_file_mock.side_effect = [True, True, True, True, True, True]
+            is_dir_mock.side_effect = [True, False, False, False]
+            is_file_mock.side_effect = [True]
+            rmdir_mock.side_effect = [OSError]
+
             delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
-            self.assertEqual(unlink_mock.call_count, 6)
-            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertEqual(unlink_mock.call_count, 1)
+            self.assertEqual(rmdir_mock.call_count, 1)
             self.assertFalse(delete_experiment_output)
 
-    def test_delete_experiment_no_experiment_dir(self):
-        with patch("cli.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+    def test_delete_experiment_no_experiment_directory(self):
+        with patch("cli.api.local_api.Path.is_dir", return_value=True), \
+             patch("cli.api.local_api.Path.is_file", return_value=True), \
              patch("cli.api.local_api.Path.unlink") as unlink_mock, \
-             patch.object(LocalApi, "_LocalApi__get__config_file_names", return_value=['application.json',
-                                                                                       'network.json',
-                                                                                       'result.json']), \
-             patch.object(LocalApi, "_LocalApi__get_role_file_names", return_value=['role1_app.py', 'role2_app.py']), \
+             patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
+             patch.object(LocalApi, "_LocalApi__get_config_file_names", return_value=['application.json',
+                                                                                      'network.json']), \
+             patch.object(LocalApi, "_LocalApi__get_simulator_file_names", return_value=['roles.yaml',
+                                                                                         'network.yaml']), \
+             patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
              patch("cli.api.local_api.os.rmdir") as rmdir_mock:
 
-            is_dir_mock.return_value = False
-            is_file_mock.return_value = False
-            self.assertRaises(ExperimentDirectoryNotValid, self.local_api.delete_experiment, None, self.path)
-
-            is_dir_mock.side_effect = [True, True]
-            is_file_mock.side_effect = [True, True, True, True, True, True]
             delete_experiment_output = self.local_api.delete_experiment(None, path=Path('dummy'))
-
-            self.assertEqual(unlink_mock.call_count, 6)
-            self.assertEqual(rmdir_mock.call_count, 1)
-            self.assertFalse(delete_experiment_output)
-
-            # no directory ./input
-            unlink_mock.reset_mock()
-            rmdir_mock.reset_mock()
-            is_dir_mock.reset_mock()
-            is_file_mock.reset_mock()
-
-            is_dir_mock.side_effect = [True, False]
-            is_file_mock.side_effect = [True]
-            delete_experiment_output = self.local_api.delete_experiment(None, path=Path('dummy'))
-            self.assertEqual(unlink_mock.call_count, 1)
-            self.assertEqual(rmdir_mock.call_count, 0)
-            self.assertFalse(delete_experiment_output)
-
-            # rmdir directory ./input fails
-            unlink_mock.reset_mock()
-            rmdir_mock.reset_mock()
-            rmdir_mock.side_effect = OSError
-            is_dir_mock.reset_mock()
-            is_file_mock.reset_mock()
-
-            is_dir_mock.side_effect = [True, True]
-            is_file_mock.side_effect = [True, True, True, True, True, True]
-            delete_experiment_output = self.local_api.delete_experiment(None, path=Path('dummy'))
-            self.assertEqual(unlink_mock.call_count, 6)
-            self.assertEqual(rmdir_mock.call_count, 1)
+            self.assertEqual(unlink_mock.call_count, 10)
+            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertEqual(rmtree_mock.call_count, 1)
             self.assertFalse(delete_experiment_output)
 
     def test_validate_experiment(self):
@@ -550,7 +596,7 @@ class ApplicationValidate(unittest.TestCase):
          patch.object(LocalApi, "_get_channel_info") as get_channel_info_mock, \
          patch.object(LocalApi, "_get_node_info") as get_node_info_mock, \
          patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock:
-            channel_info_list = [{"slug": "c1-slug"},{"slug": "c2-slug"},{"slug": "c3-slug"}]
+            channel_info_list = [{"slug": "c1-slug"}, {"slug": "c2-slug"}, {"slug": "c3-slug"}]
             node_info_list = [{"slug": "n1-slug"}, {"slug": "n2-slug"}, {"slug": "n3-slug"}]
 
             _get_nodes_mock.return_value = {"network-slug-1": ["n1", "n2", "n3"]}

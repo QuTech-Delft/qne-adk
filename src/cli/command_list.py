@@ -77,9 +77,9 @@ def applications_create(
     # Check roles
     if len(roles) <= 1:
         raise NotEnoughRoles()
-    # Lowercase roles
-    roles = [role.lower() for role in roles]
-    if not all(roles.count(role) == 1 for role in roles):
+    # Lower case roles for testing for the same role
+    lower_case_roles = [role.lower() for role in roles]
+    if not all(lower_case_roles.count(role) == 1 for role in lower_case_roles):
         raise RolesNotUnique()
 
     validate_path_name("Application", application_name)
@@ -247,7 +247,6 @@ def experiments_delete(
     if experiment_name is not None:
         validate_path_name("Experiment", experiment_name)
 
-    cwd = Path('d:\\dev\\qne-cli\\qne-cli\\exp23')
     cwd = Path.cwd()
     deleted_completely = processor.experiments_delete(experiment_name, path=cwd)
     if deleted_completely:
@@ -319,10 +318,10 @@ def experiments_results(
     """
     Get results for an experiment.
     """
-    result_noun = "results are" if all_results else "result is"
     cwd = Path.cwd()
     results = processor.experiments_results(all_results=all_results, path=cwd)
     if show:
         typer.echo(results)
     else:
-        typer.echo(f"{result_noun.title()} stored at location {cwd}/results/processed.json")
+        result_noun = "Results are" if all_results else "Result is"
+        typer.echo(f"{result_noun} stored at location '{cwd}/results/processed.json'")

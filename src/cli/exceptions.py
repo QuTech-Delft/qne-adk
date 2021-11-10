@@ -1,5 +1,4 @@
 """Exceptions for Qne Cli"""
-from pathlib import Path
 
 
 class QneCliException(Exception):
@@ -122,7 +121,7 @@ class PackageNotComplete(QneCliException):
 
 
 class RolesNotUnique(QneCliException):
-    """Raised when given roles are not unique"""
+    """Raised when given roles are not unique. The test is case insensitive so 'Sender' and 'sender' are the same"""
 
     def __init__(self) -> None:
         super().__init__("The role names must be unique")
