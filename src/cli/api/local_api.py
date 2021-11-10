@@ -359,8 +359,8 @@ class LocalApi:
         app_schema_path = Path(BASE_DIR) / 'schema/applications'
         app_config_path = Path(self.__config_manager.get_application_path(application_name)) / 'config'
 
-        for file in self.__get_config_file_names():
-            if os.path.isfile(app_config_path / file):
+        for file in self.__get__config_file_names():
+            if (app_config_path / file).is_file():
                 schema_valid, ve = validate_json_schema(app_config_path / file, app_schema_path / file)
                 if not schema_valid:
                     error_dict["error"].append(ve)
@@ -391,20 +391,15 @@ class LocalApi:
         app_config_path = app_dir_path / 'config'
         app_src_path = app_dir_path / 'src'
 
-        # Validate that the config, src and MANIFEST.ini structure is correct
-        if not app_config_path.is_dir() or \
-           not app_src_path.is_dir() or \
-           not (app_dir_path / 'MANIFEST.ini').is_file():
-            error_dict["warning"].append(f"{app_dir_path} should contain a 'MANIFEST.ini', 'src' directory and "
-                                         f"'config' directory")
-
         # Check if the config directory is complete
         if app_config_path.is_dir():
             for file in self.__get_config_file_names():
                 if not (app_config_path / file).is_file():
-                    error_dict["warning"].append(f"{app_config_path} should contain the file '{file}'")
+                    error_dict["error"].append(f"{app_config_path} should contain the file '{file}'")
+        else:
+            error_dict["error"].append(f"{app_dir_path} should contain a 'config' directory")
 
-        if app_src_path.is_dir() and (app_config_path / 'application.json').is_file():
+        if app_src_path.is_dir():
             valid, message = validate_json_file(app_config_path / 'application.json')
             if valid:
                 application_file_names = self.__get_role_file_names(app_config_path)
@@ -413,12 +408,19 @@ class LocalApi:
                 src_dir_files = os.listdir(app_src_path)
 
                 # Check if the roles in the config/application.json match as file names in the src directory
-                if not all(roles in src_dir_files for roles in application_file_names):
-                    error_dict["warning"].append(
-                        f"Not all the roles in {app_config_path / 'application.json'} match the file names in "
-                        f"{app_src_path}")
+                application_files_not_in_src = [role for role in application_file_names if role not in src_dir_files]
+                for application_file_name in application_files_not_in_src:
+                    error_dict["error"].append(
+                        f"The application file '{application_file_name}' for the corresponding role in "
+                        f"'{app_config_path / 'application.json'}' not found in '{app_src_path}'")
             else:
                 error_dict["error"].append(message)
+        else:
+            error_dict["error"].append(f"{app_dir_path} should contain a 'src' directory")
+
+        # Validate that the MANIFEST.ini exists
+        if not (app_dir_path / 'MANIFEST.ini').is_file():
+            error_dict["warning"].append(f"{app_dir_path} should contain the file 'MANIFEST.ini'")
 
     def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
                            path: Path, application_name: str) -> None:
