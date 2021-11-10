@@ -248,12 +248,22 @@ def experiments_run(
     Execute a run of the experiment.
     """
     cwd = Path.cwd()
-    typer.echo("Run experiment")
-    processor.experiments_run(path=cwd, block=block)
-    if block:
-        typer.echo("Experiment has run successfully")
+
+    # Validate the experiment before executing the run command
+    validate_dict = processor.experiments_validate(path=cwd)
+
+    if validate_dict["error"] or validate_dict["warning"]:
+        show_validation_messages(validate_dict)
+        typer.echo("Experiment is invalid. Please resolve the issues and then run the experiment.")
     else:
-        typer.echo("Experiment has been created successfully")
+        results = processor.experiments_run(path=cwd, block=block)
+
+        if results:
+            if "error" in results["round_result"]:
+                typer.echo("Error encountered while running the experiment")
+                typer.echo(results["round_result"]["error"])
+            else:
+                typer.echo("Experiment run successfully. Check the results using command 'experiment results'")
 
 
 @experiments_app.command("validate")
@@ -287,12 +297,10 @@ def experiments_results(
     """
     Get results for an experiment.
     """
-    result_noun = "results" if all_results else "result"
-    typer.echo(f"Get {result_noun} for this experiment")
+    result_noun = "results are" if all_results else "result is"
     cwd = Path.cwd()
-    results = processor.experiments_results(all_results=all_results, show=show, path=cwd)
+    results = processor.experiments_results(all_results=all_results, path=cwd)
     if show:
-        for result in results:
-            typer.echo(result)
+        typer.echo(results)
     else:
-        typer.echo(f"{result_noun.title()} stored successfully")
+        typer.echo(f"{result_noun.title()} stored at location {cwd}/results/processed.json")

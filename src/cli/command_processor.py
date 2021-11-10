@@ -1,11 +1,13 @@
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import cast, Dict, List, Optional
 
 from cli.api.local_api import LocalApi
 from cli.api.remote_api import RemoteApi
 from cli.decorators import log_function
-from cli.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication
+from cli.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication, \
+    ResultDirectoryNotAvailable
 from cli.type_aliases import ApplicationType, ExperimentType, ErrorDictType, ResultType
+from cli import utils
 
 
 class CommandProcessor:
@@ -117,18 +119,14 @@ class CommandProcessor:
         pass
 
     @log_function
-    def experiments_run(self, path: Path, block: bool) -> Optional[List[ResultType]]:
+    def experiments_run(self, path: Path, block: bool) -> Optional[ResultType]:
 
         results = None
         is_local = self.__local.is_experiment_local(path)
 
         if is_local:
             results = self.__local.run_experiment(path)
-        else:
-            results = self.__remote.run_experiment(block)
-
-        if results:
-            self.__store_results(results)
+            self.__store_results(results, path)
 
         return results
 
@@ -142,22 +140,25 @@ class CommandProcessor:
 
     @log_function
     def experiments_results(
-        self, all_results: bool, show: bool, path:Path
-    ) -> Optional[List[ResultType]]:
-        results = None
-        is_local = self.__local.is_experiment_local(path)
-
-        if is_local:
-            results = self.__local.get_results(path, all_results)
-        else:
-            results = self.__remote.get_results('path', all_results, block=True, timeout=100)
-
-        if show:
-            return results
-
-        self.__store_results(results)
-        return None
+        self, all_results: bool, path: Path
+    ) -> ResultType:
+        results: ResultType = self.__get_results(path=path)
+        return results
 
     @log_function
-    def __store_results(self, results: List[ResultType]) -> None:
-        pass
+    def __store_results(self, results: ResultType, path: Path) -> None:
+        processed_results_directory = path / "results"
+        if not processed_results_directory.exists():
+            processed_results_directory.mkdir(parents=True)
+
+        processed_result_json_file = processed_results_directory / 'processed.json'
+        utils.write_json_file(processed_result_json_file, results, encoder_cls=utils.ComplexEncoder)
+
+    @log_function
+    def __get_results(self, path: Path) -> ResultType:
+        processed_results_directory = path / "results"
+        if not processed_results_directory.exists():
+            raise ResultDirectoryNotAvailable(str(processed_results_directory))
+
+        processed_result_json_file = processed_results_directory / 'processed.json'
+        return cast(ResultType, utils.read_json_file(processed_result_json_file))

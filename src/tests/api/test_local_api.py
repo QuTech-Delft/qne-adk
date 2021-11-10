@@ -4,7 +4,7 @@ from unittest.mock import call, patch, MagicMock
 
 from cli.managers.roundset_manager import RoundSetManager
 from cli.api.local_api import LocalApi
-from cli.output_converter import OutputConverter
+from cli.parsers.output_converter import OutputConverter
 from cli.exceptions import ApplicationAlreadyExists, JsonFileNotFound, NoNetworkAvailable, PackageNotComplete
 
 
@@ -388,32 +388,17 @@ class ApplicationValidate(unittest.TestCase):
         pass
 
     def test_run_experiment(self):
-        with patch.object(RoundSetManager, "prepare_input") as prepare_input_mock, \
-             patch.object(RoundSetManager, "process") as process_mock, \
-             patch.object(RoundSetManager, "terminate") as terminate_mock:
+        with patch.object(LocalApi, "_get_asset") as get_asset_mock, \
+             patch.object(RoundSetManager, "process") as process_mock:
 
             self.local_api.run_experiment(Path('dummy'))
-            prepare_input_mock.assert_called_once_with(Path('dummy'))
+            get_asset_mock.assert_called_once()
             process_mock.assert_called_once()
-            terminate_mock.assert_called_once()
 
     def test_get_results(self):
-        with patch.object(OutputConverter, "convert") as convert_mock, \
-             patch.object(LocalApi, "get_experiment_rounds") as get_rounds_mock:
-
-            get_rounds_mock.return_value = 3
-
-            self.local_api.get_results(path=Path('dummy'), all_results=True)
-            get_rounds_mock.assert_called_once_with(Path('dummy'))
-            self.assertEqual(convert_mock.call_count, 3)
-
-            get_rounds_mock.reset_mock()
-            get_rounds_mock.return_value = 4
-            convert_mock.reset_mock()
-
-            self.local_api.get_results(path=Path('dummy'), all_results=False)
-            get_rounds_mock.assert_called_once_with(Path('dummy'))
-            convert_mock.assert_called_once_with(4, [])
+        with patch.object(OutputConverter, "convert") as convert_mock:
+            self.local_api.get_results(path=Path('dummy'))
+            convert_mock.assert_called_once_with(round_number=1)
 
     def test_is_network_available(self):
         with patch.object(LocalApi, "_get_network_slug") as get_network_slug_mock:

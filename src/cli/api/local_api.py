@@ -8,11 +8,12 @@ from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, Js
                             NetworkNotFound, NoNetworkAvailable, PackageNotComplete)
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
-from cli.output_converter import OutputConverter
+from cli.generators.network_generator import FullyConnectedNetworkGenerator
+from cli.parsers.output_converter import OutputConverter
 from cli.settings import BASE_DIR
 from cli.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
-                              app_configApplicationType, assetApplicationType, assetNetworkType,
-                              ExperimentType, ErrorDictType, GenericNetworkData, ResultType,
+                              app_configApplicationType, AssetType, assetApplicationType, assetNetworkType,
+                              ExperimentType, ErrorDictType, GenericNetworkData, ResultType, RoundSetType,
                               ChannelData, NetworkData, NodeData, TemplateData)
 from cli.validators import validate_json_file, validate_json_schema
 
@@ -669,8 +670,10 @@ class LocalApi:
         Returns:
             bool: True if the experiment at given path is local, False otherwise
         """
-        # read experiment.json and check the meta->backend->location attribute
-        return True
+        experiment_data = utils.read_json_file(path / "experiment.json")
+        if experiment_data["meta"]["backend"]["location"].strip().lower() == "local":
+            return True
+        return False
 
     def get_experiment_rounds(self, path: Path) -> int:
         """
@@ -682,36 +685,43 @@ class LocalApi:
         Returns:
             int: Value of the number of rounds
         """
-        # read experiment.json and check the meta->number_of_rounds attribute
-        return 1
+        experiment_data = utils.read_json_file(path / "experiment.json")
+        return cast(int, experiment_data["meta"]["number_of_rounds"])
 
     def delete_experiment(self, path: Path) -> None:
         pass
 
-    def run_experiment(self, path: Path) -> Optional[List[ResultType]]:
-        round_set_manager = RoundSetManager()
-        round_set_manager.prepare_input(path)
-        round_set_manager.process()
-        round_set_manager.terminate()
-        return []
+    def run_experiment(self, path: Path) -> ResultType:
+        local_round_set: RoundSetType = {'url': 'local'}
+        round_set_manager = RoundSetManager(round_set=local_round_set, asset=self._get_asset(path), path=path)
+        result = round_set_manager.process()
+        return result
+
+    def _get_asset(self, path: Path) -> AssetType:
+        """
+            Get the asset from experiment.json
+
+            Args:
+                path: The location of the experiment
+
+            Returns:
+                A dictionary containing the asset information
+        """
+        experiment_data = utils.read_json_file(path / "experiment.json")
+        return cast(AssetType, experiment_data["asset"])
 
     def get_experiment(self, name: str) -> ExperimentType:
         pass
 
-    def get_results(self, path: Path, all_results: bool) -> List[ResultType]:
-        output_converter = OutputConverter('log_dir', 'output_dir')
+    def get_results(self, path: Path) -> ResultType:
+        output_converter = OutputConverter(
+            round_set={'url': 'local'},
+            log_dir=str(path / "raw_output"),
+            output_dir="LAST",
+            instruction_converter=FullyConnectedNetworkGenerator()
+        )
 
-        result_list: List[ResultType] = []
-        output_result: List[ResultType] = []
-
-        total_rounds = self.get_experiment_rounds(path)
-        if all_results:
-            for round_number in range(1, total_rounds + 1):
-                output_result.append(output_converter.convert(round_number, result_list))
-        else:
-            output_result.append(output_converter.convert(total_rounds, result_list))
-
-        return output_result
+        return cast(ResultType, output_converter.convert(round_number=1))
 
     def validate_experiment(self, path: Path) -> ErrorDictType:
         """

@@ -100,8 +100,7 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_experiments_run(self):
         with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
-             patch.object(LocalApi, "run_experiment") as run_exp_mock, \
-             patch.object(CommandProcessor, '_CommandProcessor__store_results') as store_result_mock:
+             patch.object(LocalApi, "run_experiment") as run_exp_mock:
 
             is_exp_local_mock.return_value = True
             run_exp_mock.return_value = ['foo']
@@ -109,40 +108,30 @@ class TestCommandProcessor(unittest.TestCase):
 
             is_exp_local_mock.assert_called_once_with(Path('dummy'))
             run_exp_mock.assert_called_once_with(Path('dummy'))
-            store_result_mock.assert_called_once_with(['foo'])
 
             is_exp_local_mock.reset_mock()
             run_exp_mock.reset_mock()
-            store_result_mock.reset_mock()
             run_exp_mock.return_value = None
             self.processor.experiments_run(Path('dummy'), True)
             is_exp_local_mock.assert_called_once_with(Path('dummy'))
             run_exp_mock.assert_called_once_with(Path('dummy'))
-            store_result_mock.assert_not_called()
 
     def test_experiments_result(self):
-        with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
-             patch.object(LocalApi, "get_results") as results_mock, \
-             patch.object(CommandProcessor, '_CommandProcessor__store_results') as store_result_mock:
+        with patch("cli.command_processor.Path.exists") as exists_mock, \
+             patch("cli.command_processor.utils.read_json_file") as read_json_mock:
 
-            is_exp_local_mock.return_value = True
-            results_mock.return_value = ['foo']
-            self.processor.experiments_results(True, False, Path('dummy'))
-            is_exp_local_mock.assert_called_once_with(Path('dummy'))
-            results_mock.assert_called_once_with(Path('dummy'), True)
-            store_result_mock.assert_called_once_with(['foo'])
+            exists_mock.return_value = True
+            read_json_mock.return_value = {"foo": "bar"}
+            result_data = self.processor.experiments_results(True, Path('dummy'))
+            self.assertEqual(result_data, {"foo": "bar"})
 
-            is_exp_local_mock.reset_mock()
-            results_mock.reset_mock()
-            store_result_mock.reset_mock()
-            self.processor.experiments_results(True, True, Path('dummy'))
-            is_exp_local_mock.assert_called_once_with(Path('dummy'))
-            results_mock.assert_called_once_with(Path('dummy'), True)
-            store_result_mock.assert_not_called()
+            exists_mock.reset_mock()
+            exists_mock.return_value = False
+            self.assertRaises(Exception, self.processor.experiments_results, True, False, Path('dummy'))
 
     def test_applications_list(self):
         with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
-            patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
+             patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
 
             remote_list_applications_mock.return_value = self.remote_List
             local_list_applications_mock.return_value = self.local_list
@@ -159,7 +148,7 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_applications_list_local(self):
         with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
-            patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
+             patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
 
             local_list_applications_mock.return_value = self.local_list
             applications = self.processor.applications_list(remote=False, local=True)
@@ -174,7 +163,7 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_applications_list_remote(self):
         with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
-            patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
+             patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
 
             remote_list_applications_mock.return_value = self.remote_List
             applications = self.processor.applications_list(remote=True, local=False)

@@ -117,3 +117,10 @@ class RolesNotUnique(QneCliException):
 
     def __init__(self) -> None:
         super().__init__("The role names must be unique")
+
+
+class ResultDirectoryNotAvailable(QneCliException):
+    """Raised when the result directory is not present"""
+
+    def __init__(self, path: str) -> None:
+        super().__init__(f"Result directory is not available at location: '{path}'")
