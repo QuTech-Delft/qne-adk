@@ -317,4 +317,4 @@ Example:
 
 
 ## More documentation
-More documentation about these commands and about the files that are generated can be found in the QNE-ADK user guide on the Quantum Network Explorer [website](https://beta.quantum-network.com/qne-adk).
+More documentation about these commands and about the files that are generated can be found in the QNE-ADK user guide on the Quantum Network Explorer [website](https://beta.quantum-network.com/knowledge-base/qne-adk).
