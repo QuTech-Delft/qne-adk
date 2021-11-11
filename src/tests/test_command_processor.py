@@ -83,6 +83,27 @@ class TestCommandProcessor(unittest.TestCase):
             self.assertRaises(DirectoryAlreadyExists, self.processor.experiments_create, 'test_exp',
                               'app_name', 'network_1', True, Path('test'))
 
+    def test_experiments_delete(self):
+        with patch.object(LocalApi, "delete_experiment") as local_delete_experiment_mock, \
+             patch.object(RemoteApi, "delete_experiment") as remote_delete_experiment_mock:
+
+            local_delete_experiment_mock.return_value = True
+            remote_delete_experiment_mock.return_value = True
+            return_value = self.processor.experiments_delete(None, path=Path('dummy'))
+            local_delete_experiment_mock.assert_called_once()
+            remote_delete_experiment_mock.assert_called_once()
+            self.assertTrue(return_value)
+
+            local_delete_experiment_mock.reset_mock()
+            remote_delete_experiment_mock.reset_mock()
+            local_delete_experiment_mock.return_value = False
+            remote_delete_experiment_mock.return_value = False
+            return_value = self.processor.experiments_delete(None, path=Path('dummy'))
+            local_delete_experiment_mock.assert_called_once()
+            remote_delete_experiment_mock.assert_called_once()
+            self.assertFalse(return_value)
+
+
     def test_experiments_validate(self):
         with patch.object(LocalApi, "validate_experiment") as validate_exp_mock:
             validate_exp_mock.return_value = True, 'ok'

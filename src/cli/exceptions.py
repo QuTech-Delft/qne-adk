@@ -1,3 +1,4 @@
+"""Exceptions for Qne Cli"""
 
 
 class QneCliException(Exception):
@@ -52,6 +53,13 @@ class ExperimentDirectoryAlreadyExists(QneCliException):
 
     def __init__(self, experiment_name: str, path: str) -> None:
         super().__init__(f"Directory for Experiment '{experiment_name}' already exists at location: '{path}'")
+
+
+class ExperimentDirectoryNotValid(QneCliException):
+    """Raised when experiment path (the current path the user is in) isn't identified as an experiment directory"""
+
+    def __init__(self, experiment_path: str) -> None:
+        super().__init__(f"Directory '{experiment_path}' does not appear to be a valid experiment directory")
 
 
 class InvalidPathName(QneCliException):
@@ -113,7 +121,7 @@ class PackageNotComplete(QneCliException):
 
 
 class RolesNotUnique(QneCliException):
-    """Raised when given roles are not unique"""
+    """Raised when given roles are not unique. The test is case insensitive so 'Sender' and 'sender' are the same"""
 
     def __init__(self) -> None:
         super().__init__("The role names must be unique")

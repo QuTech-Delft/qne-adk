@@ -4,8 +4,9 @@ import shutil
 from typing import Any, cast, Dict, List, Optional
 
 from cli import utils
-from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, JsonFileNotFound, MalformedJsonFile,
-                            NetworkNotFound, NoNetworkAvailable, PackageNotComplete)
+from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, ExperimentDirectoryNotValid,
+                            JsonFileNotFound, MalformedJsonFile, NetworkNotFound, NoNetworkAvailable,
+                            PackageNotComplete)
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.generators.network_generator import FullyConnectedNetworkGenerator
@@ -259,7 +260,7 @@ class LocalApi:
         app_config_path.mkdir(parents=True, exist_ok=True)
 
         for role in roles:
-            utils.write_file(app_src_path / f'app_{role}.py', utils.get_py_dummy())
+            utils.write_file(app_src_path / f'app_{role.lower()}.py', utils.get_py_dummy())
 
         # Network.json configuration
         networks = {"networks": [], "roles": roles}
@@ -358,22 +359,31 @@ class LocalApi:
         app_schema_path = Path(BASE_DIR) / 'schema/applications'
         app_config_path = Path(self.__config_manager.get_application_path(application_name)) / 'config'
 
-        for file in self.__get__config_file_names():
+        for file in self.__get_config_file_names():
             if os.path.isfile(app_config_path / file):
                 schema_valid, ve = validate_json_schema(app_config_path / file, app_schema_path / file)
                 if not schema_valid:
                     error_dict["error"].append(ve)
 
-    def __get__config_file_names(self) -> List[str]:
+    def __get_config_file_names(self) -> List[str]:
         return ['application.json', 'network.json', 'result.json']
 
-    def __get_role_file_names(self, app_config_path: Path) -> List[str]:
-        config_network_data = utils.read_json_file(app_config_path / 'network.json')
-        config_application_roles = config_network_data["roles"] if "roles" in config_network_data else []
+    def __get_simulator_file_names(self) -> List[str]:
+        return ['roles.yaml', 'network.yaml']
 
-        # Add app_ and .py to each role in config/network.json so that it matches the python files listed
-        # in the src directory
-        application_file_names = ['app_' + role + '.py' for role in config_application_roles]
+    def __get_role_names(self, app_config_path: Path) -> List[str]:
+        # Get the roles used in this application/experiment from config/network.json
+        config_network_data = utils.read_json_file(app_config_path / 'network.json')
+        config_application_roles: List[str] = config_network_data["roles"] if "roles" in config_network_data else []
+
+        return config_application_roles
+
+    def __get_role_file_names(self, app_config_path: Path) -> List[str]:
+        # Add app_ and .py to each role in config/network.json so that it matches the application python files
+        # Note that these file names are lower case, role names can be upper case
+        config_application_roles = self.__get_role_names(app_config_path)
+        application_file_names = ['app_' + role.lower() + '.py' for role in config_application_roles]
+
         return application_file_names
 
     def __is_structure_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
@@ -390,7 +400,7 @@ class LocalApi:
 
         # Check if the config directory is complete
         if app_config_path.is_dir():
-            for file in self.__get__config_file_names():
+            for file in self.__get_config_file_names():
                 if not (app_config_path / file).is_file():
                     error_dict["warning"].append(f"{app_config_path} should contain the file '{file}'")
 
@@ -636,7 +646,7 @@ class LocalApi:
         application_exists, app_path = self.__config_manager.application_exists(application_name=application_name)
         if application_exists:
             app_path = Path(app_path)
-            utils.copy_files(app_path / 'config', input_directory, files_list=self.__get__config_file_names())
+            utils.copy_files(app_path / 'config', input_directory, files_list=self.__get_config_file_names())
             utils.copy_files(app_path / 'src', input_directory,
                              files_list=self.__get_role_file_names(app_config_path=app_path / 'config'))
 
@@ -670,7 +680,7 @@ class LocalApi:
         Returns:
             bool: True if the experiment at given path is local, False otherwise
         """
-        experiment_data = utils.read_json_file(path / "experiment.json")
+        experiment_data = utils.read_json_file(path / 'experiment.json')
         if experiment_data["meta"]["backend"]["location"].strip().lower() == "local":
             return True
         return False
@@ -685,14 +695,141 @@ class LocalApi:
         Returns:
             int: Value of the number of rounds
         """
-        experiment_data = utils.read_json_file(path / "experiment.json")
+        experiment_data = utils.read_json_file(path / 'experiment.json')
         return cast(int, experiment_data["meta"]["number_of_rounds"])
 
-    def delete_experiment(self, path: Path) -> None:
-        pass
+    def _delete_input(self, experiment_input_path: Path) -> bool:
+        """Input directory contains inputs from the application and input created for the simulator"""
+        input_dir_deleted = False
+        # Delete the config files
+        config_files_list = self.__get_config_file_names()
+        for config_file in config_files_list:
+            file_to_delete = experiment_input_path / config_file
+            if file_to_delete.is_file():
+                if config_file == 'network.json':
+                    # Delete the app files for the roles from network.json from the
+                    # experiment/input directory
+                    application_file_names = [experiment_input_path / application_file_name for
+                                              application_file_name in
+                                              self.__get_role_file_names(experiment_input_path)]
+                    for app_file in application_file_names:
+                        if app_file.is_file():
+                            app_file.unlink()
+
+                    simulator_role_files = [experiment_input_path / (simulator_role_file.lower() + '.yaml') for
+                                            simulator_role_file in
+                                            self.__get_role_names(experiment_input_path)]
+                    for simulator_role_file in simulator_role_files:
+                        if simulator_role_file.is_file():
+                            simulator_role_file.unlink()
+
+                file_to_delete.unlink()
+
+        # delete other yaml files for the simulator
+        simulator_file_names = [experiment_input_path / simulator_file_name for simulator_file_name in
+                                self.__get_simulator_file_names()]
+        for simulator_file in simulator_file_names:
+            if simulator_file.is_file():
+                simulator_file.unlink()
+
+        try:
+            os.rmdir(experiment_input_path)
+            input_dir_deleted = True
+        except OSError:  # The directory is not empty
+            pass
+
+        return input_dir_deleted
+
+    @staticmethod
+    def _delete_raw_output(raw_output_path: Path) -> bool:
+        """Raw output is generated by the simulator. We can safely delete the raw outputs directory"""
+        shutil.rmtree(raw_output_path)
+
+        return True
+
+    @staticmethod
+    def _delete_results(result_path: Path) -> bool:
+        """Results directory contains processed.json"""
+        result_dir_deleted = False
+        processed_result_json_file = result_path / 'processed.json'
+        if processed_result_json_file.is_file():
+            processed_result_json_file.unlink()
+        # now try to remove the result directory
+        try:
+            os.rmdir(result_path)
+            result_dir_deleted = True
+        except OSError:  # The directory is not empty
+            pass
+
+        return result_dir_deleted
+
+    def delete_experiment(self, experiment_name: Optional[str], path: Path) -> bool:
+        """
+        Deletes the experiment files.
+        When experiment name is None the current directory is taken as experiment path, the experiment files and
+        directories are deleted but the current directory cannot be deleted, leaving a trace of the experiment.
+        When experiment name is given ./experiment_name is taken as experiment path and the
+        experiment_name directory can also be deleted deleting the complete experiment.
+        Only files that belong to an experiment are deleted. When a directory is not empty it is not deleted.
+
+        Args:
+            experiment_name: Optional. The experiment directory deleted will be ./experiment_name, otherwise the
+            current directory
+            path: The location of the experiment
+
+        Returns:
+            True if the complete experiment (including directory experiment_name) was deleted, otherwise false (leaving
+            traces of the experiment)
+
+        Raises:
+            ExperimentDirectoryNotValid when the experiment path is not recognized as an experiment
+        """
+        experiment_dir_deleted = False
+        all_subdir_deleted = True
+
+        experiment_path = path / experiment_name if experiment_name is not None else path
+        experiment_json = experiment_path / 'experiment.json'
+        # Check if experiment.json exists and we're dealing with an experiment directory
+        if experiment_path.is_dir() and experiment_json.is_file():
+            experiment_input_path = experiment_path / 'input'
+            if experiment_input_path.is_dir():
+                all_subdir_deleted = all_subdir_deleted and self._delete_input(experiment_input_path)
+
+            experiment_raw_output_path = experiment_path / 'raw_output'
+            if experiment_raw_output_path.is_dir():
+                all_subdir_deleted = all_subdir_deleted and self._delete_raw_output(experiment_raw_output_path)
+
+            experiment_results_path = experiment_path / 'results'
+            if experiment_results_path.is_dir():
+                all_subdir_deleted = all_subdir_deleted and self._delete_results(experiment_results_path)
+
+            # Delete experiment.json
+            experiment_json.unlink()
+
+            # only when we called experiment delete from the parent directory and 'input' dir was removed try to remove
+            # experiment dir
+            if all_subdir_deleted and experiment_name is not None:
+                try:
+                    os.rmdir(experiment_path)
+                    experiment_dir_deleted = True
+                except OSError:  # The directory is not empty
+                    pass
+        else:
+            raise ExperimentDirectoryNotValid(str(experiment_path))
+
+        return all_subdir_deleted and experiment_dir_deleted
 
     def run_experiment(self, path: Path) -> ResultType:
-        local_round_set: RoundSetType = {'url': 'local'}
+        """
+        An experiment is run on the backend. For this the round set manager is setup and called to process the asset
+
+        Args:
+            path: The location of the experiment
+
+        Returns:
+            A dictionary containing the results of the run
+        """
+        local_round_set: RoundSetType = {"url": "local"}
         round_set_manager = RoundSetManager(round_set=local_round_set, asset=self._get_asset(path), path=path)
         result = round_set_manager.process()
         return result
@@ -715,9 +852,9 @@ class LocalApi:
 
     def get_results(self, path: Path) -> ResultType:
         output_converter = OutputConverter(
-            round_set={'url': 'local'},
-            log_dir=str(path / "raw_output"),
-            output_dir="LAST",
+            round_set={"url": "local"},
+            log_dir=str(path / 'raw_output'),
+            output_dir='LAST',
             instruction_converter=FullyConnectedNetworkGenerator()
         )
 
@@ -800,7 +937,7 @@ class LocalApi:
 
         if experiment_input_path.is_dir():
             if local:
-                for file in self.__get__config_file_names():
+                for file in self.__get_config_file_names():
                     if (experiment_input_path / file).is_file():
                         app_schema_path = Path(os.path.join(BASE_DIR), 'schema', 'applications', '')
                         valid, message = validate_json_schema(experiment_input_path / file, app_schema_path / file)
@@ -821,7 +958,7 @@ class LocalApi:
             error_dict["error"].append(f"Required directory not found: '{experiment_input_path}'")
 
     def _validate_experiment_nodes(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
-                                  ErrorDictType) -> None:
+                                   ErrorDictType) -> None:
         """
         Validate if the amount of nodes (defined in the experiment.json file) are valid for 'network_slug' and if
         all the nodes exist and belong to this network.
@@ -850,7 +987,7 @@ class LocalApi:
                                            f"or does not belong to the network '{experiment_network_slug}'")
 
     def _validate_experiment_channels(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
-                                     ErrorDictType) -> None:
+                                      ErrorDictType) -> None:
         """
         Validate if the amount of channels (defined in the experiment.json file) are valid for 'network_slug' and if
         all the channels exist and belong to this network.
@@ -881,7 +1018,7 @@ class LocalApi:
             error_dict["error"].append(f"No channels found for network '{experiment_network_slug}'")
 
     def _validate_experiment_application(self, path: Path, experiment_data: Dict[str, Any],
-                                        error_dict: ErrorDictType) -> None:
+                                         error_dict: ErrorDictType) -> None:
         """
         Validate the ['application'] key defined in the asset of experiment.json. Check if the roles match the roles
         that are defined in input/network.json
