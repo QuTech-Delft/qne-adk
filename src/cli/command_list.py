@@ -189,9 +189,9 @@ def applications_validate() -> None:
     show_validation_messages(error_dict)
 
     if error_dict["error"] or error_dict["warning"]:
-        typer.echo("Application is invalid")
+        typer.echo(f"Application '{application_name}' is invalid")
     else:
-        typer.echo("Application is valid")
+        typer.echo(f"Application '{application_name}' is valid")
 
 
 @experiments_app.command("create")
@@ -256,6 +256,7 @@ def experiments_delete(
             typer.echo("Experiment files deleted")
         else:
             typer.echo("Experiment files deleted, directory not empty")
+
 
 
 @experiments_app.command("run")

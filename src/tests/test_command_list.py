@@ -44,7 +44,7 @@ class TestCommandList(unittest.TestCase):
             self.assertIn('Command is not yet implemented', logout_output.stdout)
 
     def test_applications_create_succes(self):
-        with patch("cli.command_list.Path.cwd", return_value = 'test') as mock_cwd, \
+        with patch("cli.command_list.Path.cwd", return_value='test') as mock_cwd, \
              patch("cli.command_list.validate_path_name") as mock_validate_path_name, \
              patch.object(CommandProcessor, 'applications_create') as application_create_mock:
 
@@ -58,7 +58,7 @@ class TestCommandList(unittest.TestCase):
                           application_create_output.stdout)
 
     def test_applications_create_exceptions(self):
-        with patch("cli.command_list.Path.cwd", return_value = 'test') as mock_cwd:
+        with patch("cli.command_list.Path.cwd", return_value='test') as mock_cwd:
 
             # Raise NotEnoughRoles when only one or less roles are given
             application_create_output = self.runner.invoke(applications_app, ['create', 'test_application', 'role1'])
@@ -156,7 +156,7 @@ class TestCommandList(unittest.TestCase):
             mock_cwd.assert_called_once()
             get_application_from_path_mock.assert_called_once_with(self.path)
             applications_validate_mock.assert_called_once_with(application_name=self.application)
-            self.assertIn('Application is invalid', application_validate_output.stdout)
+            self.assertIn(f"Application '{self.application}' is invalid", application_validate_output.stdout)
 
             # When only 'error' has items
             applications_validate_mock.reset_mock()
@@ -170,7 +170,7 @@ class TestCommandList(unittest.TestCase):
             mock_cwd.assert_called_once()
             get_application_from_path_mock.assert_called_once_with(self.path)
             applications_validate_mock.assert_called_once_with(application_name=self.application)
-            self.assertIn('Application is invalid', application_validate_output.stdout)
+            self.assertIn(f"Application '{self.application}' is invalid", application_validate_output.stdout)
 
             # When application is valid (no items in error, warning and info)
             applications_validate_mock.reset_mock()
@@ -184,7 +184,7 @@ class TestCommandList(unittest.TestCase):
             mock_cwd.assert_called_once()
             get_application_from_path_mock.assert_called_once_with(self.path)
             applications_validate_mock.assert_called_once_with(application_name=self.application)
-            self.assertIn('Application is valid', application_validate_output.stdout)
+            self.assertIn(f"Application '{self.application}' is valid", application_validate_output.stdout)
 
             # When application is valid with item in in 'info'
             applications_validate_mock.reset_mock()
@@ -198,7 +198,7 @@ class TestCommandList(unittest.TestCase):
             mock_cwd.assert_called_once()
             get_application_from_path_mock.assert_called_once_with(self.path)
             applications_validate_mock.assert_called_once_with(application_name=self.application)
-            self.assertIn('Application is valid', application_validate_output.stdout)
+            self.assertIn(f"Application '{self.application}' is valid", application_validate_output.stdout)
 
     def test_experiment_create(self):
         with patch("cli.command_list.Path.cwd") as mock_cwd, \
@@ -274,7 +274,7 @@ class TestCommandList(unittest.TestCase):
             self.assertEqual(result_both.exit_code, 0)
             self.assertIn('There are no local applications available', result_both.stdout)
             self.assertNotIn('2 remote application(s)', result_both.stdout)
-            self.assertNotIn('foo',result_both.stdout)
+            self.assertNotIn('foo', result_both.stdout)
             self.assertNotIn('bar', result_both.stdout)
 
             result_both = self.runner.invoke(applications_app, ['list'])
@@ -287,7 +287,7 @@ class TestCommandList(unittest.TestCase):
             self.assertEqual(result_both.exit_code, 0)
             self.assertIn('1 local application(s)', result_both.stdout)
             self.assertNotIn('1 remote application(s)', result_both.stdout)
-            self.assertIn('foo',result_both.stdout)
+            self.assertIn('foo', result_both.stdout)
             self.assertNotIn('bar', result_both.stdout)
 
     def test_applications_list_local(self):
