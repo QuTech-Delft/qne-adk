@@ -1,47 +1,26 @@
 # Quantum Network Explorer ADK
-Application Development Kit to interact with the Quantum Network Explorer. With the QNE-ADK you can create your application and experiment and run it locally or remote using the commands. 
+Application Development Kit to interact with the Quantum Network Explorer. With the QNE-ADK you can create your application and experiment and run it locally using the commands. 
+
+## Prerequisites
+- Before installing any packages it is recommended that you have a python3 virtual environment activated that has pip installed. 
+- NetQASM makes use of SquidASM for which you need credentials in order to use it. These credentials can either be obtained by registering on the forum of [NetSquid](https://forum.netsquid.org/ "NetSquid").
+
 
 ## Installation
-To install all the required packages use:
+To install all the required packages, execute the following commands:
 
 ```
 pip install qne-cli
 ```
 
-Credentials are needed in order to use netqasm or squidasm (simulators). These credentails can either be obtained from the shared keepass, or a developer can register on the forum of [NetSquid](https://forum.netsquid.org/ "NetSquid").
+After installing the qne-cli, you can install SquidASM. Replace '{netsquid-user-name}' and '{netsquid-password}' with the credenials you registered on [NetSquid](https://forum.netsquid.org/ "NetSquid"):
 
-<!---
-The snippet below will install the linked versions of netqasm and squidasm. For this, credentials are needed which can either be obtained from the shared keepass, or a developer can register on the forum of [NetSquid](https://forum.netsquid.org/ "NetSquid").
-
-```bash
-git submodule update --init
+```
+pip install squidasm --extra-index-url=https://{netsquid-user-name}:{netsquid-password}@pypi.netsquid.org
 ```
 
-After you registered your account, execute the following steps:
-1. Install Poetry following the [instructions](https://python-poetry.org/docs/#installation)
+Now everything should be setup and ready in order to create your own applications and experiments and run them on the simulator!
 
-    or `pip install poetry`
-
-1. Then `poetry install`
-1. Then install `netqasm` and `squidasm` from the submodules:
-
-    On macOs and Linux
-    ```bash
-    source "$( poetry env info -p )/bin/activate" && \
-    pushd submodules/netqasm && make install && popd && \
-    pushd submodules/squidasm && make install && popd
-    ```
-
-    On Windows
-
-    ```powershell
-    . "$(poetry env info --path)\bin\activate.ps1" && `
-    pushd submodules\netqasm && make install && popd && `
-    pushd submodules\squidasm && make install && popd
-    ```
-
-1. Done, [use Poetry](https://python-poetry.org/docs/basic-usage/) for all dependency management.
---->
 
 ## Commands
 The QNE-ADK uses various commands to create and run your applications and experiments. All of the commands are listed below:
@@ -338,4 +317,4 @@ Example:
 
 
 ## More documentation
-More documentation on how to use these commands and what the purpose of the files are that are created and how to edit them can be found on the Quantum Network Explorer [website](https://beta.quantum-network.com/adk)
+More documentation about these commands and about the files that are generated can be found in the QNE-ADK user guide on the Quantum Network Explorer [website](https://beta.quantum-network.com/qne-adk).
