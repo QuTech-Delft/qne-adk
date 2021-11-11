@@ -320,7 +320,8 @@ class ApplicationValidate(AppValidate):
             get_application_path_mock.assert_called_once()
             validate_json_file_mock.assert_called_once()
             self.assertIn(f"{self.path} should contain a 'config' directory", error_dict["error"][0])
-            self.assertIn("Invalid json", error_dict["error"][1])
+            # the invalid json will be reported in __is_config_valid
+            self.assertTrue(len(error_dict["error"]) == 1)
 
     def test__is_structure_valid_src_dir_not_found_and_files_missing(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \

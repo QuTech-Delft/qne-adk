@@ -400,7 +400,8 @@ class LocalApi:
             error_dict["error"].append(f"{app_dir_path} should contain a 'config' directory")
 
         if app_src_path.is_dir():
-            valid, message = validate_json_file(app_config_path / 'application.json')
+            valid, _ = validate_json_file(app_config_path / 'application.json')
+            # if not valid json it will be reported in __is_config_valid
             if valid:
                 application_file_names = self.__get_role_file_names(app_config_path)
 
@@ -413,8 +414,6 @@ class LocalApi:
                     error_dict["error"].append(
                         f"The application file '{application_file_name}' for the corresponding role in "
                         f"'{app_config_path / 'application.json'}' not found in '{app_src_path}'")
-            else:
-                error_dict["error"].append(message)
         else:
             error_dict["error"].append(f"{app_dir_path} should contain a 'src' directory")
 
