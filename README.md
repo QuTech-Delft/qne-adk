@@ -2,7 +2,7 @@
 Application Development Kit to interact with the Quantum Network Explorer. With the QNE-ADK you can create your application and experiment and run it locally using the commands. 
 
 ## Prerequisites
-- A modern Linux 64-bit (x86_64) operating system. If you don’t have linux you could run it via virtualization, e.g. using VirtualBox. If you have Windows 10 you can also use the [Bash on Ubuntu]{https://www.howtogeek.com/249966/how-to-install-and-use-the-linux-bash-shell-on-windows-10/} subsystem.
+- A modern Linux 64-bit (x86_64) operating system. If you don’t have linux you could run it via virtualization, e.g. using VirtualBox. If you have Windows 10 you can also use the [Bash on Ubuntu](https://www.howtogeek.com/249966/how-to-install-and-use-the-linux-bash-shell-on-windows-10/) subsystem.
 - Python version 3.6 or higher and pip version 19 or higher.
 - NetQASM makes use of SquidASM for which you need credentials in order to use it. These credentials can either be obtained by registering on the forum of [NetSquid](https://forum.netsquid.org/ "NetSquid").
 
