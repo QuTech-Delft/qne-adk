@@ -10,7 +10,7 @@ Application Development Kit to interact with the Quantum Network Explorer. With 
 To install all the required packages, execute the following commands:
 
 ```
-pip install qne-cli
+pip install qne-adk
 ```
 
 After installing the qne-cli, you can install SquidASM. Replace '{netsquid-user-name}' and '{netsquid-password}' with the credenials you registered on [NetSquid](https://forum.netsquid.org/ "NetSquid"):
