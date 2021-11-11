@@ -108,6 +108,41 @@ class TestCommandList(unittest.TestCase):
                                                            ['create', 'test_application', 'role1', 'role2'])
             self.assertIn("Unhandled exception: Exception('Test')", application_create_output.stdout)
 
+    def test_application_delete_no_experiment_dir(self):
+        with patch("cli.command_list.Path.cwd", return_value='test') as mock_cwd, \
+             patch("cli.command_list.validate_path_name") as mock_validate_path_name, \
+             patch.object(CommandProcessor, 'applications_delete', return_value=True) as applications_delete_mock:
+
+            application_delete_output = self.runner.invoke(applications_app, ['delete'])
+            mock_cwd.assert_called_once()
+            self.assertEqual(mock_validate_path_name.call_count, 0)
+            self.assertEqual(application_delete_output.exit_code, 0)
+            self.assertIn("Application deleted successfully",
+                          application_delete_output.stdout)
+
+            applications_delete_mock.return_value = False
+            mock_cwd.reset_mock()
+            mock_validate_path_name.reset_mock()
+            application_delete_output = self.runner.invoke(applications_app, ['delete'])
+            mock_cwd.assert_called_once()
+            self.assertEqual(mock_validate_path_name.call_count, 0)
+            self.assertEqual(application_delete_output.exit_code, 0)
+            self.assertIn("Application files deleted",
+                          application_delete_output.stdout)
+
+    def test_application_delete_with_application_dir(self):
+        with patch("cli.command_list.Path.cwd", return_value='test') as mock_cwd, \
+             patch("cli.command_list.validate_path_name") as mock_validate_path_name, \
+             patch.object(CommandProcessor, 'applications_delete', return_value=False) as applications_delete_mock:
+
+            application_delete_output = self.runner.invoke(applications_app, ['delete', 'app_dir'])
+            mock_cwd.assert_called_once()
+            self.assertEqual(mock_validate_path_name.call_count, 1)
+            applications_delete_mock.assert_called_once()
+            self.assertEqual(application_delete_output.exit_code, 0)
+            self.assertIn("Application files deleted, directory not empty",
+                          application_delete_output.stdout)
+
     def test_experiment_delete_no_experiment_dir(self):
         with patch("cli.command_list.Path.cwd", return_value='test') as mock_cwd, \
              patch("cli.command_list.validate_path_name") as mock_validate_path_name, \

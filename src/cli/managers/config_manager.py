@@ -56,7 +56,25 @@ class ConfigManager:
         write_json_file(self.applications_config, applications)
 
     def delete_application(self, application_name: str) -> None:
-        pass
+        """
+        Takes care of deleting the application from the .qne/application.json root file together with the application
+        data.
+
+        Args:
+            application_name: name of the application
+
+        """
+        # application name is stored in lowercase
+        application_name = application_name.lower()
+
+        # Read json file
+        applications = read_json_file(self.applications_config)
+
+        # Remove the app and write
+        if application_name in applications:
+            del applications[application_name]
+
+            write_json_file(self.applications_config, applications)
 
     def get_applications(self) -> List[Dict[str, Any]]:
         """
@@ -118,7 +136,7 @@ class ConfigManager:
             if application_path is not None and application_path == os.path.join(str(path), ''):
                 return application_name, applications[application_name]
 
-        raise ApplicationDoesNotExist()
+        raise ApplicationDoesNotExist(str(path))
 
     def application_exists(self, application_name: str) -> Tuple[bool, Any]:
         """

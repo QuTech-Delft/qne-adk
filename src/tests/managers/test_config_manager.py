@@ -1,3 +1,4 @@
+import copy
 import unittest
 import os
 from pathlib import Path
@@ -89,12 +90,29 @@ class TestConfigManager(unittest.TestCase):
              patch("cli.managers.config_manager.write_json_file") as write_json_file_mock, \
              patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
 
+            expected_value = copy.copy(self.mock_read_json)
             read_json_file_mock.return_value = self.mock_read_json
             config_manager = ConfigManager(self.path)
             config_manager.add_application(application_name=self.caps_application, path=self.path)
             read_json_file_mock.assert_called_once()
-            self.mock_read_json.update({"test_app": {"path": str(self.path / "test_app")}})
-            write_json_file_mock.assert_called_once_with(self.path / "applications.json", self.mock_read_json)
+            expected_value.update({"test_app": {"path": os.path.join(str(self.path), 'test_app', '')}})
+            write_json_file_mock.assert_called_once_with(self.path / "applications.json", expected_value)
+
+    def test_delete_application(self):
+        with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
+             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+             patch.object(ConfigManager, "check_config_exists", return_value=True), \
+             patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
+             patch("cli.managers.config_manager.write_json_file") as write_json_file_mock, \
+             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
+
+            expected_value = copy.copy(self.mock_read_json)
+            read_json_file_mock.return_value = self.mock_read_json
+            config_manager = ConfigManager(self.path)
+            config_manager.delete_application(application_name='APP_1')
+            read_json_file_mock.assert_called_once()
+            expected_value.pop("app_1")
+            write_json_file_mock.assert_called_once_with(self.path / "applications.json", expected_value)
 
     def test_application_exists(self):
         with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
