@@ -47,6 +47,7 @@ After you registered your account, execute the following steps:
 The QNE-ADK uses various commands to create and run your applications and experiments. All of the commands are listed below:
 
 <!--- QNE LOGIN --->
+<!---
 <details closed>
 <summary><b>qne login</b></summary>
 Used to be logged in to a Quantum Network Explorer instance. If you want to run your experiment remotely, you have to be logged in.
@@ -67,9 +68,10 @@ Example:
   qne login username password https://staging.quantum-network.com/
 ```
 </details>
-
+--->
 
 <!--- QNE LOGOUT --->
+<!---
 <details closed>
 <summary><b>qne logout</b></summary>
 Log out from a specific Quantum Network Explorer instance.
@@ -88,7 +90,7 @@ Example:
   qne logout default: https://staging.quantum-network.com/
 ```
 </details>
-
+--->
 
 <!--- QNE APPLICATION CREATE --->
 <details closed>
@@ -113,6 +115,7 @@ Example:
 
 
 <!--- QNE APPLICATION DELETE --->
+<!---
 <details closed>
 <summary><b>qne application delete</b></summary>
 Used to delete a remote application. All remote objects and files are deleted. However, the local files will persist.
@@ -128,9 +131,10 @@ Example:
   qne application delete
 ```
 </details>
-
+--->
 
 <!--- QNE APPLICATION INIT --->
+<!---
 <details closed>
 <summary><b>qne application init</b></summary>
 This command can be called in an already existing application, used to initialize it. Any files that adhere to the naming conventions will be detected and moved to the appropriate location.
@@ -146,7 +150,7 @@ Example:
   qne appplication init
 ```
 </details>
-
+--->
 
 
 <!--- QNE APPLICATION LIST --->
@@ -170,6 +174,7 @@ Example:
 
 
 <!--- QNE APPLICATION UPLOAD --->
+<!---
 <details closed>
 <summary><b>qne application upload</b></summary>
 This command can be used to create or update a remote application. The command will either create a new application, starting with version 1 or update an already existing application and increment the version number.
@@ -185,7 +190,7 @@ Example:
   qne application upload
 ```
 </details>
-
+--->
 
 
 <!--- QNE APPLICATION VALIDATE --->
@@ -232,6 +237,24 @@ Example:
 
 
 
+<!--- QNE EXPERIMENT VALIDATE --->
+<details closed>
+<summary><b>qne experiment validate</b></summary>
+Validates whether the experiment file structure is  complete and if the json content is valid.
+<br></br>
+
+```
+qne experiment validate [OPTIONS]
+
+Options:
+  --help  Show this message and exit.
+  
+Example:
+  qne experiment validate
+```
+</details>
+
+
 <!--- QNE EXPERIMENT DELETE --->
 <details closed>
 <summary><b>qne experiment delete</b></summary>
@@ -252,6 +275,7 @@ Example:
 
 
 <!--- QNE EXPERIMENT LIST --->
+<!---
 <details closed>
 <summary><b>qne experiment list</b></summary>
 List all the remote applications.
@@ -265,6 +289,27 @@ Options:
   
 Example:
   qne experiment list
+```
+</details>
+--->
+
+
+
+<details closed>
+<!--- QNE EXPERIMENT RUN --->
+<summary><b>qne experiment run</b></summary>
+Using this command the experiment will be run on the backend. In case of a local run, netsquid will be used as backend simulator. 
+<br></br>
+
+```
+qne experiment run [OPTIONS]
+
+Options:
+  --block  Wait for the result to be returned.  [default: False]
+  --help   Show this message and exit.
+  
+Example:
+  qne experiment run
 ```
 </details>
 
@@ -290,43 +335,6 @@ Example:
 ```
 </details>
 
-
-<details closed>
-<!--- QNE EXPERIMENT RUN --->
-<summary><b>qne experiment run</b></summary>
-Using this command the experiment will be run on the backend. In case of a local run, netsquid will be used as backend simulator. 
-<br></br>
-
-```
-qne experiment run [OPTIONS]
-
-Options:
-  --block  Wait for the result to be returned.  [default: False]
-  --help   Show this message and exit.
-  
-Example:
-  qne experiment run
-```
-</details>
-
-
-
-<!--- QNE EXPERIMENT VALIDATE --->
-<details closed>
-<summary><b>qne experiment validate</b></summary>
-Validates whether the experiment file structure is  complete and if the json content is valid.
-<br></br>
-
-```
-qne experiment validate [OPTIONS]
-
-Options:
-  --help  Show this message and exit.
-  
-Example:
-  qne experiment validate
-```
-</details>
 
 
 ## More documentation
