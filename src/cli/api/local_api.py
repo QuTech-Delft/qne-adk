@@ -359,7 +359,7 @@ class LocalApi:
         app_schema_path = Path(BASE_DIR) / 'schema/applications'
         app_config_path = Path(self.__config_manager.get_application_path(application_name)) / 'config'
 
-        for file in self.__get__config_file_names():
+        for file in self.__get_config_file_names():
             if (app_config_path / file).is_file():
                 schema_valid, ve = validate_json_schema(app_config_path / file, app_schema_path / file)
                 if not schema_valid:
