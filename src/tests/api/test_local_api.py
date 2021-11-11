@@ -513,6 +513,29 @@ class ExperimentValidate(AppValidate):
             self.assertEqual(rmdir_mock.call_count, 1)
             self.assertTrue(delete_experiment_output)
 
+    def test_delete_experiment_when_input_dir_not_completely_deleted(self):
+        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("cli.api.local_api.Path.is_file") as is_file_mock, \
+             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+             patch.object(LocalApi, "_LocalApi__get_config_file_names", return_value=['application.json',
+                                                                                      'network.json']), \
+             patch.object(LocalApi, "_LocalApi__get_simulator_file_names", return_value=['roles.yaml',
+                                                                                         'network.yaml']), \
+             patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
+             patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
+             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+
+            # input dir not empty. Itis not deleted. Test that the other directories are deleted
+            is_dir_mock.side_effect = [True, True, True, True]
+            is_file_mock.side_effect = [True, True, True, True, True, True, True, True, True, True]
+            rmdir_mock.side_effect = [OSError, None, None]
+
+            delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 10)
+            self.assertEqual(rmdir_mock.call_count, 2)
+            self.assertEqual(rmtree_mock.call_count, 1)
+            self.assertFalse(delete_experiment_output)
+
     def test_delete_experiment_input_dir(self):
         with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
              patch("cli.api.local_api.Path.is_file") as is_file_mock, \

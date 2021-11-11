@@ -794,15 +794,15 @@ class LocalApi:
         if experiment_path.is_dir() and experiment_json.is_file():
             experiment_input_path = experiment_path / 'input'
             if experiment_input_path.is_dir():
-                all_subdir_deleted = all_subdir_deleted and self._delete_input(experiment_input_path)
+                all_subdir_deleted = self._delete_input(experiment_input_path) and all_subdir_deleted
 
             experiment_raw_output_path = experiment_path / 'raw_output'
             if experiment_raw_output_path.is_dir():
-                all_subdir_deleted = all_subdir_deleted and self._delete_raw_output(experiment_raw_output_path)
+                all_subdir_deleted = self._delete_raw_output(experiment_raw_output_path) and all_subdir_deleted
 
             experiment_results_path = experiment_path / 'results'
             if experiment_results_path.is_dir():
-                all_subdir_deleted = all_subdir_deleted and self._delete_results(experiment_results_path)
+                all_subdir_deleted = self._delete_results(experiment_results_path) and all_subdir_deleted
 
             # Delete experiment.json
             experiment_json.unlink()
