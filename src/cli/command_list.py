@@ -97,9 +97,11 @@ def applications_delete(
     application_name: Optional[str] = typer.Argument(None, help="Name of the application")
 ) -> None:
     """
-    Delete application files. Currently only local
+    Delete application files from application directory. Currently only local
 
-    When application_name is given ./application_name is taken as application path, otherwise current directory.
+    When application_name is given ./application_name is taken as application directory, when this directory is
+    not valid the application directory is fetched from the application configuration. When application_name is
+    not given, the current directory is taken as application directory.
     """
     # Temporary local only
     if application_name is not None:

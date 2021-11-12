@@ -402,10 +402,11 @@ class ApplicationValidate(AppValidate):
             self.assertIsNone(config)
 
     def test_delete_application_invalid_application_dir(self):
-        with patch("cli.api.local_api.Path.is_dir", return_value=False), \
+        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
              patch.object(self.config_manager, "get_application_from_path", return_value=('app_dir', None)), \
              patch("cli.api.local_api.Path.is_file", return_value=False):
 
+            is_dir_mock.side_effect = [True, False]
             self.assertRaises(ApplicationDoesNotExist, self.local_api.delete_application, 'app_dir', self.path)
 
     def test_delete_application_src_dir(self):
@@ -417,7 +418,7 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
              patch("cli.api.local_api.os.rmdir") as rmdir_mock:
 
-            is_dir_mock.side_effect = [True, True, True, False]
+            is_dir_mock.side_effect = [True, True, True, True, False]
             is_file_mock.side_effect = [True, True, True, True, True, True, True, True, True]
             rmdir_mock.side_effect = [None, None]
 
@@ -432,7 +433,7 @@ class ApplicationValidate(AppValidate):
             is_dir_mock.reset_mock()
             is_file_mock.reset_mock()
 
-            is_dir_mock.side_effect = [True, True, True, False]
+            is_dir_mock.side_effect = [True, True, True, True, False]
             is_file_mock.side_effect = [True, True, True, True, True, True, True, True, True]
             rmdir_mock.side_effect = [OSError, None]
 
@@ -447,7 +448,7 @@ class ApplicationValidate(AppValidate):
             is_dir_mock.reset_mock()
             is_file_mock.reset_mock()
 
-            is_dir_mock.side_effect = [True, True, True, False]
+            is_dir_mock.side_effect = [True, True, True, True, False]
             is_file_mock.side_effect = [False, True, True, True, True]
             rmdir_mock.side_effect = [OSError, None]
 
@@ -463,7 +464,7 @@ class ApplicationValidate(AppValidate):
              patch.object(self.config_manager, "get_application_from_path", return_value=('app_dir', None)), \
              patch("cli.api.local_api.os.rmdir") as rmdir_mock:
 
-            is_dir_mock.side_effect = [True, False, True, True]
+            is_dir_mock.side_effect = [True, True, False, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
 
             delete_application_output = self.local_api.delete_application('app_dir', path=Path('dummy'))
@@ -477,7 +478,7 @@ class ApplicationValidate(AppValidate):
             is_dir_mock.reset_mock()
             is_file_mock.reset_mock()
 
-            is_dir_mock.side_effect = [True, False, True, True]
+            is_dir_mock.side_effect = [True, True, False, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
             rmdir_mock.side_effect = [OSError, None]
 
@@ -506,7 +507,40 @@ class ApplicationValidate(AppValidate):
             is_dir_mock.reset_mock()
             is_file_mock.reset_mock()
 
-            is_dir_mock.side_effect = [True, False, False, True]
+            is_dir_mock.side_effect = [True, True, False, False, True]
+            is_file_mock.side_effect = [True, True, True, True, True]
+            rmdir_mock.side_effect = [OSError]
+
+            delete_application_output = self.local_api.delete_application('app_dir', path=Path('dummy'))
+            self.assertEqual(unlink_mock.call_count, 1)
+            self.assertEqual(rmdir_mock.call_count, 1)
+            self.assertFalse(delete_application_output)
+
+    def test_delete_application_path_from_configuration(self):
+        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+             patch.object(self.config_manager, "get_application_path", return_value='other_path'), \
+             patch.object(self.config_manager, "get_application_from_path") as resulting_path_mock, \
+             patch.object(self.config_manager, "delete_application"), \
+             patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
+             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+
+            resulting_path_mock.return_value=('app_dir', None)
+            is_dir_mock.side_effect = [False, True, True, True, True]
+            delete_application_output = self.local_api.delete_application('app_dir', path=Path('dummy'))
+            resulting_path_mock.assert_called_once_with(Path('other_path'))
+            self.assertEqual(unlink_mock.call_count, 6)
+            self.assertEqual(rmdir_mock.call_count, 3)
+            self.assertTrue(delete_application_output)
+
+            # rmdir directory application_path fails
+            unlink_mock.reset_mock()
+            rmdir_mock.reset_mock()
+            is_dir_mock.reset_mock()
+            is_file_mock.reset_mock()
+
+            is_dir_mock.side_effect = [True, True, False, False, True]
             is_file_mock.side_effect = [True, True, True, True, True]
             rmdir_mock.side_effect = [OSError]
 

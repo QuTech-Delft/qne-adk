@@ -350,15 +350,16 @@ class LocalApi:
     def delete_application(self, application_name: Optional[str], path: Path) -> bool:
         """
         Deletes the application files.
-        When application name is None the current directory is taken as application path, the application files and
-        directories are deleted but the current directory cannot be deleted, leaving a trace of the application.
-        When application name is given ./application is taken as application path and the
-        application_name directory can also be deleted deleting the complete application.
+        When application name is None the current directory is taken as application path
+        When application name is given ./application is taken as application path. When this path is invalid we try
+        to get the application path from the configuration.
+        The application files and subdirectories are deleted. Only when the current directory is the
+        application directory the current directory cannot be deleted, leaving a trace of the application.
         Only files that belong to an application are deleted. When a directory is not empty it is not deleted.
 
         Args:
-            application_name: Optional. The application directory deleted will be ./application_name, otherwise the
-            current directory
+            application_name: Optional. The application directory deleted will be ./application_name, the
+            current directory or the application path registered in application config for application_name
             path: The location of the application
 
         Returns:
@@ -371,6 +372,10 @@ class LocalApi:
         application_dir_deleted = False
         all_subdir_deleted = True
         application_path = path / application_name if application_name is not None else path
+        # When we are not in the directory of the application, get the directory from the config
+        if not application_path.is_dir() and application_name is not None:
+            application_path = Path(self.__config_manager.get_application_path(application_name))
+
         # check if the application exists and save the app name to delete it later
         application_name_from_config, _ = self.__config_manager.get_application_from_path(application_path)
 
