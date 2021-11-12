@@ -110,7 +110,7 @@ class ConfigManager:
                 return application
         return None
 
-    def get_application_path(self, application_name: str) -> Optional[str]:
+    def get_application_path(self, application_name: str) -> Any:
         """
         Reads the applications.json config file for getting the path using the application_name.
 
