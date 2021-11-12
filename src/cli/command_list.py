@@ -93,11 +93,29 @@ def applications_create(
 
 @applications_app.command("delete")
 @catch_qne_cli_exceptions
-def applications_delete() -> None:
+def applications_delete(
+    application_name: Optional[str] = typer.Argument(None, help="Name of the application")
+) -> None:
     """
-    Delete remote application.
+    Delete application files from application directory. Currently only local
+
+    When application_name is given ./application_name is taken as application directory, when this directory is
+    not valid the application directory is fetched from the application configuration. When application_name is
+    not given, the current directory is taken as application directory.
     """
-    raise CommandNotImplemented
+    # Temporary local only
+    if application_name is not None:
+        validate_path_name("Application", application_name)
+
+    cwd = Path.cwd()
+    deleted_completely = processor.applications_delete(application_name, path=cwd)
+    if deleted_completely:
+        typer.echo("Application deleted successfully")
+    else:
+        if application_name is None:
+            typer.echo("Application files deleted")
+        else:
+            typer.echo("Application files deleted, directory not empty")
 
 
 @applications_app.command("init")
@@ -256,7 +274,6 @@ def experiments_delete(
             typer.echo("Experiment files deleted")
         else:
             typer.echo("Experiment files deleted, directory not empty")
-
 
 
 @experiments_app.command("run")

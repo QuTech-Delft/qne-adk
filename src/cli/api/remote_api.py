@@ -28,8 +28,8 @@ class RemoteApi:
     def list_applications(self) -> List[ApplicationType]:
         return []
 
-    def delete_application(self, application: str) -> None:
-        pass
+    def delete_application(self, application_name: Optional[str], path: Path) -> bool:
+        return True
 
     def upload_application(self, application: str) -> None:
         pass

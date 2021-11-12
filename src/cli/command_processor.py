@@ -60,8 +60,12 @@ class CommandProcessor:
         return app_list
 
     @log_function
-    def applications_delete(self, application_name: str) -> None:
-        self.__remote.delete_application(application_name)
+    def applications_delete(self, application_name: Optional[str], path: Path) -> bool:
+        # be sure to call both local and remote
+        deleted_completely_local = self.__local.delete_application(application_name, path)
+        deleted_completely_remote = self.__remote.delete_application(application_name, path)
+
+        return deleted_completely_local and deleted_completely_remote
 
     @log_function
     def applications_publish(self, application_name: str) -> None:

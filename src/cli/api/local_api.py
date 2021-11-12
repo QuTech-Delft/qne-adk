@@ -4,9 +4,9 @@ import shutil
 from typing import Any, cast, Dict, List, Optional
 
 from cli import utils
-from cli.exceptions import (ApplicationAlreadyExists, DirectoryAlreadyExists, ExperimentDirectoryNotValid,
-                            JsonFileNotFound, MalformedJsonFile, NetworkNotFound, NoNetworkAvailable,
-                            PackageNotComplete)
+from cli.exceptions import (ApplicationAlreadyExists, ApplicationDoesNotExist, DirectoryAlreadyExists,
+                            ExperimentDirectoryNotValid, JsonFileNotFound, MalformedJsonFile, NetworkNotFound,
+                            NoNetworkAvailable, PackageNotComplete)
 from cli.managers.config_manager import ConfigManager
 from cli.managers.roundset_manager import RoundSetManager
 from cli.generators.network_generator import FullyConnectedNetworkGenerator
@@ -302,6 +302,114 @@ class LocalApi:
         """
         local_applications = self.__config_manager.get_applications()
         return local_applications
+
+    def _delete_src(self, application_path: Path) -> bool:
+        """Config directory contains configuration files"""
+        src_dir_deleted = False
+        application_src_path = application_path / 'src'
+        # read the network config for the app file names in src
+        application_config_path = application_path / 'config'
+        if application_config_path.is_dir():
+            config_network_file = application_config_path / 'network.json'
+            if config_network_file.is_file():
+                # Delete the app files for the roles from network.json from the
+                # application/src directory
+                application_file_names = [application_src_path / application_file_name for
+                                          application_file_name in
+                                          self.__get_role_file_names(application_config_path)]
+                for app_file in application_file_names:
+                    if app_file.is_file():
+                        app_file.unlink()
+
+        try:
+            os.rmdir(application_src_path)
+            src_dir_deleted = True
+        except OSError:  # The directory is not empty
+            pass
+
+        return src_dir_deleted
+
+    def _delete_config(self, application_path: Path) -> bool:
+        """Config directory contains configuration files"""
+        config_dir_deleted = False
+        application_config_path = application_path / 'config'
+        config_files_list = self.__get_config_file_names()
+        for config_file in config_files_list:
+            file_to_delete = application_config_path / config_file
+            if file_to_delete.is_file():
+                file_to_delete.unlink()
+
+        try:
+            os.rmdir(application_config_path)
+            config_dir_deleted = True
+        except OSError:  # The directory is not empty
+            pass
+
+        return config_dir_deleted
+
+    def delete_application(self, application_name: Optional[str], path: Path) -> bool:
+        """
+        Deletes the application files.
+        When application name is None the current directory is taken as application path
+        When application name is given ./application is taken as application path. When this path is invalid we try
+        to get the application path from the configuration.
+        The application files and subdirectories are deleted. Only when the current directory is the
+        application directory the current directory cannot be deleted, leaving a trace of the application.
+        Only files that belong to an application are deleted. When a directory is not empty it is not deleted.
+
+        Args:
+            application_name: Optional. The application directory deleted will be ./application_name, the
+            current directory or the application path registered in application config for application_name
+            path: The location of the application
+
+        Returns:
+            True if the complete application (including directory application_name) was deleted, otherwise false
+            (leaving traces of the application)
+
+        Raises:
+            ExperimentDirectoryNotValid when the application path is not recognized as an application
+        """
+        application_dir_deleted = False
+        all_subdir_deleted = True
+        application_path = path / application_name if application_name is not None else path
+        # When we are not in the directory of the application, get the directory from the config
+        if not application_path.is_dir() and application_name is not None:
+            app_path = self.__config_manager.get_application_path(application_name)
+            if app_path is not None:
+                application_path = Path(app_path)
+
+        # check if the application exists and save the app name to delete it later
+        application_name_from_config, _ = self.__config_manager.get_application_from_path(application_path)
+
+        # Check if application path exists
+        if application_path.is_dir():
+            application_src_path = application_path / 'src'
+            if application_src_path.is_dir():
+                all_subdir_deleted = self._delete_src(application_path) and all_subdir_deleted
+
+            application_config_path = application_path / 'config'
+            if application_config_path.is_dir():
+                all_subdir_deleted = self._delete_config(application_path) and all_subdir_deleted
+
+            # Delete manifest.ini
+            manifest_ini = application_path / 'MANIFEST.ini'
+            if manifest_ini.is_file():
+                manifest_ini.unlink()
+
+            # only when we called application delete from the parent directory and all subdirs were removed try to
+            # remove application dir
+            if all_subdir_deleted and application_name is not None:
+                try:
+                    os.rmdir(application_path)
+                    application_dir_deleted = True
+                except OSError:  # The directory is not empty
+                    pass
+        else:
+            raise ApplicationDoesNotExist(str(application_path))
+
+        # remove application from configuration
+        self.__config_manager.delete_application(application_name_from_config)
+        return all_subdir_deleted and application_dir_deleted
 
     def is_application_valid(self, application_name: str) -> ErrorDictType:
         """
@@ -807,8 +915,8 @@ class LocalApi:
             # Delete experiment.json
             experiment_json.unlink()
 
-            # only when we called experiment delete from the parent directory and 'input' dir was removed try to remove
-            # experiment dir
+            # only when we called experiment delete from the parent directory and all the subdirectories were
+            # removed try to remove experiment dir
             if all_subdir_deleted and experiment_name is not None:
                 try:
                     os.rmdir(experiment_path)

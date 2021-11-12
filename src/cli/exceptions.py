@@ -14,10 +14,10 @@ class ApplicationAlreadyExists(QneCliException):
 
 class ApplicationDoesNotExist(QneCliException):
     """Raised when application path (the current path the user is in) doesn't match any of the application paths in
-    .qne/application.json"""
+    .qne/application.json or when application path isn't identified as an application directory"""
 
-    def __init__(self) -> None:
-        super().__init__("Current directory does not appear to be a valid application directory")
+    def __init__(self, application_path: str) -> None:
+        super().__init__(f"Directory '{application_path}' does not appear to be a valid application directory")
 
 
 class ApplicationNotFound(QneCliException):

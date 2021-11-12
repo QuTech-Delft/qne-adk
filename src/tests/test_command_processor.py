@@ -44,6 +44,26 @@ class TestCommandProcessor(unittest.TestCase):
             self.processor.applications_validate(self.application)
             is_application_valid_mock.assert_called_once_with(self.application)
 
+    def test_application_delete(self):
+        with patch.object(LocalApi, "delete_application") as local_delete_application_mock, \
+             patch.object(RemoteApi, "delete_application") as remote_delete_application_mock:
+
+            local_delete_application_mock.return_value = True
+            remote_delete_application_mock.return_value = True
+            return_value = self.processor.applications_delete(None, path=Path('dummy'))
+            local_delete_application_mock.assert_called_once()
+            remote_delete_application_mock.assert_called_once()
+            self.assertTrue(return_value)
+
+            local_delete_application_mock.reset_mock()
+            remote_delete_application_mock.reset_mock()
+            local_delete_application_mock.return_value = False
+            remote_delete_application_mock.return_value = False
+            return_value = self.processor.applications_delete(None, path=Path('dummy'))
+            local_delete_application_mock.assert_called_once()
+            remote_delete_application_mock.assert_called_once()
+            self.assertFalse(return_value)
+
     def test_experiments_create_local(self):
         with patch.object(LocalApi, "experiments_create") as create_exp_mock, \
              patch.object(LocalApi, "get_application_config") as get_config_mock, \
@@ -103,7 +123,6 @@ class TestCommandProcessor(unittest.TestCase):
             remote_delete_experiment_mock.assert_called_once()
             self.assertFalse(return_value)
 
-
     def test_experiments_validate(self):
         with patch.object(LocalApi, "validate_experiment") as validate_exp_mock:
             validate_exp_mock.return_value = True, 'ok'
@@ -121,6 +140,8 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_experiments_run(self):
         with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
+             patch('cli.command_processor.Path.mkdir'), \
+             patch("cli.command_processor.utils.write_json_file"), \
              patch.object(LocalApi, "run_experiment") as run_exp_mock:
 
             is_exp_local_mock.return_value = True
