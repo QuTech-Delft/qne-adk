@@ -140,6 +140,8 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_experiments_run(self):
         with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
+             patch('cli.command_processor.Path.mkdir'), \
+             patch("cli.command_processor.utils.write_json_file"), \
              patch.object(LocalApi, "run_experiment") as run_exp_mock:
 
             is_exp_local_mock.return_value = True
