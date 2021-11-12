@@ -11,15 +11,15 @@ from tabulate import tabulate
 import typer
 from typer import Typer
 
-from cli.api.local_api import LocalApi
-from cli.api.remote_api import RemoteApi
-from cli.command_processor import CommandProcessor
-from cli.decorators import catch_qne_cli_exceptions
-from cli.exceptions import NotEnoughRoles, RolesNotUnique, CommandNotImplemented
-from cli.managers.config_manager import ConfigManager
-from cli.settings import Settings
-from cli.type_aliases import ErrorDictType
-from cli.utils import reorder_data, validate_path_name
+from adk.api.local_api import LocalApi
+from adk.api.remote_api import RemoteApi
+from adk.command_processor import CommandProcessor
+from adk.decorators import catch_qne_adk_exceptions
+from adk.exceptions import NotEnoughRoles, RolesNotUnique, CommandNotImplemented
+from adk.managers.config_manager import ConfigManager
+from adk.settings import Settings
+from adk.type_aliases import ErrorDictType
+from adk.utils import reorder_data, validate_path_name
 
 app = Typer()
 applications_app = Typer()
@@ -39,7 +39,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 @app.command("login")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def login(
     host: str = typer.Argument(None),
     username: str = typer.Option(..., prompt=True, help="Username of the remote user"),
@@ -54,7 +54,7 @@ def login(
 
 
 @app.command("logout")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def logout(host: str = typer.Argument(None)) -> None:
     """
     Log out from a Quantum Network Explorer.
@@ -63,7 +63,7 @@ def logout(host: str = typer.Argument(None)) -> None:
 
 
 @applications_app.command("create")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def applications_create(
     application_name: str = typer.Argument(..., help="Name of the application"),
     roles: List[str] = typer.Argument(..., help="Names of the roles to be created"),
@@ -92,7 +92,7 @@ def applications_create(
 
 
 @applications_app.command("delete")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def applications_delete(
     application_name: Optional[str] = typer.Argument(None, help="Name of the application")
 ) -> None:
@@ -119,7 +119,7 @@ def applications_delete(
 
 
 @applications_app.command("init")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def applications_init() -> None:
     """
     Initialize an existing application.
@@ -128,7 +128,7 @@ def applications_init() -> None:
 
 
 @applications_app.command("upload")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def applications_upload() -> None:
     """
     Create or update a remote application.
@@ -137,7 +137,7 @@ def applications_upload() -> None:
 
 
 @applications_app.command("list")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def applications_list(
     local: Optional[bool] = typer.Option(
         False, "--local", help="List local applications"
@@ -175,7 +175,7 @@ def applications_list(
 
 
 @applications_app.command("publish")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def applications_publish() -> None:
     """
     Request the application to be published online.
@@ -194,7 +194,7 @@ def show_validation_messages(validation_dict: ErrorDictType) -> None:
 
 
 @applications_app.command("validate")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def applications_validate() -> None:
     """
     Validate the application.
@@ -213,7 +213,7 @@ def applications_validate() -> None:
 
 
 @experiments_app.command("create")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def experiments_create(
     experiment_name: str = typer.Argument(..., help="Name of the experiment"),
     application_name: str = typer.Argument(..., help="Name of the application"),
@@ -243,7 +243,7 @@ def experiments_create(
 
 
 @experiments_app.command("list")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def experiments_list() -> None:
     """
     List experiments.
@@ -252,7 +252,7 @@ def experiments_list() -> None:
 
 
 @experiments_app.command("delete")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def experiments_delete(
     experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment")
 ) -> None:
@@ -277,7 +277,7 @@ def experiments_delete(
 
 
 @experiments_app.command("run")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def experiments_run(
     block: bool = typer.Option(
         False, "--block", help="Wait for the result to be returned"
@@ -306,7 +306,7 @@ def experiments_run(
 
 
 @experiments_app.command("validate")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def experiments_validate() -> None:
     """
     Validate the experiment configuration.
@@ -324,7 +324,7 @@ def experiments_validate() -> None:
 
 
 @experiments_app.command("results")
-@catch_qne_cli_exceptions
+@catch_qne_adk_exceptions
 def experiments_results(
     all_results: bool = typer.Option(
         False, "--all", help="Get all results for this experiment"

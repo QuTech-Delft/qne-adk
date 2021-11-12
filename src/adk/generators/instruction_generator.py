@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Type, Optional
 import logging
 
-from cli.type_aliases import DefaultPayloadType, InstructionType, LogEntryType, QuantumStateType
-from cli.parsers.encoders import JSONEncoder
+from adk.type_aliases import DefaultPayloadType, InstructionType, LogEntryType, QuantumStateType
+from adk.parsers.encoders import JSONEncoder
 
 
 class BaseInstruction(ABC):

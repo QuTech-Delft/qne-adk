@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
-from cli.managers.config_manager import ConfigManager
-from cli.exceptions import ApplicationDoesNotExist, DirectoryIsFile
+from adk.managers.config_manager import ConfigManager
+from adk.exceptions import ApplicationDoesNotExist, DirectoryIsFile
 
 
 class TestConfigManager(unittest.TestCase):
@@ -26,12 +26,12 @@ class TestConfigManager(unittest.TestCase):
         }
 
     def test_constructor(self):
-        with patch("cli.managers.config_manager.os.path.isfile") as mock_is_file, \
-             patch("cli.managers.config_manager.os.path.isdir") as mock_is_dir, \
-             patch("cli.managers.config_manager.Path.mkdir") as mock_mkdir, \
+        with patch("adk.managers.config_manager.os.path.isfile") as mock_is_file, \
+             patch("adk.managers.config_manager.os.path.isdir") as mock_is_dir, \
+             patch("adk.managers.config_manager.Path.mkdir") as mock_mkdir, \
              patch.object(ConfigManager, "check_config_exists") as check_config_exists_mock, \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config") as cleanup_config_mock, \
-             patch("cli.managers.config_manager.write_json_file") as write_json_file_mock:
+             patch("adk.managers.config_manager.write_json_file") as write_json_file_mock:
             # check for situation .qne is a file
             mock_is_file.return_value = True
             self.assertRaises(DirectoryIsFile, ConfigManager, self.path)
@@ -52,12 +52,12 @@ class TestConfigManager(unittest.TestCase):
             cleanup_config_mock.assert_called_once()
 
     def test__cleanup_config(self):
-        with patch("cli.managers.config_manager.os.path.isfile") as mock_is_file, \
-             patch("cli.managers.config_manager.os.path.isdir") as mock_is_dir, \
+        with patch("adk.managers.config_manager.os.path.isfile") as mock_is_file, \
+             patch("adk.managers.config_manager.os.path.isdir") as mock_is_dir, \
              patch.object(ConfigManager, "get_application_path") as mock_get_application_path, \
              patch.object(ConfigManager, "check_config_exists") as check_config_exists_mock, \
-             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock, \
-             patch("cli.managers.config_manager.write_json_file") as write_json_file_mock:
+             patch("adk.managers.config_manager.read_json_file") as read_json_file_mock, \
+             patch("adk.managers.config_manager.write_json_file") as write_json_file_mock:
 
             read_json_file_mock.return_value = {self.application: {"path": str(self.path)}}
             mock_get_application_path.return_value = False
@@ -70,12 +70,12 @@ class TestConfigManager(unittest.TestCase):
             write_json_file_mock.assert_called_once_with(config_manager.applications_config, {})
 
     def test_get_applications(self):
-        with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch('adk.managers.config_manager.os.path.isfile', return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "check_config_exists", return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
-             patch('cli.managers.config_manager.read_json_file',return_value=self.dummy_apps_config_dict), \
-             patch("cli.managers.config_manager.write_json_file"):
+             patch('adk.managers.config_manager.read_json_file',return_value=self.dummy_apps_config_dict), \
+             patch("adk.managers.config_manager.write_json_file"):
             config_manager = ConfigManager(self.path)
             apps = config_manager.get_applications()
             self.assertEqual(len(apps), 2)
@@ -83,12 +83,12 @@ class TestConfigManager(unittest.TestCase):
                 self.assertIn('name', app)
 
     def test_add_application(self):
-        with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch('adk.managers.config_manager.os.path.isfile', return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "check_config_exists", return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
-             patch("cli.managers.config_manager.write_json_file") as write_json_file_mock, \
-             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
+             patch("adk.managers.config_manager.write_json_file") as write_json_file_mock, \
+             patch("adk.managers.config_manager.read_json_file") as read_json_file_mock:
 
             expected_value = copy.copy(self.mock_read_json)
             read_json_file_mock.return_value = self.mock_read_json
@@ -99,12 +99,12 @@ class TestConfigManager(unittest.TestCase):
             write_json_file_mock.assert_called_once_with(self.path / "applications.json", expected_value)
 
     def test_delete_application(self):
-        with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch('adk.managers.config_manager.os.path.isfile', return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "check_config_exists", return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
-             patch("cli.managers.config_manager.write_json_file") as write_json_file_mock, \
-             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
+             patch("adk.managers.config_manager.write_json_file") as write_json_file_mock, \
+             patch("adk.managers.config_manager.read_json_file") as read_json_file_mock:
 
             expected_value = copy.copy(self.mock_read_json)
             read_json_file_mock.return_value = self.mock_read_json
@@ -115,12 +115,12 @@ class TestConfigManager(unittest.TestCase):
             write_json_file_mock.assert_called_once_with(self.path / "applications.json", expected_value)
 
     def test_application_exists(self):
-        with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch('adk.managers.config_manager.os.path.isfile', return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "check_config_exists", return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
-             patch("cli.managers.config_manager.os.path.exists", return_value=True), \
-             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
+             patch("adk.managers.config_manager.os.path.exists", return_value=True), \
+             patch("adk.managers.config_manager.read_json_file") as read_json_file_mock:
 
             # Return True when application equals key value
             read_json_file_mock.return_value = {"test_application": {"path": "path"}}
@@ -141,10 +141,10 @@ class TestConfigManager(unittest.TestCase):
                              (True, 'path'))
 
     def test_check_config_exists(self):
-        with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch('adk.managers.config_manager.os.path.isfile', return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
-             patch("cli.managers.config_manager.Path.is_file") as mock_is_file:
+             patch("adk.managers.config_manager.Path.is_file") as mock_is_file:
 
             mock_is_file.return_value = True
             config_manager = ConfigManager(self.path)
@@ -158,12 +158,12 @@ class TestConfigManager(unittest.TestCase):
             mock_is_file.assert_called_once()
 
     def test_get_application_from_path(self):
-        with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch('adk.managers.config_manager.os.path.isfile', return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "check_config_exists", return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
-             patch("cli.managers.config_manager.os.path.exists", return_value=True), \
-             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
+             patch("adk.managers.config_manager.os.path.exists", return_value=True), \
+             patch("adk.managers.config_manager.read_json_file") as read_json_file_mock:
 
             config_manager = ConfigManager(self.path)
             read_json_file_mock.return_value = {self.application: {"path": os.path.join(str(self.path), '')}}
@@ -187,8 +187,8 @@ class TestConfigManager(unittest.TestCase):
             self.assertRaises(ApplicationDoesNotExist, config_manager.get_application_from_path, str(self.path).upper())
 
     def test_get_application_path(self):
-        with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch('adk.managers.config_manager.os.path.isfile', return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "check_config_exists", return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
              patch.object(ConfigManager, "get_application") as get_application_mock:
@@ -198,11 +198,11 @@ class TestConfigManager(unittest.TestCase):
             get_application_mock.assert_called_once_with(self.application)
 
     def test_get_application_path_existing_path(self):
-        with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch('adk.managers.config_manager.os.path.isfile', return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "check_config_exists", return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
-             patch("cli.managers.config_manager.os.path.exists", return_value=True), \
+             patch("adk.managers.config_manager.os.path.exists", return_value=True), \
              patch.object(ConfigManager, "get_application") as get_application_mock:
 
             config_manager = ConfigManager(self.path)
@@ -212,11 +212,11 @@ class TestConfigManager(unittest.TestCase):
             get_application_mock.assert_called_once_with(self.application)
 
     def test_application_file_non_existing_exception(self):
-        with patch("cli.managers.config_manager.os.path.isfile", return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch("adk.managers.config_manager.os.path.isfile", return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "check_config_exists", return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
-             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
+             patch("adk.managers.config_manager.read_json_file") as read_json_file_mock:
 
             config_manager = ConfigManager(self.path)
             read_json_file_mock.return_value = {"application": {"path": "dummy"}}
@@ -225,8 +225,8 @@ class TestConfigManager(unittest.TestCase):
             read_json_file_mock.assert_called_with(config_manager.applications_config)
 
     def test_get_application(self):
-        with patch("cli.managers.config_manager.os.path.isfile", return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch("adk.managers.config_manager.os.path.isfile", return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "check_config_exists", return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
              patch.object(ConfigManager, "get_applications") as mock_get_all_applications:

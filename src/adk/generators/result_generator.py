@@ -1,6 +1,6 @@
 from typing import List
 
-from cli.type_aliases import ResultType, RoundSetType, RoundResultType, CumulativeResultType, InstructionType
+from adk.type_aliases import ResultType, RoundSetType, RoundResultType, CumulativeResultType, InstructionType
 
 
 class ResultGenerator:

@@ -4,8 +4,8 @@ from typing import Dict, Any, Optional, List
 
 import yaml
 
-from cli.generators.network_generator import FullyConnectedNetworkGenerator
-from cli.type_aliases import TemplatesType
+from adk.generators.network_generator import FullyConnectedNetworkGenerator
+from adk.type_aliases import TemplatesType
 
 class BaseTemplate(ABC):
     """Base template for creating necessary config files for NetSquid.

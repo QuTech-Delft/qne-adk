@@ -1,7 +1,7 @@
 import re
 import unittest
 
-from cli import version
+from adk import version
 
 class TestVersion(unittest.TestCase):
     def test_version(self):

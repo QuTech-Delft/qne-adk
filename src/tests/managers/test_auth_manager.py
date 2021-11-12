@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 import unittest
 
-from cli.managers.auth_manager import AuthManager
+from adk.managers.auth_manager import AuthManager
 
 class TestAuthManager(unittest.TestCase):
 

@@ -2,9 +2,9 @@ import os
 import shutil
 from typing import Any, Dict, Optional, cast
 
-from cli.generators.network_generator import FullyConnectedNetworkGenerator
-from cli.generators.template_generator import RoleTemplate, NetworkTemplate, RoleMappingTemplate
-from cli.type_aliases import AssetType
+from adk.generators.network_generator import FullyConnectedNetworkGenerator
+from adk.generators.template_generator import RoleTemplate, NetworkTemplate, RoleMappingTemplate
+from adk.type_aliases import AssetType
 
 
 class InputParser:

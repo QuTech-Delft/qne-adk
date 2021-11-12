@@ -3,10 +3,10 @@ import shutil
 from typing import Any, cast, Dict, List, Optional
 import yaml
 
-from cli.generators.network_generator import FullyConnectedNetworkGenerator
-from cli.generators.instruction_generator import InstructionGenerator
-from cli.generators.result_generator import ResultGenerator
-from cli.type_aliases import ResultType, CumulativeResultType, LogEntryType, RoundSetType
+from adk.generators.network_generator import FullyConnectedNetworkGenerator
+from adk.generators.instruction_generator import InstructionGenerator
+from adk.generators.result_generator import ResultGenerator
+from adk.type_aliases import ResultType, CumulativeResultType, LogEntryType, RoundSetType
 
 
 class OutputConverter:

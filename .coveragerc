@@ -1,5 +1,5 @@
 [run]
-source = ./src/cli
+source = ./src/adk
 command_line = -m pytest -s --junitxml=report.xml
 
 [report]

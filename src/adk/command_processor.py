@@ -1,14 +1,13 @@
 from pathlib import Path
 from typing import cast, Dict, List, Optional
 
-from cli.api.local_api import LocalApi
-from cli.api.remote_api import RemoteApi
-from cli.decorators import log_function
-from cli.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication, \
-    ResultDirectoryNotAvailable
-from cli.type_aliases import ApplicationType, ExperimentType, ErrorDictType, ResultType
-from cli import utils
-
+from adk.api.local_api import LocalApi
+from adk.api.remote_api import RemoteApi
+from adk.decorators import log_function
+from adk.exceptions import (ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication,
+                           ResultDirectoryNotAvailable)
+from adk.type_aliases import ApplicationType, ExperimentType, ErrorDictType, ResultType
+from adk import utils
 
 class CommandProcessor:
     def __init__(self, remote_api: RemoteApi, local_api: LocalApi):

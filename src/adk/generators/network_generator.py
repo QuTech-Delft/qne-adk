@@ -1,6 +1,6 @@
 from typing import Dict, List, cast
 
-from cli.type_aliases import InstructionType, NetworkType, LinkType, DijkstraNode
+from adk.type_aliases import InstructionType, NetworkType, LinkType, DijkstraNode
 
 
 class FullyConnectedNetworkGenerator:

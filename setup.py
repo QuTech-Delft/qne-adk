@@ -1,4 +1,4 @@
-""" Quantum Network Explorer CLI
+""" Quantum Network Explorer ADK
 
 Copyright (c) 2021 QuTech
 
@@ -44,17 +44,17 @@ def get_long_description():
 
 
 setup(
-    name="qne-cli",
-    description="Command Line Interface to interact with the Quantum Network Explorer",
+    name="qne-adk",
+    description="Application Development Kit to interact with the Quantum Network Explorer",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
-    version=get_version_number("cli"),
+    version=get_version_number("adk"),
     author="QuantumNetworkExplorer",
     python_requires=">=3.7",
     package_dir={"": "src"},
     entry_points={
         "console_scripts": [
-            "qne=cli.command_list:app",
+            "qne=adk.command_list:app",
         ]
     },
     classifiers=[

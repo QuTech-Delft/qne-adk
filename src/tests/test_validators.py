@@ -2,8 +2,8 @@ from pathlib import Path
 from unittest.mock import patch
 import unittest
 
-from cli.exceptions import JsonFileNotFound, MalformedJsonFile, PackageNotComplete
-from cli.validators import validate_json_file, validate_json_schema
+from adk.exceptions import JsonFileNotFound, MalformedJsonFile, PackageNotComplete
+from adk.validators import validate_json_file, validate_json_schema
 
 
 class TestValidators(unittest.TestCase):
@@ -52,16 +52,16 @@ class TestValidators(unittest.TestCase):
         }
 
     def test_validate_json_schema_fails(self):
-        with patch("cli.validators.read_json_file") as read_json_file_mock:
+        with patch("adk.validators.read_json_file") as read_json_file_mock:
             read_json_file_mock.side_effect = [self.json_file, JsonFileNotFound("schema/applications/application.json")]
             self.assertRaises(PackageNotComplete, validate_json_schema, self.path, self.path)
 
-        with patch("cli.validators.read_json_file") as read_json_file_mock:
+        with patch("adk.validators.read_json_file") as read_json_file_mock:
             read_json_file_mock.side_effect = JsonFileNotFound("applications/application.json")
             self.assertEqual(validate_json_schema(self.path, self.path),
                              (False, "File 'applications/application.json' not found"))
 
-        with patch("cli.validators.read_json_file") as read_json_file_mock:
+        with patch("adk.validators.read_json_file") as read_json_file_mock:
             read_json_file_mock.side_effect = MalformedJsonFile(str(self.path),
                                                                 Exception("Extra data: line 1 column 1 (char 31)"))
 
@@ -71,8 +71,8 @@ class TestValidators(unittest.TestCase):
                           f"Extra data: line 1 column 1 (char 31)", error)
 
     def test_validate_json_schema(self):
-        with patch("cli.validators.read_json_file") as read_json_file_mock, \
-             patch("cli.validators.platform.system") as system_mock:
+        with patch("adk.validators.read_json_file") as read_json_file_mock, \
+             patch("adk.validators.platform.system") as system_mock:
 
             read_json_file_mock.side_effect = [self.json_file, self.schema_file]
 
@@ -110,7 +110,7 @@ class TestValidators(unittest.TestCase):
             system_mock.assert_called_once()
 
     def test_validate_json_file(self):
-        with patch("cli.validators.read_json_file") as read_json_file_mock:
+        with patch("adk.validators.read_json_file") as read_json_file_mock:
 
             read_json_file_mock.return_value = '{}'
             self.assertEqual(validate_json_file(self.path), (True, None))

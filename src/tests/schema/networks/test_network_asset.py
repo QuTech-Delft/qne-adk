@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 import unittest
 
-from cli.settings import BASE_DIR
-from cli.utils import read_json_file
+from adk.settings import BASE_DIR
+from adk.utils import read_json_file
 
 
 class TestNetworkAssetSchema(unittest.TestCase):
