@@ -109,8 +109,8 @@ class TestCommandList(unittest.TestCase):
             self.assertIn("Unhandled exception: Exception('Test')", application_create_output.stdout)
 
     def test_application_delete_no_experiment_dir(self):
-        with patch("cli.command_list.Path.cwd", return_value='test') as mock_cwd, \
-             patch("cli.command_list.validate_path_name") as mock_validate_path_name, \
+        with patch("adk.command_list.Path.cwd", return_value='test') as mock_cwd, \
+             patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
              patch.object(CommandProcessor, 'applications_delete', return_value=True) as applications_delete_mock:
 
             application_delete_output = self.runner.invoke(applications_app, ['delete'])
@@ -131,8 +131,8 @@ class TestCommandList(unittest.TestCase):
                           application_delete_output.stdout)
 
     def test_application_delete_with_application_dir(self):
-        with patch("cli.command_list.Path.cwd", return_value='test') as mock_cwd, \
-             patch("cli.command_list.validate_path_name") as mock_validate_path_name, \
+        with patch("adk.command_list.Path.cwd", return_value='test') as mock_cwd, \
+             patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
              patch.object(CommandProcessor, 'applications_delete', return_value=False) as applications_delete_mock:
 
             application_delete_output = self.runner.invoke(applications_app, ['delete', 'app_dir'])
@@ -144,8 +144,8 @@ class TestCommandList(unittest.TestCase):
                           application_delete_output.stdout)
 
     def test_experiment_delete_no_experiment_dir(self):
-        with patch("cli.command_list.Path.cwd", return_value='test') as mock_cwd, \
-             patch("cli.command_list.validate_path_name") as mock_validate_path_name, \
+        with patch("adk.command_list.Path.cwd", return_value='test') as mock_cwd, \
+             patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
              patch.object(CommandProcessor, 'experiments_delete', return_value=True) as experiments_delete_mock:
 
             experiment_delete_output = self.runner.invoke(experiments_app, ['delete'])
@@ -166,8 +166,8 @@ class TestCommandList(unittest.TestCase):
                           experiment_delete_output.stdout)
 
     def test_experiment_delete_with_experiment_dir(self):
-        with patch("cli.command_list.Path.cwd", return_value='test') as mock_cwd, \
-             patch("cli.command_list.validate_path_name") as mock_validate_path_name, \
+        with patch("adk.command_list.Path.cwd", return_value='test') as mock_cwd, \
+             patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
              patch.object(CommandProcessor, 'experiments_delete', return_value=False) as experiments_delete_mock:
 
             experiment_delete_output = self.runner.invoke(experiments_app, ['delete', 'exp_dir'])

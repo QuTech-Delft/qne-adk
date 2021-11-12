@@ -99,12 +99,12 @@ class TestConfigManager(unittest.TestCase):
             write_json_file_mock.assert_called_once_with(self.path / "applications.json", expected_value)
 
     def test_delete_application(self):
-        with patch('cli.managers.config_manager.os.path.isfile', return_value=False), \
-             patch('cli.managers.config_manager.os.path.isdir', return_value=True), \
+        with patch('adk.managers.config_manager.os.path.isfile', return_value=False), \
+             patch('adk.managers.config_manager.os.path.isdir', return_value=True), \
              patch.object(ConfigManager, "check_config_exists", return_value=True), \
              patch.object(ConfigManager, "_ConfigManager__cleanup_config"), \
-             patch("cli.managers.config_manager.write_json_file") as write_json_file_mock, \
-             patch("cli.managers.config_manager.read_json_file") as read_json_file_mock:
+             patch("adk.managers.config_manager.write_json_file") as write_json_file_mock, \
+             patch("adk.managers.config_manager.read_json_file") as read_json_file_mock:
 
             expected_value = copy.copy(self.mock_read_json)
             read_json_file_mock.return_value = self.mock_read_json

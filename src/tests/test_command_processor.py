@@ -140,8 +140,8 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_experiments_run(self):
         with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
-             patch('cli.command_processor.Path.mkdir'), \
-             patch("cli.command_processor.utils.write_json_file"), \
+             patch('adk.command_processor.Path.mkdir'), \
+             patch("adk.command_processor.utils.write_json_file"), \
              patch.object(LocalApi, "run_experiment") as run_exp_mock:
 
             is_exp_local_mock.return_value = True
@@ -159,8 +159,8 @@ class TestCommandProcessor(unittest.TestCase):
             run_exp_mock.assert_called_once_with(Path('dummy'))
 
     def test_experiments_result(self):
-        with patch("cli.command_processor.Path.exists") as exists_mock, \
-             patch("cli.command_processor.utils.read_json_file") as read_json_mock:
+        with patch("adk.command_processor.Path.exists") as exists_mock, \
+             patch("adk.command_processor.utils.read_json_file") as read_json_mock:
 
             exists_mock.return_value = True
             read_json_mock.return_value = {"foo": "bar"}

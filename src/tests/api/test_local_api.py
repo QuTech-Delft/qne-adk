@@ -279,11 +279,11 @@ class ApplicationValidate(AppValidate):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
-             patch("cli.api.local_api.validate_json_file") as validate_json_file_mock, \
+             patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
-             patch("cli.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch("cli.api.local_api.os.listdir") as listdir_mock:
+             patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("adk.api.local_api.os.listdir") as listdir_mock:
 
             is_dir_mock.side_effect = [True, True, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
@@ -305,9 +305,9 @@ class ApplicationValidate(AppValidate):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
-             patch("cli.api.local_api.validate_json_file") as validate_json_file_mock, \
-             patch("cli.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock:
+             patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
+             patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock:
 
             # If the app_config_path, app_config_path / application.json does not exist and validate_json_file is False
             is_dir_mock.side_effect = [False, True, True, True]
@@ -327,11 +327,11 @@ class ApplicationValidate(AppValidate):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
-             patch("cli.api.local_api.validate_json_file") as validate_json_file_mock, \
+             patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
-             patch("cli.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch("cli.api.local_api.os.listdir") as listdir_mock:
+             patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("adk.api.local_api.os.listdir") as listdir_mock:
 
             # No files at all in the directories
             is_dir_mock.side_effect = [True, False]
@@ -387,7 +387,7 @@ class ApplicationValidate(AppValidate):
 
     def test_get_application_config(self):
         with patch.object(self.config_manager, "get_application") as get_application_mock, \
-             patch("cli.api.local_api.utils.read_json_file") as read_mock:
+             patch("adk.api.local_api.utils.read_json_file") as read_mock:
 
             read_mock.side_effect = [[{'app': 'foo'}], {'network': 'bar'}]
             get_application_mock.return_value = {'path': 'some-path'}
@@ -402,21 +402,21 @@ class ApplicationValidate(AppValidate):
             self.assertIsNone(config)
 
     def test_delete_application_invalid_application_dir(self):
-        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
+        with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
              patch.object(self.config_manager, "get_application_from_path", return_value=('app_dir', None)), \
-             patch("cli.api.local_api.Path.is_file", return_value=False):
+             patch("adk.api.local_api.Path.is_file", return_value=False):
 
             is_dir_mock.side_effect = [True, False]
             self.assertRaises(ApplicationDoesNotExist, self.local_api.delete_application, 'app_dir', self.path)
 
     def test_delete_application_src_dir(self):
-        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file") as is_file_mock, \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+        with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock, \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
              patch.object(self.config_manager, "get_application_from_path", return_value=('app_dir', None)), \
              patch.object(self.config_manager, "delete_application"), \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             is_dir_mock.side_effect = [True, True, True, True, False]
             is_file_mock.side_effect = [True, True, True, True, True, True, True, True, True]
@@ -458,11 +458,11 @@ class ApplicationValidate(AppValidate):
             self.assertFalse(delete_application_output)
 
     def test_delete_application_config_dir(self):
-        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file") as is_file_mock, \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+        with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock, \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
              patch.object(self.config_manager, "get_application_from_path", return_value=('app_dir', None)), \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             is_dir_mock.side_effect = [True, True, False, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
@@ -488,13 +488,13 @@ class ApplicationValidate(AppValidate):
             self.assertFalse(delete_application_output)
 
     def test_delete_application_with_application_dir(self):
-        with patch("cli.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+        with patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
              patch.object(self.config_manager, "get_application_from_path", return_value=('app_dir', None)), \
              patch.object(self.config_manager, "delete_application"), \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             delete_application_output = self.local_api.delete_application('app_dir', path=Path('dummy'))
             self.assertEqual(unlink_mock.call_count, 6)
@@ -517,14 +517,14 @@ class ApplicationValidate(AppValidate):
             self.assertFalse(delete_application_output)
 
     def test_delete_application_path_from_configuration(self):
-        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+        with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
              patch.object(self.config_manager, "get_application_path", return_value='other_path'), \
              patch.object(self.config_manager, "get_application_from_path") as resulting_path_mock, \
              patch.object(self.config_manager, "delete_application"), \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             resulting_path_mock.return_value=('app_dir', None)
             is_dir_mock.side_effect = [False, True, True, True, True]
@@ -550,27 +550,27 @@ class ApplicationValidate(AppValidate):
             self.assertFalse(delete_application_output)
 
     def test_delete_application_path_from_configuration_not_valid(self):
-        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file", return_value=True), \
-             patch("cli.api.local_api.Path.unlink"), \
+        with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True), \
+             patch("adk.api.local_api.Path.unlink"), \
              patch.object(self.config_manager, "get_application_path", return_value=None), \
              patch.object(self.config_manager, "get_application_from_path") as resulting_path_mock, \
              patch.object(self.config_manager, "delete_application"), \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
-             patch("cli.api.local_api.os.rmdir"):
+             patch("adk.api.local_api.os.rmdir"):
 
             resulting_path_mock.return_value=('app_dir', None)
             is_dir_mock.side_effect = [False, False]
             self.assertRaises(ApplicationDoesNotExist, self.local_api.delete_application, 'app_dir', path=Path('dummy'))
 
     def test_delete_application_no_application_directory(self):
-        with patch("cli.api.local_api.Path.is_dir", return_value=True), \
-             patch("cli.api.local_api.Path.is_file", return_value=True), \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+        with patch("adk.api.local_api.Path.is_dir", return_value=True), \
+             patch("adk.api.local_api.Path.is_file", return_value=True), \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
              patch.object(self.config_manager, "get_application_from_path", return_value=('app_dir', None)), \
              patch.object(self.config_manager, "delete_application"), \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             delete_application_output = self.local_api.delete_application(None, path=Path('dummy'))
             self.assertEqual(unlink_mock.call_count, 6)
@@ -624,16 +624,16 @@ class ExperimentValidate(AppValidate):
             write_mock.assert_called_once_with(Path('dummy') / 'test' / 'experiment.json', self.experiment_data_local)
 
     def test_delete_experiment_invalid_experiment_dir(self):
-        with patch("cli.adk.local_api.Path.is_dir", return_value=False), \
-             patch("cli.adk.local_api.Path.is_file", return_value=False):
+        with patch("adk.api.local_api.Path.is_dir", return_value=False), \
+             patch("adk.api.local_api.Path.is_file", return_value=False):
 
             self.assertRaises(ExperimentDirectoryNotValid, self.local_api.delete_experiment, 'exp_dir', self.path)
 
     def test_delete_experiment_result_dir(self):
-        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file") as is_file_mock, \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+        with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock, \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             # processed.json not a file
             is_dir_mock.side_effect = [True, False, False, True]
@@ -674,11 +674,11 @@ class ExperimentValidate(AppValidate):
             self.assertFalse(delete_experiment_output)
 
     def test_delete_experiment_raw_output_dir(self):
-        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file") as is_file_mock, \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
-             patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+        with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock, \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
+             patch("adk.api.local_api.shutil.rmtree") as rmtree_mock, \
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             # directory ./raw_output deleted
             is_dir_mock.side_effect = [True, False, True, False]
@@ -690,16 +690,16 @@ class ExperimentValidate(AppValidate):
             self.assertTrue(delete_experiment_output)
 
     def test_delete_experiment_when_input_dir_not_completely_deleted(self):
-        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file") as is_file_mock, \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+        with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock, \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
              patch.object(LocalApi, "_LocalApi__get_config_file_names", return_value=['application.json',
                                                                                       'network.json']), \
              patch.object(LocalApi, "_LocalApi__get_simulator_file_names", return_value=['roles.yaml',
                                                                                          'network.yaml']), \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
-             patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+             patch("adk.api.local_api.shutil.rmtree") as rmtree_mock, \
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             # input dir not empty. Itis not deleted. Test that the other directories are deleted
             is_dir_mock.side_effect = [True, True, True, True]
@@ -713,15 +713,15 @@ class ExperimentValidate(AppValidate):
             self.assertFalse(delete_experiment_output)
 
     def test_delete_experiment_input_dir(self):
-        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file") as is_file_mock, \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+        with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock, \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
              patch.object(LocalApi, "_LocalApi__get_config_file_names", return_value=['application.json',
                                                                                       'network.json']), \
              patch.object(LocalApi, "_LocalApi__get_simulator_file_names", return_value=['roles.yaml',
                                                                                          'network.yaml']), \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             # network.json found
             is_dir_mock.side_effect = [True, True, False, False]
@@ -764,16 +764,16 @@ class ExperimentValidate(AppValidate):
             self.assertTrue(delete_experiment_output)
 
     def test_delete_experiment_with_experiment_dir(self):
-        with patch("cli.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
-             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
-             patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
+        with patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
+             patch("adk.api.local_api.shutil.rmtree") as rmtree_mock, \
              patch.object(LocalApi, "_LocalApi__get_config_file_names", return_value=['application.json',
                                                                                       'network.json']), \
              patch.object(LocalApi, "_LocalApi__get_simulator_file_names", return_value=['roles.yaml',
                                                                                          'network.yaml']), \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             delete_experiment_output = self.local_api.delete_experiment('exp_dir', path=Path('dummy'))
             self.assertEqual(unlink_mock.call_count, 10)
@@ -797,16 +797,16 @@ class ExperimentValidate(AppValidate):
             self.assertFalse(delete_experiment_output)
 
     def test_delete_experiment_no_experiment_directory(self):
-        with patch("cli.api.local_api.Path.is_dir", return_value=True), \
-             patch("cli.api.local_api.Path.is_file", return_value=True), \
-             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
-             patch("cli.api.local_api.shutil.rmtree") as rmtree_mock, \
+        with patch("adk.api.local_api.Path.is_dir", return_value=True), \
+             patch("adk.api.local_api.Path.is_file", return_value=True), \
+             patch("adk.api.local_api.Path.unlink") as unlink_mock, \
+             patch("adk.api.local_api.shutil.rmtree") as rmtree_mock, \
              patch.object(LocalApi, "_LocalApi__get_config_file_names", return_value=['application.json',
                                                                                       'network.json']), \
              patch.object(LocalApi, "_LocalApi__get_simulator_file_names", return_value=['roles.yaml',
                                                                                          'network.yaml']), \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
-             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+             patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
             delete_experiment_output = self.local_api.delete_experiment(None, path=Path('dummy'))
             self.assertEqual(unlink_mock.call_count, 10)
