@@ -374,7 +374,9 @@ class LocalApi:
         application_path = path / application_name if application_name is not None else path
         # When we are not in the directory of the application, get the directory from the config
         if not application_path.is_dir() and application_name is not None:
-            application_path = Path(self.__config_manager.get_application_path(application_name))
+            app_path = self.__config_manager.get_application_path(application_name)
+            if app_path is not None:
+                application_path = Path(app_path)
 
         # check if the application exists and save the app name to delete it later
         application_name_from_config, _ = self.__config_manager.get_application_from_path(application_path)

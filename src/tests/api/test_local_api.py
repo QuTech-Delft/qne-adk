@@ -549,6 +549,20 @@ class ApplicationValidate(AppValidate):
             self.assertEqual(rmdir_mock.call_count, 1)
             self.assertFalse(delete_application_output)
 
+    def test_delete_application_path_from_configuration_not_valid(self):
+        with patch("cli.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch("cli.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
+             patch("cli.api.local_api.Path.unlink") as unlink_mock, \
+             patch.object(self.config_manager, "get_application_path", return_value=None), \
+             patch.object(self.config_manager, "get_application_from_path") as resulting_path_mock, \
+             patch.object(self.config_manager, "delete_application"), \
+             patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
+             patch("cli.api.local_api.os.rmdir") as rmdir_mock:
+
+            resulting_path_mock.return_value=('app_dir', None)
+            is_dir_mock.side_effect = [False, False]
+            self.assertRaises(ApplicationDoesNotExist, self.local_api.delete_application, 'app_dir', path=Path('dummy'))
+
     def test_delete_application_no_application_directory(self):
         with patch("cli.api.local_api.Path.is_dir", return_value=True), \
              patch("cli.api.local_api.Path.is_file", return_value=True), \
