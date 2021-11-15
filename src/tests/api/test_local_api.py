@@ -1,3 +1,5 @@
+# pylint: disable=C0302
+# Too many lines
 import unittest
 from pathlib import Path
 from unittest.mock import call, patch, MagicMock
@@ -8,7 +10,8 @@ from adk.exceptions import (ApplicationAlreadyExists, ApplicationDoesNotExist, E
 from adk.managers.roundset_manager import RoundSetManager
 from adk.parsers.output_converter import OutputConverter
 
-
+# pylint: disable=R0902
+# Too many instance attributes
 class AppValidate(unittest.TestCase):
     def setUp(self) -> None:
         self.config_manager = MagicMock(config_dir=Path("path/to/application"))
@@ -17,7 +20,10 @@ class AppValidate(unittest.TestCase):
         self.application = "test_application"
         self.roles = ["Testrole1", "Testrole2"]
         self.path = Path("path/to/application")
+        self.experiment_file_path = self.path / "experiment.json"
         self.config_files = ["application.json", "network.json", "result.json"]
+        self.error_dict = {"error": [], "warning": [], "info": []}
+
         self.experiment_meta_local = {
             "backend": {
                 "location": "local",
@@ -26,7 +32,6 @@ class AppValidate(unittest.TestCase):
             "number_of_rounds": 1,
             "description": ""
         }
-        self.error_dict = {"error": [], "warning": [], "info": []}
 
         self.experiment_data_local = {'meta': self.experiment_meta_local, 'asset': {}}
 
@@ -157,6 +162,26 @@ class AppValidate(unittest.TestCase):
                 }
             ]
         }
+        self.mock_experiment_data = {
+            "meta": {
+                "backend": {
+                    "location": "local",
+                    "type": "local_netsquid"
+                },
+                "number_of_rounds": 1,
+                "description": "exptest3: experiment description"
+            },
+            "asset": {
+                 "network": {
+                     "name": "Randstad",
+                     "slug": "randstad",
+                     "nodes": [{"slug": "n1"}, {"slug": "n2"}, {"slug": "n3"}, {"slug": "n4"}, {"slug": "n5"}],
+                     "channels": [{"slug": "n1-n2"}, {"slug": "n2-n3"}, {"slug": "n4-n3"}, {"slug": "n4-n5"}]
+                 }
+            }
+        }
+        self.all_network_nodes = {'randstad': ['n1', 'n2', 'n3', 'n4', 'n5']}
+        self.all_network_channels = ['n1-n2', 'n2-n3', 'n4-n3', 'n4-n5']
 
 
 class ApplicationValidate(AppValidate):
@@ -567,7 +592,8 @@ class ApplicationValidate(AppValidate):
             self.assertEqual(rmdir_mock.call_count, 2)
             self.assertFalse(delete_application_output)
 
-
+# pylint: disable=R0904
+# Too many public methods
 class ExperimentValidate(AppValidate):
     def test_experiments_create(self):
         with patch.object(LocalApi, "get_network_data") as get_network_data_mock, \
@@ -805,7 +831,430 @@ class ExperimentValidate(AppValidate):
             self.assertFalse(delete_experiment_output)
 
     def test_validate_experiment(self):
-        pass
+        with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
+             patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input:
+
+            self.assertEqual(self.local_api.validate_experiment(self.path), self.error_dict)
+            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=self.error_dict)
+            validate_experiment_input.assert_called_once_with(path=self.path, local=True, error_dict=self.error_dict)
+
+    def test_validate_experiment_json_all_ok(self):
+        with patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
+             patch("adk.api.local_api.os.path.join") as path_join_mock, \
+             patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
+             patch.object(LocalApi, "_get_network_info") as get_network_info_mock, \
+             patch.object(LocalApi, "_validate_experiment_nodes") as validate_experiment_nodes_mock, \
+             patch.object(LocalApi, "_validate_experiment_channels") as validate_experiment_channels_mock, \
+             patch.object(LocalApi, "_validate_experiment_application") as validate_experiment_application_mock:
+
+            path_join_mock.return_value = self.path
+            validate_experiment_input_mock.return_value = self.error_dict
+            validate_json_schema_mock.return_value = True, None
+            read_json_file_mock.return_value = self.mock_experiment_data
+            get_network_info_mock.return_value = "slug"
+            self.local_api.validate_experiment(self.path)
+            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+                                                                   error_dict=self.error_dict)
+            path_join_mock.assert_called_once()
+            validate_json_schema_mock.assert_called_once_with(self.experiment_file_path, self.path)
+            read_json_file_mock.assert_called_once_with(self.experiment_file_path)
+            get_network_info_mock.assert_called_once_with = "slug"
+            validate_experiment_nodes_mock.assert_called_once_with(self.experiment_file_path, self.mock_experiment_data,
+                                                                   self.error_dict)
+            validate_experiment_channels_mock.assert_called_once_with(self.experiment_file_path,
+                                                                      self.mock_experiment_data, self.error_dict)
+            validate_experiment_application_mock.assert_called_once_with(self.path, self.mock_experiment_data,
+                                                                   self.error_dict)
+
+    def test_validate_experiment_json_experiment_not_valid(self):
+        with patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
+             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch("adk.api.local_api.os.path.join") as path_join_mock:
+
+            path_join_mock.return_value = self.path
+            validate_json_schema_mock.return_value = False, "message"
+            self.local_api.validate_experiment(self.path)
+            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+                                                                   error_dict={'error': ['message'], 'warning': [],
+                                                                                    'info': []})
+            path_join_mock.assert_called_once()
+            validate_json_schema_mock.assert_called_once_with(self.experiment_file_path, self.path)
+
+    def test_validate_experiment_json_location_not_local(self):
+        with patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
+             patch("adk.api.local_api.os.path.join") as path_join_mock, \
+             patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
+             patch.object(LocalApi, "_get_network_info") as get_network_info_mock, \
+             patch.object(LocalApi, "_validate_experiment_nodes"), \
+             patch.object(LocalApi, "_validate_experiment_channels"), \
+             patch.object(LocalApi, "_validate_experiment_application"):
+
+
+
+            experiment_data = {
+                "meta": {
+                    "backend": {
+                        "location": "something_else",
+                        "type": "local_netsquid"
+                    },
+                    "number_of_rounds": 1,
+                    "description": "exptest3: experiment description"
+                },
+                "asset": {
+                    "network": {
+                        "name": "Randstad",
+                        "slug": "randstad",
+                    }
+                }
+            }
+            warning_message = f"In file '{self.experiment_file_path}': only 'local' is supported for property " \
+                              f"'location'"
+            error_dict = {'error': [], 'warning': [warning_message], 'info': []}
+
+            path_join_mock.return_value = self.path
+            validate_experiment_input_mock.return_value = self.error_dict
+            validate_json_schema_mock.return_value = True, None
+            read_json_file_mock.return_value = experiment_data
+            get_network_info_mock.return_value = "slug"
+            self.local_api.validate_experiment(self.path)
+            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+                                                                   error_dict=error_dict)
+            path_join_mock.assert_called_once()
+            validate_json_schema_mock.assert_called_once_with(self.experiment_file_path, self.path)
+            read_json_file_mock.assert_called_once_with(self.experiment_file_path)
+
+    def test_validate_experiment_json_network_slug_does_not_exist(self):
+        with patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
+             patch("adk.api.local_api.os.path.join") as path_join_mock, \
+             patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
+             patch.object(LocalApi, "_get_network_info") as get_network_info_mock, \
+             patch.object(LocalApi, "_validate_experiment_application") as validate_experiment_application_mock:
+
+            warning_message = f"In file '{self.experiment_file_path}': network '" \
+                              f"{self.mock_experiment_data['asset']['network']['slug']}' does not exist"
+            error_dict = {'error': [], 'warning': [warning_message], 'info': []}
+
+            path_join_mock.return_value = self.path
+            validate_experiment_input_mock.return_value = self.error_dict
+            validate_json_schema_mock.return_value = True, None
+            read_json_file_mock.return_value = self.mock_experiment_data
+            get_network_info_mock.return_value = None
+            self.local_api.validate_experiment(self.path)
+            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+                                                                   error_dict=error_dict)
+            path_join_mock.assert_called_once()
+            validate_json_schema_mock.assert_called_once_with(self.experiment_file_path, self.path)
+            read_json_file_mock.assert_called_once_with(self.experiment_file_path)
+            validate_experiment_application_mock.assert_called_once_with(self.path, self.mock_experiment_data,
+                                                                         error_dict)
+
+    def test_validate_experiment_input_all_ok(self):
+        with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
+             patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch.object(LocalApi, "_LocalApi__get_config_file_names") as get_config_file_names_mock, \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock, \
+             patch("adk.api.local_api.os.path.join") as path_join_mock, \
+             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock:
+
+            is_dir_mock.return_value = True
+            is_file_mock.return_value = True
+            path_join_mock.return_value = self.path
+            validate_json_schema_mock.return_value = True, None
+            get_config_file_names_mock.return_value = self.config_files
+            get_role_file_names_mock.return_value = self.roles
+            self.local_api.validate_experiment(self.path)
+            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=self.error_dict)
+            is_dir_mock.assert_called_once()
+            get_config_file_names_mock.assert_called_once()
+            is_file_mock.call_count = 5
+            validate_json_schema_mock.call_count = 3
+            get_role_file_names_mock.call_count = 3
+            get_role_file_names_mock.assert_called_with(self.path / "input")
+
+    def test_validate_experiment_input_no_dir_exist(self):
+        with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
+             patch("adk.api.local_api.Path.is_dir") as is_dir_mock:
+
+            error_message = f"Required directory not found: '{self.path / 'input'}'"
+            error_dict = {'error': [error_message], 'warning': [], 'info': []}
+
+            is_dir_mock.return_value = False
+            self.local_api.validate_experiment(self.path)
+            is_dir_mock.assert_called_once()
+            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=error_dict)
+
+    def test_validate_experiment_input_file_missing(self):
+        with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
+            patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+            patch.object(LocalApi, "_LocalApi__get_config_file_names") as get_config_file_names_mock, \
+            patch("adk.api.local_api.Path.is_file") as is_file_mock:
+
+            error_message1 = f"'{self.path / 'input'}' should contain the file 'application.json'"
+            error_message2 = f"'{self.path / 'input'}' should contain the file 'network.json'"
+            error_message3 = f"'{self.path / 'input'}' should contain the file 'result.json'"
+
+            error_dict = {'error': [error_message1, error_message2, error_message3], 'warning': [], 'info': []}
+            is_dir_mock.return_value = True
+            get_config_file_names_mock.return_value = self.config_files
+            is_file_mock.return_value = False
+
+            self.local_api.validate_experiment(self.path)
+            is_dir_mock.assert_called_once()
+            get_config_file_names_mock.assert_called_once()
+            is_file_mock.call_count = 3
+            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=error_dict)
+
+    def test_validate_experiment_input_experiment_data_invalid(self):
+        with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
+             patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch.object(LocalApi, "_LocalApi__get_config_file_names") as get_config_file_names_mock, \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock, \
+             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock:
+
+            error_dict = {'error': ["message", "message", "message"], 'warning': [], 'info': []}
+
+            is_dir_mock.return_value = True
+            get_config_file_names_mock.return_value = self.config_files
+            is_file_mock.return_value = True
+            validate_json_schema_mock.return_value = False, "message"
+
+            self.local_api.validate_experiment(self.path)
+            is_dir_mock.assert_called_once()
+            get_config_file_names_mock.assert_called_once()
+            is_file_mock.call_count = 3
+            validate_json_schema_mock.call_count = 3
+            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=error_dict)
+
+    def test_validate_experiment_input_missing_role_file_names(self):
+        with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
+             patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch.object(LocalApi, "_LocalApi__get_config_file_names") as get_config_file_names_mock, \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock, \
+             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock:
+
+            error_message1 = f"'{self.path / 'input'}' is missing the file: '{self.roles[0]}'"
+            error_message2 = f"'{self.path / 'input'}' is missing the file: '{self.roles[1]}'"
+            error_dict = {'error': [error_message1, error_message2], 'warning': [], 'info': []}
+
+            is_dir_mock.return_value = True
+            get_config_file_names_mock.return_value = self.config_files
+            is_file_mock.side_effect = [True, True, False, False, True]
+            validate_json_schema_mock.return_value = True, None
+            get_role_file_names_mock.return_value = self.roles
+
+            self.local_api.validate_experiment(self.path)
+            is_dir_mock.assert_called_once()
+            get_config_file_names_mock.assert_called_once()
+            is_file_mock.call_count = 5
+            validate_json_schema_mock.call_count = 3
+            get_role_file_names_mock.assert_called_once_with(self.path / "input")
+            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=error_dict)
+
+
+    def test_validate_experiment_nodes(self):
+        with patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
+             patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
+             patch("adk.api.local_api.os.path.join") as path_join_mock, \
+             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch.object(LocalApi, "_get_network_info"), \
+             patch.object(LocalApi, "_validate_experiment_channels"), \
+             patch.object(LocalApi, "_validate_experiment_application"), \
+             patch.object(LocalApi, "_get_network_nodes") as get_network_nodes_mock:
+
+            experiment_data_too_many_nodes = {
+                "meta": {
+                    "backend": {
+                        "location": "local",
+                        "type": "local_netsquid"
+                    },
+                    "number_of_rounds": 1,
+                    "description": "exptest3: experiment description"
+                },
+                "asset": {
+                    "network": {
+                        "name": "Randstad",
+                        "slug": "randstad",
+                        "nodes": [{"slug": "n1"}, {"slug": "n2"}, {"slug": "n3"}, {"slug": "n4"}, {"slug": "n5"},
+                                  {"slug": "n6"}],
+                    }
+                }
+            }
+
+
+            path_join_mock.return_value = self.path
+            validate_experiment_input_mock.return_value = self.error_dict
+            validate_json_schema_mock.return_value = True, None
+            read_json_file_mock.return_value = self.mock_experiment_data
+            get_network_nodes_mock.return_value = self.all_network_nodes
+            self.local_api.validate_experiment(self.path)
+            get_network_nodes_mock.assert_called_once()
+            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+                                                                   error_dict=self.error_dict)
+
+            # length of experiment_nodes is greater than network_nodes and n6 does not exist in network
+            error_message1 = f"In file '{self.path / 'experiment.json'}': too many nodes used in network " \
+                             f"'{experiment_data_too_many_nodes['asset']['network']['slug']}'. Maximum amount of " \
+                             f"nodes that can be used: {len(self.all_network_nodes['randstad'])}"
+
+            error_message2 = f"In file '{self.path / 'experiment.json'}': node 'n6' does not exist "  \
+                             f"or does not belong to the network '" \
+                             f"{experiment_data_too_many_nodes['asset']['network']['slug']}'"
+
+            error_dict = {'error': [error_message1, error_message2], 'warning': [], 'info': []}
+            get_network_nodes_mock.reset_mock()
+            read_json_file_mock.reset_mock()
+            validate_experiment_input_mock.reset_mock()
+            read_json_file_mock.return_value = experiment_data_too_many_nodes
+            self.local_api.validate_experiment(self.path)
+            get_network_nodes_mock.assert_called_once()
+            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+                                                                   error_dict=error_dict)
+
+    def test_validate_experiment_channels(self):
+        with patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
+             patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
+             patch("adk.api.local_api.os.path.join") as path_join_mock, \
+             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch.object(LocalApi, "_get_network_info"), \
+             patch.object(LocalApi, "_validate_experiment_nodes"), \
+             patch.object(LocalApi, "_validate_experiment_application"), \
+             patch.object(LocalApi, "_get_channels_for_network") as get_channels_for_network_mock:
+
+            experiment_data_too_many_channels = {
+                "meta": {
+                    "backend": {
+                        "location": "local",
+                        "type": "local_netsquid"
+                    },
+                    "number_of_rounds": 1,
+                    "description": "exptest3: experiment description"
+                },
+                "asset": {
+                    "network": {
+                        "name": "Randstad",
+                        "slug": "randstad",
+                        "channels": [{"slug": "n1-n2"}, {"slug": "n2-n3"}, {"slug": "n4-n3"}, {"slug": "n4-n5"},
+                                     {"slug": "n5-n6"}]
+                    }
+                }
+            }
+
+            path_join_mock.return_value = self.path
+            validate_experiment_input_mock.return_value = self.error_dict
+            validate_json_schema_mock.return_value = True, None
+            read_json_file_mock.return_value = self.mock_experiment_data
+            get_channels_for_network_mock.return_value = self.all_network_channels
+            self.local_api.validate_experiment(self.path)
+            get_channels_for_network_mock.assert_called_once_with(network_slug='randstad')
+            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+                                                                   error_dict=self.error_dict)
+
+            # length of experiment_channels is greater than network_nodes and n5-n6 does not exist in network
+            error_message1 = f"In file {self.path / 'experiment.json'}: too many channels used in network " \
+                             f"'{experiment_data_too_many_channels['asset']['network']['slug']}'. Maximum amount of " \
+                             f"channels that can be used: " \
+                             f"{len(self.mock_experiment_data['asset']['network']['channels'])}"
+
+            error_message2 = f"In file '{self.path / 'experiment.json'}': channel 'n5-n6' does not exist or is " \
+                             f"not a valid channel for network " \
+                             f"'{experiment_data_too_many_channels['asset']['network']['slug']}'"
+
+            error_dict = {'error': [error_message1, error_message2], 'warning': [], 'info': []}
+
+            get_channels_for_network_mock.reset_mock()
+            read_json_file_mock.reset_mock()
+            validate_experiment_input_mock.reset_mock()
+            get_channels_for_network_mock.return_value = self.all_network_channels
+            read_json_file_mock.return_value = experiment_data_too_many_channels
+            self.local_api.validate_experiment(self.path)
+            get_channels_for_network_mock.assert_called_once_with(network_slug='randstad')
+            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+                                                                   error_dict=error_dict)
+
+            # If network_channels is None
+            error_dict = {"error": [f"No channels found for network '{'randstad'}'"], "warning": [], "info": []}
+            get_channels_for_network_mock.reset_mock()
+            validate_experiment_input_mock.reset_mock()
+            get_channels_for_network_mock.return_value = None
+            self.local_api.validate_experiment(self.path)
+            get_channels_for_network_mock.assert_called_once_with(network_slug='randstad')
+            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+                                                                   error_dict=error_dict)
+
+    def test_validate_experiment_application(self):
+        with patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
+             patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
+             patch("adk.api.local_api.os.path.join") as path_join_mock, \
+             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch.object(LocalApi, "_get_network_info"), \
+             patch.object(LocalApi, "_validate_experiment_nodes"), \
+             patch.object(LocalApi, "_validate_experiment_channels"), \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock:
+             # patch("adk.api.local_api.set") as issubset_mock:
+
+            experiment_data = {
+                "meta": {
+                    "backend": {
+                        "location": "local",
+                        "type": "local_netsquid"
+                    },
+                "number_of_rounds": 1,
+                "description": "exptest3: experiment description"
+                },
+                "asset": {
+                    "network": {
+                        "slug": "randstad"
+                    },
+                    "application": [
+                        {
+                            "roles": [
+                                "sender"
+                            ],
+                            "values": [
+                                {
+                                    "name": "x",
+                                    "value": 0,
+                                    "scale_value": 1.0
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+            network_data = {
+                'networks': [
+                    'randstad',
+                    'europe',
+                    'the-netherlands'
+                ],
+                'roles': [
+                    'sender',
+                    'receiver'
+                ]
+            }
+
+            read_json_file_mock.side_effect = [
+                experiment_data,
+                network_data
+            ]
+
+            path_join_mock.return_value = self.path
+            validate_experiment_input_mock.return_value = self.error_dict
+            validate_json_schema_mock.return_value = True, None
+            is_file_mock.return_value = True
+            # issubset_mock.return_value = False
+            read_json_file_mock.return_value = {'networks': ['randstad', 'europe', 'the-netherlands'],
+                                                'roles': ['sender', 'receiver']}
+
+            self.local_api.validate_experiment(self.path)
+            is_file_mock.assert_called_once()
+            read_json_file_mock.assert_called_with(self.path / "input/network.json")
+            read_json_file_mock.call_count = 2
 
     def test_run_experiment(self):
         with patch.object(LocalApi, "_get_asset") as get_asset_mock, \

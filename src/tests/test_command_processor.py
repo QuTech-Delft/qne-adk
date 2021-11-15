@@ -23,6 +23,7 @@ class TestCommandProcessor(unittest.TestCase):
         self.path = Path('path/to/application')
         self.remote_List = ['r1', 'r2']
         self.local_list = ['l1', 'l2', 'l3']
+        self.error_dict = {"error": [], "warning": [], "info": []}
 
     def test_login(self):
         with patch.object(RemoteApi, "login") as remote_login_mock:
@@ -126,18 +127,9 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_experiments_validate(self):
         with patch.object(LocalApi, "validate_experiment") as validate_exp_mock:
-            validate_exp_mock.return_value = True, 'ok'
-            success, message = self.processor.experiments_validate(experiment_path=Path('dummy'))
-            validate_exp_mock.assert_called_once_with(Path('dummy'))
-            self.assertEqual(success, True)
-            self.assertEqual(message, 'ok')
-
-            validate_exp_mock.reset_mock()
-            validate_exp_mock.return_value = False, 'experiment.json does not contain valid json'
-            success, message = self.processor.experiments_validate(experiment_path=Path('dummy'))
-            validate_exp_mock.assert_called_once_with(Path('dummy'))
-            self.assertEqual(success, False)
-            self.assertEqual(message, 'experiment.json does not contain valid json')
+            validate_exp_mock.return_value = self.error_dict
+            self.assertEqual(self.processor.experiments_validate(path=self.path), self.error_dict)
+            validate_exp_mock.assert_called_once_with(self.path)
 
     def test_experiments_run(self):
         with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
