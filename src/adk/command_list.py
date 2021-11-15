@@ -21,13 +21,11 @@ from adk.settings import Settings
 from adk.type_aliases import ErrorDictType
 from adk.utils import reorder_data, validate_path_name
 
-app = Typer()
+app = Typer(add_completion=False)
 applications_app = Typer()
 app.add_typer(applications_app, name="application", help="Manage applications")
 experiments_app = Typer()
 app.add_typer(experiments_app, name="experiment", help="Manage experiments")
-results_app = Typer()
-app.add_typer(results_app, name="result", help="Manage results")
 
 settings = Settings()
 config_manager = ConfigManager(config_dir=settings.config_dir)
