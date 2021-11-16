@@ -22,7 +22,7 @@ To install all the required packages, execute the following command:
 pip install qne-adk
 ```
 
-After installing the qne-cli, you can install SquidASM. Replace '{netsquid-user-name}' and '{netsquid-password}' with the credentials you registered on [NetSquid](https://forum.netsquid.org/):
+After installing the qne-adk, you can install SquidASM. Replace '{netsquid-user-name}' and '{netsquid-password}' with the credentials you registered on [NetSquid](https://forum.netsquid.org/):
 
 ```
 pip install squidasm --extra-index-url=https://{netsquid-user-name}:{netsquid-password}@pypi.netsquid.org
@@ -51,7 +51,7 @@ Options:
   --help  Show this message and exit.
   
 Example:
-  qne application create application_name role_name1 role_name2
+  qne application create my_application Alice Bob
 ```
 </details>
 
@@ -63,10 +63,17 @@ Used to delete an application. Will delete the entire application directory stru
 <br></br>
     
 ```
-qne application delete [OPTIONS] APPLICATION_NAME
+qne application delete [OPTIONS] [APPLICATION_NAME]
+
+  Delete application files from application directory. Currently only local
+
+  When application_name is given ./application_name is taken as application
+  directory, when this directory is not valid the application directory is
+  fetched from the application configuration. When application_name is not
+  given, the current directory is taken as application directory.
 
 Arguments:
-  APPLICATION_NAME  Name of the application  [required]
+  [APPLICATION_NAME]  Name of the application
 
 Options:
   --help  Show this message and exit.
@@ -145,7 +152,7 @@ Example:
 <!--- QNE EXPERIMENT VALIDATE --->
 <details closed>
 <summary><b>qne experiment validate</b></summary>
-Validates whether the experiment file structure is  complete and if the json content is valid.
+Validates whether the experiment file structure is complete and if the json content is valid.
 <br></br>
 
 ```
@@ -167,14 +174,19 @@ Delete the entire experiment.
 <br></br>
     
 ```
-qne experiment delete [OPTIONS] EXPERIMENT_NAME
+qne experiment delete [OPTIONS] [EXPERIMENT_NAME]
+
+  Delete experiment files.
+
+  When experiment_name is given ./experiment_name is taken as experiment
+  path, otherwise current directory.
 
 Arguments:
-  EXPERIMENT_NAME  Name of the experiment
+  [EXPERIMENT_NAME]  Name of the experiment
 
 Options:
   --help  Show this message and exit.
-  
+
 Example:
   qne experiment delete experiment_name
 ```
@@ -204,7 +216,7 @@ Example:
 <!--- QNE EXPERIMENT RESULTS --->
 <details closed>
 <summary><b>qne experiment results</b></summary>
-Download the results for an experiment that has been run.
+Get the results for an experiment that has been run.
 <br></br>
     
 ```
