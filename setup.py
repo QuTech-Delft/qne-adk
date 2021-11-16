@@ -49,9 +49,15 @@ setup(
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     version=get_version_number("adk"),
-    author="QuantumNetworkExplorer",
+    author="QuTech-Delft",
+    author_email="support@quantum-network.com",
+    url="https://github.com/QuTech-Delft/qne-adk",
     python_requires=">=3.7",
     package_dir={"": "src"},
+    package_data={"": ["networks/*.json",
+                       "schema/applications/*.json",
+                       "schema/experiments/*.json",
+                       "schema/networks/*.json"]},
     entry_points={
         "console_scripts": [
             "qne=adk.command_list:app",

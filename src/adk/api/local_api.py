@@ -967,7 +967,7 @@ class LocalApi:
             instruction_converter=FullyConnectedNetworkGenerator()
         )
 
-        return cast(ResultType, output_converter.convert(round_number=1))
+        return output_converter.convert(round_number=1)
 
     def validate_experiment(self, path: Path) -> ErrorDictType:
         """
