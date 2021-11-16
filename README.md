@@ -1,20 +1,28 @@
 # Quantum Network Explorer ADK
-Application Development Kit to interact with the Quantum Network Explorer. With the QNE-ADK you can create your application and experiment and run it locally using the commands. 
+The QNE-ADK is a Quantum Network Explorer - Application Development Kit that allows you to create your own applications and experiments and run them on a simulator. As of now, the ADK can only run experiments locally. Remote interaction with the Quantum Network Explorer will be added in later updates. 
+
+With the ADK you can create your own application using the ``qne application create`` command (see Commands below). An application directory is generated for you with all the necessary files for you to configure and prepare for an experiment. When configuring an application, you specify the different roles and what types of inputs your application uses. In addition, you write the functionality of your application using the NetQASM library.
+
+After creating and configuring an application, you can create an experiment for it using the ``qne experiment create`` command. Also here an experiment directory is generated with all necessary files. When configuring your experiment you can give values to the inputs that were specified when creating your application. You also choose which channels and nodes you use in your network and which role is linked to which node. A network consists of channels and each channel consists of two nodes. The nodes can communicate with each other using the channel between them.
+
+Once your experiment is configured you are ready to run it using the ``qne experiment run`` command. Your experiment is parsed and sent to the NetSquid simulator. After some time your experiment run will be finished and a results directory will be generated in which all the results of your experiment are stored.
+
 
 ## Prerequisites
-- A modern Linux 64-bit (x86_64) operating system. If you don’t have linux you could run it via virtualization, e.g. using VirtualBox. If you have Windows 10 you can also use the [Bash on Ubuntu](https://www.howtogeek.com/249966/how-to-install-and-use-the-linux-bash-shell-on-windows-10/) subsystem.
-- Python version 3.6 or higher and pip version 19 or higher.
-- NetQASM makes use of SquidASM for which you need credentials in order to use it. These credentials can either be obtained by registering on the forum of [NetSquid](https://forum.netsquid.org/ "NetSquid").
+- A modern Linux 64-bit (x86_64) operating system. If you don’t have Linux you could run it via virtualization, e.g. using VirtualBox. If you have Windows 10 or 11 you can also use the [Bash on Ubuntu](https://docs.microsoft.com/en-us/windows/wsl/) subsystem.
+- A [virtual environment](https://docs.python.org/3/library/venv.html) should be created and activated before creating an application.
+- Python version 3.7 or higher and pip version 19 or higher.
+- NetQASM makes use of SquidASM for which you need credentials in order to use it. These credentials can be obtained by registering on the forum of [NetSquid](https://forum.netsquid.org/).
 
 
 ## Installation
-To install all the required packages, execute the following commands:
+To install all the required packages, execute the following command:
 
 ```
 pip install qne-adk
 ```
 
-After installing the qne-cli, you can install SquidASM. Replace '{netsquid-user-name}' and '{netsquid-password}' with the credenials you registered on [NetSquid](https://forum.netsquid.org/ "NetSquid"):
+After installing the qne-cli, you can install SquidASM. Replace '{netsquid-user-name}' and '{netsquid-password}' with the credentials you registered on [NetSquid](https://forum.netsquid.org/):
 
 ```
 pip install squidasm --extra-index-url=https://{netsquid-user-name}:{netsquid-password}@pypi.netsquid.org
@@ -26,52 +34,6 @@ Now everything should be setup and ready in order to create your own application
 ## Commands
 The QNE-ADK uses various commands to create and run your applications and experiments. All of the commands are listed below:
 
-<!--- QNE LOGIN --->
-<!---
-<details closed>
-<summary><b>qne login</b></summary>
-Used to be logged in to a Quantum Network Explorer instance. If you want to run your experiment remotely, you have to be logged in.
-<br></br>
-
-```
-qne login [OPTIONS] [HOST]
-
-Arguments:
-  [HOST]  [default: https://staging.quantum-network.com/]
-
-Options:
-  --username TEXT  Username of the remote user.  [required]
-  --password TEXT  Password of the remote user.  [required]
-  --help           Show this message and exit.
-  
-Example:
-  qne login username password https://staging.quantum-network.com/
-```
-</details>
---->
-
-<!--- QNE LOGOUT --->
-<!---
-<details closed>
-<summary><b>qne logout</b></summary>
-Log out from a specific Quantum Network Explorer instance.
-<br></br>
-    
-```
-qne logout [OPTIONS] [HOST]
-
-Arguments:
-  [HOST]  [default: https://staging.quantum-network.com/]
-
-Options:
-  --help  Show this message and exit.
-  
-Example:
-  qne logout default: https://staging.quantum-network.com/
-```
-</details>
---->
-
 <!--- QNE APPLICATION CREATE --->
 <details closed>
 <summary><b>qne application create</b></summary>
@@ -79,98 +41,61 @@ Create a new application in your current directory containing all the files that
 <br></br>
     
 ```
-qne application create [OPTIONS] APPLICATION NODES...
+qne application create [OPTIONS] APPLICATION_NAME ROLES...
 
 Arguments:
-  APPLICATION  Name of the application  [required]
-  NODES...     Names of the nodes to be created  [required]
+  APPLICATION_NAME  Name of the application  [required]
+  ROLES...          Names of the roles to be created  [required]
 
 Options:
   --help  Show this message and exit.
   
 Example:
-  qne application create application_name node1 node2
+  qne application create application_name role_name1 role_name2
 ```
 </details>
 
 
 <!--- QNE APPLICATION DELETE --->
-<!---
 <details closed>
 <summary><b>qne application delete</b></summary>
-Used to delete a remote application. All remote objects and files are deleted. However, the local files will persist.
+Used to delete an application. Will delete the entire application directory structure.
 <br></br>
     
 ```
-qne application delete [OPTIONS]
+qne application delete [OPTIONS] APPLICATION_NAME
+
+Arguments:
+  APPLICATION_NAME  Name of the application  [required]
 
 Options:
   --help  Show this message and exit.
 
 Example:
-  qne application delete
+  qne application delete application_name
 ```
 </details>
---->
 
-<!--- QNE APPLICATION INIT --->
-<!---
-<details closed>
-<summary><b>qne application init</b></summary>
-This command can be called in an already existing application, used to initialize it. Any files that adhere to the naming conventions will be detected and moved to the appropriate location.
-<br></br>
-    
-```
-qne application init [OPTIONS]
-
-Options:
-  --help  Show this message and exit.
-
-Example:
-  qne appplication init
-```
-</details>
---->
 
 
 <!--- QNE APPLICATION LIST --->
 <details closed>
 <summary><b>qne application list</b></summary>
-Show the list of all applications accessible to this user. If no flags are provided, this entails both remote and local applications are listed.
+Show a list of all existing applications and the path to where they are stored.
 <br></br>
     
 ```
 qne application list [OPTIONS]
 
 Options:
-  --remote / --local  Only list applications from this source.
-  --help              Show this message and exit.
+  --local  List local applications  [default: False].
+  --help   Show this message and exit.
 
 Example:
   qne application list
 ```
 </details>
 
-
-
-<!--- QNE APPLICATION UPLOAD --->
-<!---
-<details closed>
-<summary><b>qne application upload</b></summary>
-This command can be used to create or update a remote application. The command will either create a new application, starting with version 1 or update an already existing application and increment the version number.
-<br></br>
-    
-```
-qne application upload [OPTIONS]
-
-Options:
-  --help  Show this message and exit.
-
-Example:
-  qne application upload
-```
-</details>
---->
 
 
 <!--- QNE APPLICATION VALIDATE --->
@@ -195,20 +120,20 @@ Example:
 <!--- QNE EXPERIMENT CREATE --->
 <details closed>
 <summary><b>qne experiment create</b></summary>
-Create a new experiment, based on either a local or a remote application name.
+Create a new experiment, based on an application name and a chosen network.
 <br></br>
     
 ```
-qne experiment create [OPTIONS] NAME APPLICATION NETWORK
+qne experiment create [OPTIONS] EXPERIMENT_NAME APPLICATION_NAME NETWORK_NAME
 
 Arguments:
-  NAME         Name of the experiment.  [required]
-  APPLICATION  Name of the application.  [required]
-  NETWORK      Name of the network to be used. [required]
+  EXPERIMENT_NAME   Name of the experiment.  [required]
+  APPLICATION_NAME  Name of the application.  [required]
+  NETWORK_NAME      Name of the network to be used. [required]
 
 Options:
-  --local / --remote  Run the application locally.  [default: True]
-  --help              Show this message and exit.
+  --local  Run the application locally  [default: True]
+  --help   Show this message and exit.
   
 Example:
   qne experiment create experiment_name application_name europe
@@ -238,47 +163,28 @@ Example:
 <!--- QNE EXPERIMENT DELETE --->
 <details closed>
 <summary><b>qne experiment delete</b></summary>
-Delete the entire experiment, both on the local and remote side.
+Delete the entire experiment.
 <br></br>
     
 ```
-qne experiment delete [OPTIONS]
+qne experiment delete [OPTIONS] EXPERIMENT_NAME
+
+Arguments:
+  EXPERIMENT_NAME  Name of the experiment
 
 Options:
   --help  Show this message and exit.
   
 Example:
-  qne experiment delete
+  qne experiment delete experiment_name
 ```
 </details>
 
 
-
-<!--- QNE EXPERIMENT LIST --->
-<!---
-<details closed>
-<summary><b>qne experiment list</b></summary>
-List all the remote applications.
-<br></br>
-    
-```
-qne experiment list [OPTIONS]
-
-Options:
-  --help  Show this message and exit.
-  
-Example:
-  qne experiment list
-```
-</details>
---->
-
-
-
-<details closed>
 <!--- QNE EXPERIMENT RUN --->
+<details closed>
 <summary><b>qne experiment run</b></summary>
-Using this command the experiment will be run on the backend. In case of a local run, netsquid will be used as backend simulator. 
+This command will parse all experiment files and run them on the NetSquid simulator.
 <br></br>
 
 ```
@@ -318,4 +224,4 @@ Example:
 
 
 ## More documentation
-More documentation about these commands and about the files that are generated can be found in the QNE-ADK user guide on the Quantum Network Explorer [website](https://beta.quantum-network.com/knowledge-base/qne-adk).
+More documentation about these commands and about the files that are generated can be found in the QNE-ADK user guide on the Quantum Network Explorer [knowledge base](https://www.quantum-network.com/knowledge-base/qne-adk).
