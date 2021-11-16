@@ -9,7 +9,7 @@ Once your experiment is configured you are ready to run it using the ``qne exper
 
 
 ## Prerequisites
-- A modern Linux 64-bit (x86_64) operating system. If you don’t have Linux you could run it via virtualization, e.g. using VirtualBox. If you have Windows 10 or 11 you can also use the [Bash on Ubuntu](https://docs.microsoft.com/en-us/windows/wsl/) subsystem.
+- A modern Linux or MacOS (10 or 11) 64-bit (x86_64) operating system. If you don’t have Linux you could run it via virtualization, e.g. using VirtualBox. If you have Windows 10 or 11 you can also use the [Bash on Ubuntu](https://docs.microsoft.com/en-us/windows/wsl/) subsystem.
 - A [virtual environment](https://docs.python.org/3/library/venv.html) should be created and activated before creating an application.
 - Python version 3.7 or higher and pip version 19 or higher.
 - NetQASM makes use of SquidASM for which you need credentials in order to use it. These credentials can be obtained by registering on the forum of [NetSquid](https://forum.netsquid.org/).
