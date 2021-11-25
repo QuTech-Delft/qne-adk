@@ -126,15 +126,15 @@ class TestCommandProcessor(unittest.TestCase):
     def test_experiments_validate(self):
         with patch.object(LocalApi, "validate_experiment") as validate_exp_mock:
             validate_exp_mock.return_value = True, 'ok'
-            success, message = self.processor.experiments_validate(path=Path('dummy'))
-            validate_exp_mock.assert_called_once_with(Path('dummy'))
+            success, message = self.processor.experiments_validate(None, path=Path('dummy'))
+            validate_exp_mock.assert_called_once_with(None, Path('dummy'))
             self.assertEqual(success, True)
             self.assertEqual(message, 'ok')
 
             validate_exp_mock.reset_mock()
             validate_exp_mock.return_value = False, 'experiment.json does not contain valid json'
-            success, message = self.processor.experiments_validate(path=Path('dummy'))
-            validate_exp_mock.assert_called_once_with(Path('dummy'))
+            success, message = self.processor.experiments_validate(None, path=Path('dummy'))
+            validate_exp_mock.assert_called_once_with(None, Path('dummy'))
             self.assertEqual(success, False)
             self.assertEqual(message, 'experiment.json does not contain valid json')
 
@@ -146,7 +146,7 @@ class TestCommandProcessor(unittest.TestCase):
 
             is_exp_local_mock.return_value = True
             run_exp_mock.return_value = ['foo']
-            self.processor.experiments_run(Path('dummy'), True)
+            self.processor.experiments_run(None, Path('dummy'), True)
 
             is_exp_local_mock.assert_called_once_with(Path('dummy'))
             run_exp_mock.assert_called_once_with(Path('dummy'))
@@ -154,7 +154,7 @@ class TestCommandProcessor(unittest.TestCase):
             is_exp_local_mock.reset_mock()
             run_exp_mock.reset_mock()
             run_exp_mock.return_value = None
-            self.processor.experiments_run(Path('dummy'), True)
+            self.processor.experiments_run(None, Path('dummy'), True)
             is_exp_local_mock.assert_called_once_with(Path('dummy'))
             run_exp_mock.assert_called_once_with(Path('dummy'))
 
@@ -164,12 +164,12 @@ class TestCommandProcessor(unittest.TestCase):
 
             exists_mock.return_value = True
             read_json_mock.return_value = {"foo": "bar"}
-            result_data = self.processor.experiments_results(True, Path('dummy'))
+            result_data = self.processor.experiments_results(None, True, Path('dummy'))
             self.assertEqual(result_data, {"foo": "bar"})
 
             exists_mock.reset_mock()
             exists_mock.return_value = False
-            self.assertRaises(Exception, self.processor.experiments_results, True, False, Path('dummy'))
+            self.assertRaises(Exception, self.processor.experiments_results, None, True, False, Path('dummy'))
 
     def test_applications_list(self):
         with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \

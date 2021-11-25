@@ -426,8 +426,10 @@ class LocalApi:
             Returns empty list when all validations passes
             Returns dict containing error messages of the validations that failed
         """
+
         error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
         application_exists, _ = self.__config_manager.application_exists(application_name)
+
         if application_exists:
             self.__is_structure_valid(application_name, error_dict)
             self.__is_config_valid(application_name, error_dict)
@@ -969,7 +971,7 @@ class LocalApi:
 
         return output_converter.convert(round_number=1)
 
-    def validate_experiment(self, path: Path) -> ErrorDictType:
+    def validate_experiment(self, experiment_name: str, path: Path) -> ErrorDictType:
         """
         Validates the experiment by checking:
         - if the structure is correct and consists of an experiment.json
@@ -981,10 +983,12 @@ class LocalApi:
 
         Args:
             path: The location of the experiment
+            experiment_name: Name of the experiment
 
         Returns:
             Dictionary containing lists of error, warning and info messages of the validations that failed
         """
+        path = path / experiment_name if experiment_name is not None else path
         local = True
         error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
 

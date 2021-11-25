@@ -125,7 +125,8 @@ class CommandProcessor:
         pass
 
     @log_function
-    def experiments_run(self, path: Path, block: bool) -> Optional[ResultType]:
+    def experiments_run(self, experiment_name: str, path: Path, block: bool) -> Optional[ResultType]:
+        path = path / experiment_name if experiment_name is not None else path
 
         results = None
         is_local = self.__local.is_experiment_local(path)
@@ -141,13 +142,14 @@ class CommandProcessor:
         return self.__remote.list_experiments()
 
     @log_function
-    def experiments_validate(self, path: Path) -> ErrorDictType:
-        return self.__local.validate_experiment(path)
+    def experiments_validate(self, experiment_name: str, path: Path) -> ErrorDictType:
+        return self.__local.validate_experiment(experiment_name, path)
 
     @log_function
     def experiments_results(
-        self, all_results: bool, path: Path
+        self, experiment_name:str,  all_results: bool, path: Path
     ) -> ResultType:
+        path = path / experiment_name if experiment_name is not None else path
         results: ResultType = self.__get_results(path=path)
         return results
 

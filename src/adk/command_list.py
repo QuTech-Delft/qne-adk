@@ -193,12 +193,21 @@ def show_validation_messages(validation_dict: ErrorDictType) -> None:
 
 @applications_app.command("validate")
 @catch_qne_adk_exceptions
-def applications_validate() -> None:
+def applications_validate(
+    application_name: Optional[str] = typer.Argument(None, help="Name of the application")
+) -> None:
     """
     Validate the application.
     """
+
     cwd = Path.cwd()
-    application_name, _ = config_manager.get_application_from_path(cwd)
+
+    # Temporary local only
+    if application_name is not None:
+        validate_path_name("Application", application_name)
+    else:
+        application_name, _ = config_manager.get_application_from_path(cwd)
+
     typer.echo(f"Validate application '{application_name}'")
     error_dict = processor.applications_validate(application_name=application_name)
 
@@ -277,9 +286,8 @@ def experiments_delete(
 @experiments_app.command("run")
 @catch_qne_adk_exceptions
 def experiments_run(
-    block: bool = typer.Option(
-        False, "--block", help="Wait for the result to be returned"
-    )
+    experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment"),
+    block: bool = typer.Option(False, "--block", help="Wait for the result to be returned")
 ) -> None:
     """
     Execute a run of the experiment.
@@ -287,13 +295,13 @@ def experiments_run(
     cwd = Path.cwd()
 
     # Validate the experiment before executing the run command
-    validate_dict = processor.experiments_validate(path=cwd)
+    validate_dict = processor.experiments_validate(experiment_name=experiment_name, path=cwd)
 
     if validate_dict["error"] or validate_dict["warning"]:
         show_validation_messages(validate_dict)
         typer.echo("Experiment is invalid. Please resolve the issues and then run the experiment.")
     else:
-        results = processor.experiments_run(path=cwd, block=block)
+        results = processor.experiments_run(experiment_name=experiment_name, path=cwd, block=block)
 
         if results:
             if "error" in results["round_result"]:
@@ -305,14 +313,20 @@ def experiments_run(
 
 @experiments_app.command("validate")
 @catch_qne_adk_exceptions
-def experiments_validate() -> None:
+def experiments_validate(
+    experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment")
+) -> None:
     """
     Validate the experiment configuration.
     """
     cwd = Path.cwd()
-    experiment_name = cwd.name
-    typer.echo(f"Validate experiment '{experiment_name}'\n")
-    error_dict = processor.experiments_validate(path=cwd)
+    if not experiment_name:
+        cwd_experiment_name = cwd.name
+        typer.echo(f"Validate experiment '{cwd_experiment_name}'\n")
+    else:
+        typer.echo(f"Validate experiment '{experiment_name}'\n")
+
+    error_dict = processor.experiments_validate(experiment_name=experiment_name, path=cwd)
     show_validation_messages(error_dict)
 
     if error_dict["error"] or error_dict["warning"]:
@@ -324,18 +338,15 @@ def experiments_validate() -> None:
 @experiments_app.command("results")
 @catch_qne_adk_exceptions
 def experiments_results(
-    all_results: bool = typer.Option(
-        False, "--all", help="Get all results for this experiment"
-    ),
-    show: bool = typer.Option(
-        False, "--show", help="Show the results on screen instead of saving to file"
-    ),
+    experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment"),
+    all_results: bool = typer.Option(False, "--all", help="Get all results for this experiment"),
+    show: bool = typer.Option(False, "--show", help="Show the results on screen instead of saving to file"),
 ) -> None:
     """
     Get results for an experiment.
     """
     cwd = Path.cwd()
-    results = processor.experiments_results(all_results=all_results, path=cwd)
+    results = processor.experiments_results(experiment_name=experiment_name,all_results=all_results, path=cwd)
     if show:
         typer.echo(results)
     else:
