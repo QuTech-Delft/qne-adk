@@ -1,5 +1,5 @@
 # Quantum Network Explorer ADK
-The QNE-ADK is a Quantum Network Explorer - Application Development Kit that allows you to create your own applications and experiments and run them on a simulator. As of now, the ADK can only run experiments locally. Remote interaction with the Quantum Network Explorer will be added in later updates. 
+The QNE-ADK is a Quantum Network Explorer - Application Development Kit that allows you to create your own applications and experiments and run them on a simulator. As of now, the ADK can only run experiments locally. Remote interaction with the Quantum Network Explorer will be added in later updates.
 
 With the ADK you can create your own application using the ``qne application create`` command (see Commands below). An application directory is generated for you with all the necessary files for you to configure and prepare for an experiment. When configuring an application, you specify the different roles and what types of inputs your application uses. In addition, you write the functionality of your application using the NetQASM library.
 
@@ -39,7 +39,7 @@ The QNE-ADK uses various commands to create and run your applications and experi
 <summary><b>qne application create</b></summary>
 Create a new application in your current directory containing all the files that are needed to write your application. The application directory name will be based on the value given to <b>application</b>. Two child directories <b>src</b> and <b>config</b> will be created, along with the default files.
 <br></br>
-    
+
 ```
 qne application create [OPTIONS] APPLICATION_NAME ROLES...
 
@@ -49,7 +49,7 @@ Arguments:
 
 Options:
   --help  Show this message and exit.
-  
+
 Example:
   qne application create my_application Alice Bob
 ```
@@ -61,7 +61,7 @@ Example:
 <summary><b>qne application delete</b></summary>
 Used to delete an application. Will delete the entire application directory structure.
 <br></br>
-    
+
 ```
 qne application delete [OPTIONS] [APPLICATION_NAME]
 
@@ -90,7 +90,7 @@ Example:
 <summary><b>qne application list</b></summary>
 Show a list of all existing applications and the path to where they are stored.
 <br></br>
-    
+
 ```
 qne application list [OPTIONS]
 
@@ -110,13 +110,13 @@ Example:
 <summary><b>qne application validate</b></summary>
 This command can be used to validate the files that are in the application directory. It checks for a correct file structure, if all files and directories needed exist and if the json files are in correct format.
 <br></br>
-    
+
 ```
 qne application validate [OPTIONS]
 
 Options:
   --help  Show this message and exit.
-  
+
 Example:
   qne application validate
 ```
@@ -129,7 +129,7 @@ Example:
 <summary><b>qne experiment create</b></summary>
 Create a new experiment, based on an application name and a chosen network.
 <br></br>
-    
+
 ```
 qne experiment create [OPTIONS] EXPERIMENT_NAME APPLICATION_NAME NETWORK_NAME
 
@@ -141,7 +141,7 @@ Arguments:
 Options:
   --local  Run the application locally  [default: True]
   --help   Show this message and exit.
-  
+
 Example:
   qne experiment create experiment_name application_name europe
 ```
@@ -160,7 +160,7 @@ qne experiment validate [OPTIONS]
 
 Options:
   --help  Show this message and exit.
-  
+
 Example:
   qne experiment validate
 ```
@@ -172,7 +172,7 @@ Example:
 <summary><b>qne experiment delete</b></summary>
 Delete the entire experiment.
 <br></br>
-    
+
 ```
 qne experiment delete [OPTIONS] [EXPERIMENT_NAME]
 
@@ -205,7 +205,7 @@ qne experiment run [OPTIONS]
 Options:
   --block  Wait for the result to be returned.  [default: False]
   --help   Show this message and exit.
-  
+
 Example:
   qne experiment run
 ```
@@ -218,7 +218,7 @@ Example:
 <summary><b>qne experiment results</b></summary>
 Get the results for an experiment that has been run.
 <br></br>
-    
+
 ```
 qne experiment results [OPTIONS]
 
@@ -227,7 +227,7 @@ Options:
   --show  Show the results on screen instead of saving to file.  [default:
           False]
   --help  Show this message and exit.
-  
+
 Example:
   qne experiment results
 ```

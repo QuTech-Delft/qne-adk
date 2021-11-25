@@ -1,0 +1,13 @@
+build:
+  image: latest
+
+python:
+  version: 3.8
+  setup_py_install: true
+  pip_install: true
+  extra_requirements:
+    - rtd
+
+formats:
+  - pdf
+  - epub
