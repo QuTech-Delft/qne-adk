@@ -3,7 +3,9 @@ from pathlib import Path
 from unittest.mock import patch
 from typer.testing import CliRunner
 
-from adk.command_list import app, applications_app, experiments_app
+from adk.exceptions import ApplicationNotFound, ExperimentDirectoryNotValid
+from adk.command_list import app, applications_app, experiments_app, retrieve_application_name_and_path, \
+                             retrieve_experiment_name_and_path
 from adk.command_processor import CommandProcessor
 from adk.managers.config_manager import ConfigManager
 
@@ -110,152 +112,172 @@ class TestCommandList(unittest.TestCase):
             self.assertIn("Unhandled exception: Exception('Test')", application_create_output.stdout)
 
     def test_application_delete_no_experiment_dir(self):
-        with patch("adk.command_list.Path.cwd", return_value='test') as mock_cwd, \
-             patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
-             patch.object(CommandProcessor, 'applications_delete', return_value=True) as applications_delete_mock:
+        with patch.object(CommandProcessor, 'applications_delete', return_value=True) as applications_delete_mock, \
+             patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock:
 
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
             application_delete_output = self.runner.invoke(applications_app, ['delete'])
-            mock_cwd.assert_called_once()
-            self.assertEqual(mock_validate_path_name.call_count, 0)
             self.assertEqual(application_delete_output.exit_code, 0)
+            retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn("Application deleted successfully",
                           application_delete_output.stdout)
 
+            retrieve_appname_and_path_mock.reset_mock()
             applications_delete_mock.return_value = False
-            mock_cwd.reset_mock()
-            mock_validate_path_name.reset_mock()
             application_delete_output = self.runner.invoke(applications_app, ['delete'])
-            mock_cwd.assert_called_once()
-            self.assertEqual(mock_validate_path_name.call_count, 0)
             self.assertEqual(application_delete_output.exit_code, 0)
+            retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn("Application files deleted",
                           application_delete_output.stdout)
 
     def test_application_delete_with_application_dir(self):
-        with patch("adk.command_list.Path.cwd", return_value='test') as mock_cwd, \
-             patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
-             patch.object(CommandProcessor, 'applications_delete', return_value=False) as applications_delete_mock:
+        with patch.object(CommandProcessor, 'applications_delete', return_value=False) as applications_delete_mock, \
+             patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock:
 
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
             application_delete_output = self.runner.invoke(applications_app, ['delete', 'app_dir'])
-            mock_cwd.assert_called_once()
-            self.assertEqual(mock_validate_path_name.call_count, 1)
             applications_delete_mock.assert_called_once()
             self.assertEqual(application_delete_output.exit_code, 0)
+            retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn("Application files deleted, directory not empty",
                           application_delete_output.stdout)
 
     def test_experiment_delete_no_experiment_dir(self):
-        with patch("adk.command_list.Path.cwd", return_value='test') as mock_cwd, \
-             patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
-             patch.object(CommandProcessor, 'experiments_delete', return_value=True) as experiments_delete_mock:
+        with patch.object(CommandProcessor, 'experiments_delete', return_value=True) as experiments_delete_mock, \
+             patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
 
+            retrieve_expname_and_path_mock.return_value = self.path, self.experiment_name
             experiment_delete_output = self.runner.invoke(experiments_app, ['delete'])
-            mock_cwd.assert_called_once()
-            self.assertEqual(mock_validate_path_name.call_count, 0)
             self.assertEqual(experiment_delete_output.exit_code, 0)
+            retrieve_expname_and_path_mock.assert_called_once()
             self.assertIn("Experiment deleted successfully",
                           experiment_delete_output.stdout)
 
+            retrieve_expname_and_path_mock.reset_mock()
             experiments_delete_mock.return_value = False
-            mock_cwd.reset_mock()
-            mock_validate_path_name.reset_mock()
             experiment_delete_output = self.runner.invoke(experiments_app, ['delete'])
-            mock_cwd.assert_called_once()
-            self.assertEqual(mock_validate_path_name.call_count, 0)
             self.assertEqual(experiment_delete_output.exit_code, 0)
+            retrieve_expname_and_path_mock.assert_called_once()
             self.assertIn("Experiment files deleted",
                           experiment_delete_output.stdout)
 
     def test_experiment_delete_with_experiment_dir(self):
-        with patch("adk.command_list.Path.cwd", return_value='test') as mock_cwd, \
-             patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
-             patch.object(CommandProcessor, 'experiments_delete', return_value=False) as experiments_delete_mock:
+        with patch.object(CommandProcessor, 'experiments_delete', return_value=False) as experiments_delete_mock, \
+             patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
 
+            retrieve_expname_and_path_mock.return_value = self.path, self.experiment_name
             experiment_delete_output = self.runner.invoke(experiments_app, ['delete', 'exp_dir'])
-            mock_cwd.assert_called_once()
-            self.assertEqual(mock_validate_path_name.call_count, 1)
-            experiments_delete_mock.assert_called_once()
+            experiments_delete_mock.assert_called_once_with(experiment_name=self.experiment_name, path=self.path)
             self.assertEqual(experiment_delete_output.exit_code, 0)
+            retrieve_expname_and_path_mock.assert_called_once()
             self.assertIn("Experiment files deleted, directory not empty",
                           experiment_delete_output.stdout)
 
+    def test_retrieve_application_name_and_path(self):
+        with patch("adk.command_list.validate_path_name") as validate_path_name_mock, \
+             patch("adk.command_list.Path.cwd") as cwd_mock, \
+             patch.object(ConfigManager, "get_application_path") as get_application_path_mock, \
+             patch.object(ConfigManager, "get_application_from_path") as get_application_from_path_mock, \
+             patch("adk.command_list.Path.is_dir") as is_dir_mock:
+
+            get_application_path_mock.return_value = self.path
+            # application name not None
+            retrieve_application_name_and_path(application_name=self.application)
+            is_dir_mock.assert_called_once()
+            validate_path_name_mock.assert_called_once_with("Application", self.application)
+            get_application_path_mock.assert_called_once_with(self.application)
+
+            # application name is None
+            is_dir_mock.reset_mock()
+            cwd_mock.return_value = self.path
+            get_application_from_path_mock.return_value = self.application, None
+            retrieve_application_name_and_path(application_name=None)
+            is_dir_mock.assert_called_once()
+            cwd_mock.assert_called_once()
+            get_application_from_path_mock.assert_called_once_with(self.path)
+
+            # Raise ApplicationNotFound when application_path is None
+            validate_path_name_mock.reset_mock()
+            get_application_path_mock.reset_mock()
+            get_application_path_mock.return_value = None
+            self.assertRaises(ApplicationNotFound, retrieve_application_name_and_path, self.application)
+            validate_path_name_mock.assert_called_once_with("Application", self.application)
+            get_application_path_mock.assert_called_once_with(self.application)
+
+            # Raise Raise ApplicationNotFound when application directory does not exist
+            validate_path_name_mock.reset_mock()
+            get_application_path_mock.reset_mock()
+            is_dir_mock.reset_mock()
+            is_dir_mock.return_value = False
+            get_application_path_mock.return_value = self.path
+            self.assertRaises(ApplicationNotFound, retrieve_application_name_and_path, self.application)
+            is_dir_mock.assert_called_once()
+            validate_path_name_mock.assert_called_once_with("Application", self.application)
+            get_application_path_mock.assert_called_once_with(self.application)
+
     def test_applications_validate_all_ok(self):
-        with patch("adk.command_list.Path.cwd") as mock_cwd, \
-             patch.object(ConfigManager, 'get_application_from_path') as get_application_from_path_mock, \
-             patch("adk.command_list.validate_path_name") as validate_path_name_mock, \
-             patch.object(CommandProcessor, 'applications_validate') as applications_validate_mock:
+        with patch.object(CommandProcessor, 'applications_validate') as applications_validate_mock, \
+             patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock:
+
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
 
             # When application is valid (no items in error, warning and info)
-            mock_cwd.return_value = self.path
-            get_application_from_path_mock.return_value = (self.application, None)
             applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
-            mock_cwd.assert_called_once()
-            get_application_from_path_mock.assert_called_once_with(self.path)
-            applications_validate_mock.assert_called_once_with(application_name=self.application)
+            retrieve_appname_and_path_mock.assert_called_once()
+            applications_validate_mock.assert_called_once_with(application_name=self.application, path=self.path)
             self.assertIn(f"Application '{self.application}' is valid", application_validate_output.stdout)
 
             # When application is valid with item in in 'info'
+            retrieve_appname_and_path_mock.reset_mock()
             applications_validate_mock.reset_mock()
-            mock_cwd.reset_mock()
-            get_application_from_path_mock.reset_mock()
-            mock_cwd.return_value = self.path
-            get_application_from_path_mock.return_value = (self.application, None)
             applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {"info"}}
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
-            mock_cwd.assert_called_once()
-            get_application_from_path_mock.assert_called_once_with(self.path)
-            applications_validate_mock.assert_called_once_with(application_name=self.application)
+            applications_validate_mock.assert_called_once_with(application_name=self.application, path=self.path)
+            retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn(f"Application '{self.application}' is valid", application_validate_output.stdout)
 
             # When application name is given as input
+            retrieve_appname_and_path_mock.reset_mock()
             applications_validate_mock.reset_mock()
-            mock_cwd.reset_mock()
-            get_application_from_path_mock.reset_mock()
-            mock_cwd.return_value = self.path
 
             application_validate_output = self.runner.invoke(applications_app, ['validate', self.application])
-            mock_cwd.assert_called_once()
-            validate_path_name_mock.assert_called_once_with("Application", self.application)
-            applications_validate_mock.assert_called_once_with(application_name=self.application)
+            applications_validate_mock.assert_called_once_with(application_name=self.application, path=self.path)
+            retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn(f"Application '{self.application}' is valid", application_validate_output.stdout)
 
     def test_applications_validate_invalid(self):
-        with patch("adk.command_list.Path.cwd") as mock_cwd, \
-             patch.object(ConfigManager, 'get_application_from_path') as get_application_from_path_mock, \
-             patch.object(CommandProcessor, 'applications_validate') as applications_validate_mock:
+        with patch.object(CommandProcessor, 'applications_validate') as applications_validate_mock, \
+             patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock:
 
-            mock_cwd.return_value = self.path
-            get_application_from_path_mock.return_value = (self.application, None)
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
             applications_validate_mock.return_value = {"error": {"error"}, "warning": {"warning"}, "info": {"info"}}
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
-            mock_cwd.assert_called_once()
-            get_application_from_path_mock.assert_called_once_with(self.path)
-            applications_validate_mock.assert_called_once_with(application_name=self.application)
+            applications_validate_mock.assert_called_once_with(application_name=self.application, path=self.path)
+            retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn(f"Application '{self.application}' is invalid", application_validate_output.stdout)
 
             # When only 'error' has items
+            retrieve_appname_and_path_mock.reset_mock()
             applications_validate_mock.reset_mock()
-            mock_cwd.reset_mock()
-            get_application_from_path_mock.reset_mock()
-            mock_cwd.return_value = self.path
-            get_application_from_path_mock.return_value = (self.application, None)
             applications_validate_mock.return_value = {"error": {"error"}, "warning": {}, "info": {}}
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
-            mock_cwd.assert_called_once()
-            get_application_from_path_mock.assert_called_once_with(self.path)
-            applications_validate_mock.assert_called_once_with(application_name=self.application)
+            applications_validate_mock.assert_called_once_with(application_name=self.application, path=self.path)
+            retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn(f"Application '{self.application}' is invalid", application_validate_output.stdout)
 
     def test_experiment_create(self):
         with patch("adk.command_list.Path.cwd") as mock_cwd, \
              patch.object(CommandProcessor, 'experiments_create') as experiment_create_mock, \
              patch.object(CommandProcessor, 'applications_validate') as app_validate_mock, \
-             patch("adk.command_list.validate_path_name") as mock_validate_path:
+             patch("adk.command_list.validate_path_name") as mock_validate_path, \
+             patch("adk.command_list.retrieve_application_name_and_path") as retrieve_application_name_and_path_mock:
+
+            retrieve_application_name_and_path_mock.return_value = self.path, "app_name"
             mock_cwd.return_value = 'test'
             app_validate_mock.return_value = {"error": [], "warning": [], "info": []}
             experiment_create_mock.return_value = True, ''
@@ -263,54 +285,88 @@ class TestCommandList(unittest.TestCase):
             experiment_create_output = self.runner.invoke(experiments_app, ['create', 'test_exp', 'app_name',
                                                                             'network_1'])
             mock_validate_path.assert_called_once_with('Experiment', 'test_exp')
+            retrieve_application_name_and_path_mock.assert_called_once_with(application_name="app_name")
             self.assertEqual(experiment_create_output.exit_code, 0)
             self.assertIn("Experiment 'test_exp' created successfully in directory 'test'",
                           experiment_create_output.stdout)
             experiment_create_mock.assert_called_once_with(experiment_name='test_exp', application_name='app_name',
                                                            network_name='network_1', local=True, path='test')
 
+    def test_retrieve_experiment_name_and_path(self):
+        with patch("adk.command_list.Path.cwd") as cwd_mock, \
+             patch("adk.command_list.validate_path_name") as validate_path_name_mock, \
+             patch("adk.command_list.Path.is_dir") as is_dir_mock:
+
+            # if experiment name is not None
+            cwd_mock.return_value = self.path
+            retrieve_experiment_name_and_path(self.experiment_name)
+            validate_path_name_mock.assert_called_once_with("Experiment", self.experiment_name)
+            is_dir_mock.assert_called_once()
+
+            # if experiment name is None
+            is_dir_mock.reset_mock()
+            retrieve_experiment_name_and_path(None)
+            is_dir_mock.assert_called_once()
+
+            # raise ExperimentDirectoryNotValid
+            is_dir_mock.reset_mock()
+            validate_path_name_mock.reset_mock()
+            is_dir_mock.return_value = False
+            self.assertRaises(ExperimentDirectoryNotValid, retrieve_experiment_name_and_path, self.experiment_name)
+            validate_path_name_mock.assert_called_once_with("Experiment", self.experiment_name)
+            is_dir_mock.assert_called_once()
+
+
     def test_experiment_validate(self):
         pass
 
     def test_experiment_run(self):
-        with patch("adk.command_list.Path.cwd") as mock_cwd, \
-             patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock, \
-             patch.object(CommandProcessor, 'experiments_run') as exp_run_mock:
+        with patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock, \
+             patch.object(CommandProcessor, 'experiments_run') as exp_run_mock, \
+             patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
 
-            mock_cwd.return_value = 'test'
+            retrieve_expname_and_path_mock.return_value = self.path, None
             exp_validate_mock.return_value = {"error": [], "warning": [], "info": []}
             exp_run_output = self.runner.invoke(experiments_app, ['run'])
-            exp_validate_mock.assert_called_once_with(experiment_name=None, path='test')
-            exp_run_mock.assert_called_once_with(experiment_name=None, path='test', block=False)
+            exp_validate_mock.assert_called_once_with(path=self.path)
+            retrieve_expname_and_path_mock.assert_called_once()
+            exp_run_mock.assert_called_once_with(path=self.path, block=False)
             self.assertEqual(exp_run_output.exit_code, 0)
 
+            retrieve_expname_and_path_mock.reset_mock()
             exp_run_mock.reset_mock()
             exp_run_output = self.runner.invoke(experiments_app, ['run', '--block'])
-            exp_run_mock.assert_called_once_with(experiment_name=None, path='test', block=True)
+            exp_run_mock.assert_called_once_with(path=self.path, block=True)
+            retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_run_output.exit_code, 0)
 
     def test_experiment_results(self):
-        with patch("adk.command_list.Path.cwd") as mock_cwd, \
-             patch.object(CommandProcessor, 'experiments_results') as exp_results_mock:
-            mock_cwd.return_value = 'test'
+        with patch.object(CommandProcessor, 'experiments_results') as exp_results_mock, \
+             patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
+
+            retrieve_expname_and_path_mock.return_value = self.path, None
             exp_results_output = self.runner.invoke(experiments_app, ['results'])
 
-            exp_results_mock.assert_called_once_with(experiment_name=None, all_results=False,
-                                                     path='test')
+            exp_results_mock.assert_called_once_with(all_results=False, path=self.path)
             self.assertEqual(exp_results_output.exit_code, 0)
+            retrieve_expname_and_path_mock.assert_called_once()
 
+            retrieve_expname_and_path_mock.reset_mock()
             exp_results_mock.reset_mock()
             exp_results_mock.return_value = ['r1', 'r2']
             exp_results_output = self.runner.invoke(experiments_app, ['results', '--all', '--show'])
-            exp_results_mock.assert_called_once_with(experiment_name=None, all_results=True, path='test')
+            exp_results_mock.assert_called_once_with(all_results=True, path=self.path)
+            retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_results_output.exit_code, 0)
             self.assertIn("['r1', 'r2']", exp_results_output.stdout)
 
+            retrieve_expname_and_path_mock.reset_mock()
             exp_results_mock.reset_mock()
             exp_results_output = self.runner.invoke(experiments_app, ['results', '--all'])
-            exp_results_mock.assert_called_once_with(experiment_name=None, all_results=True, path='test')
+            exp_results_mock.assert_called_once_with(all_results=True, path=self.path)
+            retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_results_output.exit_code, 0)
-            self.assertIn("Results are stored at location 'test/results/processed.json'", exp_results_output.stdout)
+            self.assertIn("Results are stored at location 'dummy/results/processed.json'", exp_results_output.stdout)
 
     def test_applications_list(self):
         with patch.object(CommandProcessor, "applications_list") as list_applications_mock:

@@ -371,28 +371,22 @@ class LocalApi:
         """
         application_dir_deleted = False
         all_subdir_deleted = True
-        application_path = path / application_name if application_name is not None else path
-        # When we are not in the directory of the application, get the directory from the config
-        if not application_path.is_dir() and application_name is not None:
-            app_path = self.__config_manager.get_application_path(application_name)
-            if app_path is not None:
-                application_path = Path(app_path)
 
         # check if the application exists and save the app name to delete it later
-        application_name_from_config, _ = self.__config_manager.get_application_from_path(application_path)
+        application_name_from_config, _ = self.__config_manager.get_application_from_path(path)
 
         # Check if application path exists
-        if application_path.is_dir():
-            application_src_path = application_path / 'src'
+        if path.is_dir():
+            application_src_path = path / 'src'
             if application_src_path.is_dir():
-                all_subdir_deleted = self._delete_src(application_path) and all_subdir_deleted
+                all_subdir_deleted = self._delete_src(path) and all_subdir_deleted
 
-            application_config_path = application_path / 'config'
+            application_config_path = path / 'config'
             if application_config_path.is_dir():
-                all_subdir_deleted = self._delete_config(application_path) and all_subdir_deleted
+                all_subdir_deleted = self._delete_config(path) and all_subdir_deleted
 
             # Delete manifest.ini
-            manifest_ini = application_path / 'MANIFEST.ini'
+            manifest_ini = path / 'MANIFEST.ini'
             if manifest_ini.is_file():
                 manifest_ini.unlink()
 
@@ -400,18 +394,18 @@ class LocalApi:
             # remove application dir
             if all_subdir_deleted and application_name is not None:
                 try:
-                    os.rmdir(application_path)
+                    os.rmdir(path)
                     application_dir_deleted = True
                 except OSError:  # The directory is not empty
                     pass
         else:
-            raise ApplicationDoesNotExist(str(application_path))
+            raise ApplicationDoesNotExist(str(path))
 
         # remove application from configuration
         self.__config_manager.delete_application(application_name_from_config)
         return all_subdir_deleted and application_dir_deleted
 
-    def is_application_valid(self, application_name: str) -> ErrorDictType:
+    def is_application_valid(self, application_name: str, path: Path) -> ErrorDictType:
         """
         Function that checks if:
         - The application is valid by validating if it exists in .qne/application.json
@@ -421,18 +415,18 @@ class LocalApi:
 
         Args:
             application_name: Name of the application
+            path: Path of where the application is located
 
         returns:
             Returns empty list when all validations passes
             Returns dict containing error messages of the validations that failed
         """
-
         error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
         application_exists, _ = self.__config_manager.application_exists(application_name)
 
         if application_exists:
-            self.__is_structure_valid(application_name, error_dict)
-            self.__is_config_valid(application_name, error_dict)
+            self.__is_structure_valid(path, error_dict)
+            self.__is_config_valid(path, error_dict)
         else:
             error_dict["error"].append(f"Application '{application_name}' does not exist")
 
@@ -464,10 +458,10 @@ class LocalApi:
 
         return None
 
-    def __is_config_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
+    def __is_config_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
         # Validate if json string is correct and validate against json schema's
         app_schema_path = Path(BASE_DIR) / 'schema/applications'
-        app_config_path = Path(self.__config_manager.get_application_path(application_name)) / 'config'
+        app_config_path = application_path / 'config'
 
         for file in self.__get_config_file_names():
             if (app_config_path / file).is_file():
@@ -496,10 +490,9 @@ class LocalApi:
 
         return application_file_names
 
-    def __is_structure_valid(self, application_name: str, error_dict: ErrorDictType) -> None:
-        app_dir_path = Path(self.__config_manager.get_application_path(application_name))
-        app_config_path = app_dir_path / 'config'
-        app_src_path = app_dir_path / 'src'
+    def __is_structure_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
+        app_config_path = application_path / 'config'
+        app_src_path = application_path / 'src'
 
         # Check if the config directory is complete
         if app_config_path.is_dir():
@@ -507,7 +500,7 @@ class LocalApi:
                 if not (app_config_path / file).is_file():
                     error_dict["error"].append(f"{app_config_path} should contain the file '{file}'")
         else:
-            error_dict["error"].append(f"{app_dir_path} should contain a 'config' directory")
+            error_dict["error"].append(f"{application_path} should contain a 'config' directory")
 
         if app_src_path.is_dir():
             valid, _ = validate_json_file(app_config_path / 'application.json')
@@ -525,11 +518,11 @@ class LocalApi:
                         f"The application file '{application_file_name}' for the corresponding role in "
                         f"'{app_config_path / 'application.json'}' not found in '{app_src_path}'")
         else:
-            error_dict["error"].append(f"{app_dir_path} should contain a 'src' directory")
+            error_dict["error"].append(f"{application_path} should contain a 'src' directory")
 
         # Validate that the MANIFEST.ini exists
-        if not (app_dir_path / 'MANIFEST.ini').is_file():
-            error_dict["warning"].append(f"{app_dir_path} should contain the file 'MANIFEST.ini'")
+        if not (application_path / 'MANIFEST.ini').is_file():
+            error_dict["warning"].append(f"{application_path} should contain the file 'MANIFEST.ini'")
 
     def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
                            path: Path, application_name: str) -> None:
@@ -898,19 +891,18 @@ class LocalApi:
         experiment_dir_deleted = False
         all_subdir_deleted = True
 
-        experiment_path = path / experiment_name if experiment_name is not None else path
-        experiment_json = experiment_path / 'experiment.json'
+        experiment_json = path / 'experiment.json'
         # Check if experiment.json exists and we're dealing with an experiment directory
-        if experiment_path.is_dir() and experiment_json.is_file():
-            experiment_input_path = experiment_path / 'input'
+        if path.is_dir() and experiment_json.is_file():
+            experiment_input_path = path / 'input'
             if experiment_input_path.is_dir():
                 all_subdir_deleted = self._delete_input(experiment_input_path) and all_subdir_deleted
 
-            experiment_raw_output_path = experiment_path / 'raw_output'
+            experiment_raw_output_path = path / 'raw_output'
             if experiment_raw_output_path.is_dir():
                 all_subdir_deleted = self._delete_raw_output(experiment_raw_output_path) and all_subdir_deleted
 
-            experiment_results_path = experiment_path / 'results'
+            experiment_results_path = path / 'results'
             if experiment_results_path.is_dir():
                 all_subdir_deleted = self._delete_results(experiment_results_path) and all_subdir_deleted
 
@@ -921,12 +913,12 @@ class LocalApi:
             # removed try to remove experiment dir
             if all_subdir_deleted and experiment_name is not None:
                 try:
-                    os.rmdir(experiment_path)
+                    os.rmdir(path)
                     experiment_dir_deleted = True
                 except OSError:  # The directory is not empty
                     pass
         else:
-            raise ExperimentDirectoryNotValid(str(experiment_path))
+            raise ExperimentDirectoryNotValid(str(path))
 
         return all_subdir_deleted and experiment_dir_deleted
 
@@ -971,7 +963,7 @@ class LocalApi:
 
         return output_converter.convert(round_number=1)
 
-    def validate_experiment(self, experiment_name: str, path: Path) -> ErrorDictType:
+    def validate_experiment(self, path: Path) -> ErrorDictType:
         """
         Validates the experiment by checking:
         - if the structure is correct and consists of an experiment.json
@@ -988,7 +980,6 @@ class LocalApi:
         Returns:
             Dictionary containing lists of error, warning and info messages of the validations that failed
         """
-        path = path / experiment_name if experiment_name is not None else path
         local = True
         error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
 

@@ -125,7 +125,6 @@ class ConfigManager:
         if application:
             if 'path' in application and os.path.exists(application['path']):
                 return application['path']
-
         return None
 
     def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:

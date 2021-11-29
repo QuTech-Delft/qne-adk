@@ -237,23 +237,23 @@ class ApplicationValidate(AppValidate):
             # If application is not unique, is_config_valid() returns an error and warning
             application_exists_mock.return_value = True, None
 
-            self.assertEqual(self.local_api.is_application_valid(application_name=self.application), self.error_dict)
+            self.assertEqual(self.local_api.is_application_valid(application_name=self.application, path=self.path),
+                             self.error_dict)
 
             application_exists_mock.assert_called_once_with(self.application)
-            is_structure_valid_mock.assert_called_once_with(self.application, self.error_dict)
-            is_config_valid_mock.assert_called_once_with(self.application, self.error_dict)
+            is_structure_valid_mock.assert_called_once_with(self.path, self.error_dict)
+            is_config_valid_mock.assert_called_once_with(self.path, self.error_dict)
 
             # If application is unique
             application_exists_mock.reset_mock()
             application_exists_mock.return_value = False, None
-            self.assertEqual(self.local_api.is_application_valid(application_name=self.application),
+            self.assertEqual(self.local_api.is_application_valid(application_name=self.application, path=self.path),
                              {"error": [f"Application '{self.application}' does not exist"], "warning": [], "info": []})
             application_exists_mock.assert_called_once_with(self.application)
 
     def test__is_structure_valid_all_oke(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
-             patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
@@ -262,14 +262,12 @@ class ApplicationValidate(AppValidate):
 
             is_dir_mock.side_effect = [True, True, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
-            get_application_path_mock.return_value = self.path
             listdir_mock.return_value = ["app_role1.py", "app_role2.py"]
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py"]
             validate_json_file_mock.return_value = (True, None)
-            error_dict = self.local_api.is_application_valid(application_name=self.application)
+            error_dict = self.local_api.is_application_valid(application_name=self.application, path=self.path)
             self.assertEqual(is_dir_mock.call_count, 2)
             self.assertEqual(is_file_mock.call_count, 4)
-            get_application_path_mock.assert_called_once()
             validate_json_file_mock.assert_called_once()
             listdir_mock.assert_called_once()
             self.assertEqual(0, len(error_dict["error"]))
@@ -278,7 +276,6 @@ class ApplicationValidate(AppValidate):
     def test__is_structure_valid_role_file_not_found(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
-             patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
@@ -287,14 +284,12 @@ class ApplicationValidate(AppValidate):
 
             is_dir_mock.side_effect = [True, True, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
-            get_application_path_mock.return_value = self.path
             listdir_mock.return_value = ["app_role1.py", "app_role3.py", "app_role4.py"]
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py"]
             validate_json_file_mock.return_value = (True, None)
-            error_dict = self.local_api.is_application_valid(application_name=self.application)
+            error_dict = self.local_api.is_application_valid(application_name=self.application, path=self.path)
             self.assertEqual(is_dir_mock.call_count, 2)
             self.assertEqual(is_file_mock.call_count, 4)
-            get_application_path_mock.assert_called_once()
             validate_json_file_mock.assert_called_once()
             listdir_mock.assert_called_once()
             self.assertIn(f"The application file 'app_role2.py' for the corresponding role in "
@@ -304,7 +299,6 @@ class ApplicationValidate(AppValidate):
     def test__is_structure_valid_config_dir_not_found(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
-             patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock:
@@ -312,12 +306,10 @@ class ApplicationValidate(AppValidate):
             # If the app_config_path, app_config_path / application.json does not exist and validate_json_file is False
             is_dir_mock.side_effect = [False, True, True, True]
             is_file_mock.side_effect = [True, False, True, True, True]
-            get_application_path_mock.return_value = self.path
             validate_json_file_mock.return_value = (False, "Invalid json")
-            error_dict = self.local_api.is_application_valid(application_name=self.application)
+            error_dict = self.local_api.is_application_valid(application_name=self.application, path=self.path)
             self.assertEqual(is_dir_mock.call_count, 2)
             self.assertEqual(is_file_mock.call_count, 1)
-            get_application_path_mock.assert_called_once()
             validate_json_file_mock.assert_called_once()
             self.assertIn(f"{self.path} should contain a 'config' directory", error_dict["error"][0])
             # the invalid json will be reported in __is_config_valid
@@ -326,7 +318,6 @@ class ApplicationValidate(AppValidate):
     def test__is_structure_valid_src_dir_not_found_and_files_missing(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
-             patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
@@ -336,14 +327,12 @@ class ApplicationValidate(AppValidate):
             # No files at all in the directories
             is_dir_mock.side_effect = [True, False]
             is_file_mock.side_effect = [False, False, False, False, False]
-            get_application_path_mock.return_value = self.path
             validate_json_file_mock.return_value = (True, None)
             listdir_mock.return_value = []
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py"]
-            error_dict = self.local_api.is_application_valid(application_name=self.application)
+            error_dict = self.local_api.is_application_valid(application_name=self.application, path=self.path)
             self.assertEqual(is_dir_mock.call_count, 2)
             self.assertEqual(is_file_mock.call_count, 4)
-            get_application_path_mock.assert_called_once()
 
             self.assertIn(f"{self.path / 'config'} should contain the file 'application.json'", error_dict["error"][0])
             self.assertIn(f"{self.path / 'config'} should contain the file 'network.json'", error_dict["error"][1])
@@ -355,7 +344,6 @@ class ApplicationValidate(AppValidate):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock,\
              patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch.object(self.config_manager, "get_application_path") as get_application_path_mock, \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock:
 
@@ -363,20 +351,15 @@ class ApplicationValidate(AppValidate):
             is_structure_valid_mock.return_value = self.error_dict
             validate_json_file_mock.return_value = True, None
             validate_json_schema_mock.return_value = True, None
-            get_application_path_mock.return_value = self.path
-            self.local_api.is_application_valid(application_name=self.application)
-            get_application_path_mock.assert_called_once()
+            self.local_api.is_application_valid(application_name=self.application, path=self.path)
             self.assertEqual(is_file_mock.call_count, 3)
             self.assertEqual(validate_json_schema_mock.call_count, 3)
 
             # If validate_json_file is false
             is_file_mock.reset_mock()
             validate_json_schema_mock.reset_mock()
-            get_application_path_mock.reset_mock()
-            get_application_path_mock.return_value = self.path
             validate_json_schema_mock.return_value = (False, "Error")
-            self.local_api.is_application_valid(application_name=self.application)
-            get_application_path_mock.assert_called_once()
+            self.local_api.is_application_valid(application_name=self.application, path=self.path)
             self.assertEqual(is_file_mock.call_count, 3)
             self.assertEqual(validate_json_schema_mock.call_count, 3)
 
@@ -406,7 +389,7 @@ class ApplicationValidate(AppValidate):
              patch.object(self.config_manager, "get_application_from_path", return_value=('app_dir', None)), \
              patch("adk.api.local_api.Path.is_file", return_value=False):
 
-            is_dir_mock.side_effect = [True, False]
+            is_dir_mock.side_effect = [False]
             self.assertRaises(ApplicationDoesNotExist, self.local_api.delete_application, 'app_dir', self.path)
 
     def test_delete_application_src_dir(self):
@@ -418,7 +401,7 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
              patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
-            is_dir_mock.side_effect = [True, True, True, True, False]
+            is_dir_mock.side_effect = [True, True, True, False]
             is_file_mock.side_effect = [True, True, True, True, True, True, True, True, True]
             rmdir_mock.side_effect = [None, None]
 
@@ -433,7 +416,7 @@ class ApplicationValidate(AppValidate):
             is_dir_mock.reset_mock()
             is_file_mock.reset_mock()
 
-            is_dir_mock.side_effect = [True, True, True, True, False]
+            is_dir_mock.side_effect = [True, True, True, False]
             is_file_mock.side_effect = [True, True, True, True, True, True, True, True, True]
             rmdir_mock.side_effect = [OSError, None]
 
@@ -448,7 +431,7 @@ class ApplicationValidate(AppValidate):
             is_dir_mock.reset_mock()
             is_file_mock.reset_mock()
 
-            is_dir_mock.side_effect = [True, True, True, True, False]
+            is_dir_mock.side_effect = [True, True, True, False]
             is_file_mock.side_effect = [False, True, True, True, True]
             rmdir_mock.side_effect = [OSError, None]
 
@@ -464,7 +447,7 @@ class ApplicationValidate(AppValidate):
              patch.object(self.config_manager, "get_application_from_path", return_value=('app_dir', None)), \
              patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
-            is_dir_mock.side_effect = [True, True, False, True, True]
+            is_dir_mock.side_effect = [True, False, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
 
             delete_application_output = self.local_api.delete_application('app_dir', path=Path('dummy'))
@@ -478,7 +461,7 @@ class ApplicationValidate(AppValidate):
             is_dir_mock.reset_mock()
             is_file_mock.reset_mock()
 
-            is_dir_mock.side_effect = [True, True, False, True, True]
+            is_dir_mock.side_effect = [True, False, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
             rmdir_mock.side_effect = [OSError, None]
 
@@ -526,10 +509,10 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
              patch("adk.api.local_api.os.rmdir") as rmdir_mock:
 
-            resulting_path_mock.return_value=('app_dir', None)
-            is_dir_mock.side_effect = [False, True, True, True, True]
+            resulting_path_mock.return_value = ('app_dir', None)
+            is_dir_mock.side_effect = [True, True, True, True]
             delete_application_output = self.local_api.delete_application('app_dir', path=Path('dummy'))
-            resulting_path_mock.assert_called_once_with(Path('other_path'))
+            resulting_path_mock.assert_called_once_with(Path('dummy'))
             self.assertEqual(unlink_mock.call_count, 6)
             self.assertEqual(rmdir_mock.call_count, 3)
             self.assertTrue(delete_application_output)
@@ -540,7 +523,7 @@ class ApplicationValidate(AppValidate):
             is_dir_mock.reset_mock()
             is_file_mock.reset_mock()
 
-            is_dir_mock.side_effect = [True, True, False, False, True]
+            is_dir_mock.side_effect = [True, False, False, True]
             is_file_mock.side_effect = [True, True, True, True, True]
             rmdir_mock.side_effect = [OSError]
 

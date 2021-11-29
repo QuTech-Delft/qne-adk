@@ -71,8 +71,8 @@ class CommandProcessor:
         self.__remote.publish_application(application_name)
 
     @log_function
-    def applications_validate(self, application_name: str) -> ErrorDictType:
-        return self.__local.is_application_valid(application_name)
+    def applications_validate(self, application_name: str, path: Path) -> ErrorDictType:
+        return self.__local.is_application_valid(application_name, path)
 
     @log_function
     def experiments_create(self, experiment_name: str, application_name: str, network_name: str, local: bool,
@@ -125,8 +125,7 @@ class CommandProcessor:
         pass
 
     @log_function
-    def experiments_run(self, experiment_name: str, path: Path, block: bool) -> Optional[ResultType]:
-        path = path / experiment_name if experiment_name is not None else path
+    def experiments_run(self, path: Path, block: bool) -> Optional[ResultType]:
 
         results = None
         is_local = self.__local.is_experiment_local(path)
@@ -142,14 +141,13 @@ class CommandProcessor:
         return self.__remote.list_experiments()
 
     @log_function
-    def experiments_validate(self, experiment_name: str, path: Path) -> ErrorDictType:
-        return self.__local.validate_experiment(experiment_name, path)
+    def experiments_validate(self, path: Path) -> ErrorDictType:
+        return self.__local.validate_experiment(path)
 
     @log_function
     def experiments_results(
-        self, experiment_name:str,  all_results: bool, path: Path
+        self, all_results: bool, path: Path
     ) -> ResultType:
-        path = path / experiment_name if experiment_name is not None else path
         results: ResultType = self.__get_results(path=path)
         return results
 
