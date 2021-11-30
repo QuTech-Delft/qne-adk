@@ -36,7 +36,8 @@ class TestCommandProcessor(unittest.TestCase):
 
     def test_applications_create(self):
         with patch.object(LocalApi, "create_application") as create_application_mock:
-            self.processor.applications_create(application_name=self.application, roles=self.roles, path=self.path)
+            self.processor.applications_create(application_name=self.application, roles=self.roles,
+                                               application_path=self.path)
             create_application_mock.assert_called_once_with(self.application, self.roles, self.path)
 
     def test_applications_validate(self):
@@ -50,7 +51,7 @@ class TestCommandProcessor(unittest.TestCase):
 
             local_delete_application_mock.return_value = True
             remote_delete_application_mock.return_value = True
-            return_value = self.processor.applications_delete(None, path=Path('dummy'))
+            return_value = self.processor.applications_delete(None, application_path=Path('dummy'))
             local_delete_application_mock.assert_called_once()
             remote_delete_application_mock.assert_called_once()
             self.assertTrue(return_value)
@@ -59,7 +60,7 @@ class TestCommandProcessor(unittest.TestCase):
             remote_delete_application_mock.reset_mock()
             local_delete_application_mock.return_value = False
             remote_delete_application_mock.return_value = False
-            return_value = self.processor.applications_delete(None, path=Path('dummy'))
+            return_value = self.processor.applications_delete(None, application_path=Path('dummy'))
             local_delete_application_mock.assert_called_once()
             remote_delete_application_mock.assert_called_once()
             self.assertFalse(return_value)
@@ -109,7 +110,7 @@ class TestCommandProcessor(unittest.TestCase):
 
             local_delete_experiment_mock.return_value = True
             remote_delete_experiment_mock.return_value = True
-            return_value = self.processor.experiments_delete(None, path=Path('dummy'))
+            return_value = self.processor.experiments_delete(None, experiment_path=Path('dummy'))
             local_delete_experiment_mock.assert_called_once()
             remote_delete_experiment_mock.assert_called_once()
             self.assertTrue(return_value)
@@ -118,7 +119,7 @@ class TestCommandProcessor(unittest.TestCase):
             remote_delete_experiment_mock.reset_mock()
             local_delete_experiment_mock.return_value = False
             remote_delete_experiment_mock.return_value = False
-            return_value = self.processor.experiments_delete(None, path=Path('dummy'))
+            return_value = self.processor.experiments_delete(None, experiment_path=Path('dummy'))
             local_delete_experiment_mock.assert_called_once()
             remote_delete_experiment_mock.assert_called_once()
             self.assertFalse(return_value)
@@ -126,14 +127,14 @@ class TestCommandProcessor(unittest.TestCase):
     def test_experiments_validate(self):
         with patch.object(LocalApi, "validate_experiment") as validate_exp_mock:
             validate_exp_mock.return_value = True, 'ok'
-            success, message = self.processor.experiments_validate(path=Path('dummy'))
+            success, message = self.processor.experiments_validate(experiment_path=Path('dummy'))
             validate_exp_mock.assert_called_once_with(Path('dummy'))
             self.assertEqual(success, True)
             self.assertEqual(message, 'ok')
 
             validate_exp_mock.reset_mock()
             validate_exp_mock.return_value = False, 'experiment.json does not contain valid json'
-            success, message = self.processor.experiments_validate(path=Path('dummy'))
+            success, message = self.processor.experiments_validate(experiment_path=Path('dummy'))
             validate_exp_mock.assert_called_once_with(Path('dummy'))
             self.assertEqual(success, False)
             self.assertEqual(message, 'experiment.json does not contain valid json')

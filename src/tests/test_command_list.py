@@ -47,7 +47,7 @@ class TestCommandList(unittest.TestCase):
             self.assertIn('Command is not yet implemented', logout_output.stdout)
 
     def test_applications_create_succes(self):
-        with patch("adk.command_list.Path.cwd", return_value = 'test') as mock_cwd, \
+        with patch("adk.command_list.Path.cwd", return_value=self.path) as mock_cwd, \
              patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
              patch.object(CommandProcessor, 'applications_create') as application_create_mock:
 
@@ -55,9 +55,10 @@ class TestCommandList(unittest.TestCase):
                                                            ['create', 'test_application', 'role1', 'role2'])
             mock_cwd.assert_called_once()
             self.assertEqual(mock_validate_path_name.call_count, 3)
-            application_create_mock.assert_called_once()
+            application_create_mock.assert_called_once_with(application_name=self.application, roles=('role1', 'role2'),
+                                                            application_path=self.path / self.application)
             self.assertEqual(application_create_output.exit_code, 0)
-            self.assertIn("Application 'test_application' created successfully in directory 'test'",
+            self.assertIn(f"Application 'test_application' created successfully in directory '{self.path}'",
                           application_create_output.stdout)
 
     def test_applications_create_exceptions(self):
@@ -167,7 +168,8 @@ class TestCommandList(unittest.TestCase):
 
             retrieve_expname_and_path_mock.return_value = self.path, self.experiment_name
             experiment_delete_output = self.runner.invoke(experiments_app, ['delete', 'exp_dir'])
-            experiments_delete_mock.assert_called_once_with(experiment_name=self.experiment_name, path=self.path)
+            experiments_delete_mock.assert_called_once_with(experiment_name=self.experiment_name,
+                                                            experiment_path=self.path)
             self.assertEqual(experiment_delete_output.exit_code, 0)
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertIn("Experiment files deleted, directory not empty",
@@ -226,7 +228,8 @@ class TestCommandList(unittest.TestCase):
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
             retrieve_appname_and_path_mock.assert_called_once()
-            applications_validate_mock.assert_called_once_with(application_name=self.application, path=self.path)
+            applications_validate_mock.assert_called_once_with(application_name=self.application,
+                                                               application_path=self.path)
             self.assertIn(f"Application '{self.application}' is valid", application_validate_output.stdout)
 
             # When application is valid with item in in 'info'
@@ -235,7 +238,8 @@ class TestCommandList(unittest.TestCase):
             applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {"info"}}
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
-            applications_validate_mock.assert_called_once_with(application_name=self.application, path=self.path)
+            applications_validate_mock.assert_called_once_with(application_name=self.application,
+                                                               application_path=self.path)
             retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn(f"Application '{self.application}' is valid", application_validate_output.stdout)
 
@@ -244,7 +248,8 @@ class TestCommandList(unittest.TestCase):
             applications_validate_mock.reset_mock()
 
             application_validate_output = self.runner.invoke(applications_app, ['validate', self.application])
-            applications_validate_mock.assert_called_once_with(application_name=self.application, path=self.path)
+            applications_validate_mock.assert_called_once_with(application_name=self.application,
+                                                               application_path=self.path)
             retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn(f"Application '{self.application}' is valid", application_validate_output.stdout)
 
@@ -256,7 +261,8 @@ class TestCommandList(unittest.TestCase):
             applications_validate_mock.return_value = {"error": {"error"}, "warning": {"warning"}, "info": {"info"}}
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
-            applications_validate_mock.assert_called_once_with(application_name=self.application, path=self.path)
+            applications_validate_mock.assert_called_once_with(application_name=self.application,
+                                                               application_path=self.path)
             retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn(f"Application '{self.application}' is invalid", application_validate_output.stdout)
 
@@ -266,7 +272,8 @@ class TestCommandList(unittest.TestCase):
             applications_validate_mock.return_value = {"error": {"error"}, "warning": {}, "info": {}}
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
-            applications_validate_mock.assert_called_once_with(application_name=self.application, path=self.path)
+            applications_validate_mock.assert_called_once_with(application_name=self.application,
+                                                               application_path=self.path)
             retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn(f"Application '{self.application}' is invalid", application_validate_output.stdout)
 
@@ -328,15 +335,15 @@ class TestCommandList(unittest.TestCase):
             retrieve_expname_and_path_mock.return_value = self.path, None
             exp_validate_mock.return_value = {"error": [], "warning": [], "info": []}
             exp_run_output = self.runner.invoke(experiments_app, ['run'])
-            exp_validate_mock.assert_called_once_with(path=self.path)
+            exp_validate_mock.assert_called_once_with(experiment_path=self.path)
             retrieve_expname_and_path_mock.assert_called_once()
-            exp_run_mock.assert_called_once_with(path=self.path, block=False)
+            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=False)
             self.assertEqual(exp_run_output.exit_code, 0)
 
             retrieve_expname_and_path_mock.reset_mock()
             exp_run_mock.reset_mock()
             exp_run_output = self.runner.invoke(experiments_app, ['run', '--block'])
-            exp_run_mock.assert_called_once_with(path=self.path, block=True)
+            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=True)
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_run_output.exit_code, 0)
 
@@ -347,7 +354,7 @@ class TestCommandList(unittest.TestCase):
             retrieve_expname_and_path_mock.return_value = self.path, None
             exp_results_output = self.runner.invoke(experiments_app, ['results'])
 
-            exp_results_mock.assert_called_once_with(all_results=False, path=self.path)
+            exp_results_mock.assert_called_once_with(all_results=False, experiment_path=self.path)
             self.assertEqual(exp_results_output.exit_code, 0)
             retrieve_expname_and_path_mock.assert_called_once()
 
@@ -355,7 +362,7 @@ class TestCommandList(unittest.TestCase):
             exp_results_mock.reset_mock()
             exp_results_mock.return_value = ['r1', 'r2']
             exp_results_output = self.runner.invoke(experiments_app, ['results', '--all', '--show'])
-            exp_results_mock.assert_called_once_with(all_results=True, path=self.path)
+            exp_results_mock.assert_called_once_with(all_results=True, experiment_path=self.path)
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_results_output.exit_code, 0)
             self.assertIn("['r1', 'r2']", exp_results_output.stdout)
@@ -363,7 +370,7 @@ class TestCommandList(unittest.TestCase):
             retrieve_expname_and_path_mock.reset_mock()
             exp_results_mock.reset_mock()
             exp_results_output = self.runner.invoke(experiments_app, ['results', '--all'])
-            exp_results_mock.assert_called_once_with(all_results=True, path=self.path)
+            exp_results_mock.assert_called_once_with(all_results=True, experiment_path=self.path)
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_results_output.exit_code, 0)
             self.assertIn("Results are stored at location 'dummy/results/processed.json'", exp_results_output.stdout)

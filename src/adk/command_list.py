@@ -86,7 +86,8 @@ def applications_create(
         validate_path_name("Role", role)
 
     cwd = Path.cwd()
-    processor.applications_create(application_name=application_name, roles=roles, path=cwd)
+    application_path = cwd / application_name
+    processor.applications_create(application_name=application_name, roles=roles, application_path=application_path)
     typer.echo(f"Application '{application_name}' created successfully in directory '{str(cwd)}'")
 
 
@@ -97,9 +98,8 @@ def retrieve_application_name_and_path(application_name: Optional[str]) -> Tuple
         if application_path is not None:
             application_path = Path(application_path)
     else:
-        path = Path.cwd()
-        application_name, _ = config_manager.get_application_from_path(path)
-        application_path = path
+        application_path = Path.cwd()
+        application_name, _ = config_manager.get_application_from_path(application_path)
 
     if application_path is None or not application_path.is_dir():
         raise ApplicationNotFound(application_name)
@@ -120,9 +120,10 @@ def applications_delete(
     not given, the current directory is taken as application directory.
     """
 
-    path, application_name = retrieve_application_name_and_path(application_name=application_name)
+    application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
 
-    deleted_completely = processor.applications_delete(application_name=application_name, path=path)
+    deleted_completely = processor.applications_delete(application_name=application_name,
+                                                       application_path=application_path)
     if deleted_completely:
         typer.echo("Application deleted successfully")
     else:
@@ -219,7 +220,7 @@ def applications_validate(
     application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
 
     typer.echo(f"Validate application '{application_name}'")
-    error_dict = processor.applications_validate(application_name=application_name, path=application_path)
+    error_dict = processor.applications_validate(application_name=application_name, application_path=application_path)
 
     show_validation_messages(error_dict)
 
@@ -249,7 +250,7 @@ def experiments_create(
     cwd = Path.cwd()
 
     path, application_name = retrieve_application_name_and_path(application_name=application_name)
-    validate_dict = processor.applications_validate(application_name=application_name, path=path)
+    validate_dict = processor.applications_validate(application_name=application_name, application_path=path)
     if validate_dict["error"] or validate_dict["warning"]:
         show_validation_messages(validate_dict)
         typer.echo(f"Application '{application_name}' is invalid. Experiment not created.")
@@ -294,8 +295,8 @@ def experiments_delete(
     When experiment_name is given ./experiment_name is taken as experiment path, otherwise current directory.
     """
 
-    path, experiment_name = retrieve_experiment_name_and_path(experiment_name=experiment_name)
-    deleted_completely = processor.experiments_delete(experiment_name=experiment_name, path=path)
+    experiment_path, experiment_name = retrieve_experiment_name_and_path(experiment_name=experiment_name)
+    deleted_completely = processor.experiments_delete(experiment_name=experiment_name, experiment_path=experiment_path)
     if deleted_completely:
         typer.echo("Experiment deleted successfully")
     else:
@@ -315,16 +316,16 @@ def experiments_run(
     Execute a run of the experiment.
     """
 
-    path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
+    experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
 
     # Validate the experiment before executing the run command
-    validate_dict = processor.experiments_validate(path=path)
+    validate_dict = processor.experiments_validate(experiment_path=experiment_path)
 
     if validate_dict["error"] or validate_dict["warning"]:
         show_validation_messages(validate_dict)
         typer.echo("Experiment is invalid. Please resolve the issues and then run the experiment.")
     else:
-        results = processor.experiments_run(path=path, block=block)
+        results = processor.experiments_run(experiment_path=experiment_path, block=block)
 
         if results:
             if "error" in results["round_result"]:
@@ -343,10 +344,10 @@ def experiments_validate(
     Validate the experiment configuration.
     """
 
-    path, experiment_name = retrieve_experiment_name_and_path(experiment_name=experiment_name)
+    experiment_path, experiment_name = retrieve_experiment_name_and_path(experiment_name=experiment_name)
     typer.echo(f"Validate experiment '{experiment_name}'\n")
 
-    error_dict = processor.experiments_validate(path=path)
+    error_dict = processor.experiments_validate(experiment_path=experiment_path)
     show_validation_messages(error_dict)
 
     if error_dict["error"] or error_dict["warning"]:
@@ -366,10 +367,10 @@ def experiments_results(
     Get results for an experiment.
     """
 
-    path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
-    results = processor.experiments_results(all_results=all_results, path=path)
+    experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
+    results = processor.experiments_results(all_results=all_results, experiment_path=experiment_path)
     if show:
         typer.echo(results)
     else:
         result_noun = "Results are" if all_results else "Result is"
-        typer.echo(f"{result_noun} stored at location '{path}/results/processed.json'")
+        typer.echo(f"{result_noun} stored at location '{experiment_path}/results/processed.json'")

@@ -208,7 +208,7 @@ class LocalApi:
 
         return network_nodes
 
-    def create_application(self, application_name: str, roles: List[str], path: Path) -> None:
+    def create_application(self, application_name: str, roles: List[str], application_path: Path) -> None:
         """
         Creates the application by checking if the application name does not exist and calling
         create_application_structure.
@@ -216,7 +216,7 @@ class LocalApi:
         Args:
             application_name: name of the application
             roles: a list of roles
-            path: the path where the application is stored
+            application_path: the path where the application is stored
 
         Raises:
             ApplicationAlreadyExists: Raised when application name is not unique
@@ -225,13 +225,13 @@ class LocalApi:
         if application_exists:
             raise ApplicationAlreadyExists(application_name, existing_application_path)
 
-        self.__create_application_structure(application_name, roles, path)
+        self.__create_application_structure(application_name, roles, application_path)
 
     def init_application(self, path: Path) -> None:
         pass
 
     def __create_application_structure(
-        self, application_name: str, roles: List[str], path: Path
+        self, application_name: str, roles: List[str], application_path: Path
     ) -> None:
         """
         Creates the application directory structure. Each application will consist of a MANIFEST.INI and two
@@ -249,7 +249,6 @@ class LocalApi:
         application_name = application_name.lower()
 
         # check if application path is already an existing dir/file
-        application_path = path / application_name
         if application_path.exists():
             raise DirectoryAlreadyExists('Application', str(application_path))
 
@@ -276,7 +275,7 @@ class LocalApi:
 
         # Remove already created application structure
         if not networks["networks"]:
-            shutil.rmtree(path / application_name)
+            shutil.rmtree(application_path)
             raise NoNetworkAvailable()
 
         utils.write_json_file(app_config_path / 'network.json', networks)
@@ -289,9 +288,9 @@ class LocalApi:
         utils.write_json_file(app_config_path / 'result.json', [])
 
         # Manifest.ini configuration
-        utils.write_file(path / application_name / 'MANIFEST.ini', '')
+        utils.write_file(application_path / 'MANIFEST.ini', '')
 
-        self.__config_manager.add_application(application_name, path)
+        self.__config_manager.add_application(application_name=application_name, application_path=application_path)
 
     def list_applications(self) -> List[ApplicationType]:
         """
@@ -347,7 +346,7 @@ class LocalApi:
 
         return config_dir_deleted
 
-    def delete_application(self, application_name: Optional[str], path: Path) -> bool:
+    def delete_application(self, application_name: Optional[str], application_path: Path) -> bool:
         """
         Deletes the application files.
         When application name is None the current directory is taken as application path
@@ -373,20 +372,20 @@ class LocalApi:
         all_subdir_deleted = True
 
         # check if the application exists and save the app name to delete it later
-        application_name_from_config, _ = self.__config_manager.get_application_from_path(path)
+        application_name_from_config, _ = self.__config_manager.get_application_from_path(application_path)
 
         # Check if application path exists
-        if path.is_dir():
-            application_src_path = path / 'src'
+        if application_path.is_dir():
+            application_src_path = application_path / 'src'
             if application_src_path.is_dir():
-                all_subdir_deleted = self._delete_src(path) and all_subdir_deleted
+                all_subdir_deleted = self._delete_src(application_path) and all_subdir_deleted
 
-            application_config_path = path / 'config'
+            application_config_path = application_path / 'config'
             if application_config_path.is_dir():
-                all_subdir_deleted = self._delete_config(path) and all_subdir_deleted
+                all_subdir_deleted = self._delete_config(application_path) and all_subdir_deleted
 
             # Delete manifest.ini
-            manifest_ini = path / 'MANIFEST.ini'
+            manifest_ini = application_path / 'MANIFEST.ini'
             if manifest_ini.is_file():
                 manifest_ini.unlink()
 
@@ -394,18 +393,18 @@ class LocalApi:
             # remove application dir
             if all_subdir_deleted and application_name is not None:
                 try:
-                    os.rmdir(path)
+                    os.rmdir(application_path)
                     application_dir_deleted = True
                 except OSError:  # The directory is not empty
                     pass
         else:
-            raise ApplicationDoesNotExist(str(path))
+            raise ApplicationDoesNotExist(str(application_path))
 
         # remove application from configuration
         self.__config_manager.delete_application(application_name_from_config)
         return all_subdir_deleted and application_dir_deleted
 
-    def is_application_valid(self, application_name: str, path: Path) -> ErrorDictType:
+    def is_application_valid(self, application_name: str, application_path: Path) -> ErrorDictType:
         """
         Function that checks if:
         - The application is valid by validating if it exists in .qne/application.json
@@ -415,7 +414,7 @@ class LocalApi:
 
         Args:
             application_name: Name of the application
-            path: Path of where the application is located
+            application_path: Path of where the application is located
 
         returns:
             Returns empty list when all validations passes
@@ -425,8 +424,8 @@ class LocalApi:
         application_exists, _ = self.__config_manager.application_exists(application_name)
 
         if application_exists:
-            self.__is_structure_valid(path, error_dict)
-            self.__is_config_valid(path, error_dict)
+            self.__is_structure_valid(application_path, error_dict)
+            self.__is_config_valid(application_path, error_dict)
         else:
             error_dict["error"].append(f"Application '{application_name}' does not exist")
 
@@ -774,17 +773,17 @@ class LocalApi:
 
         return False
 
-    def is_experiment_local(self, path: Path) -> bool:
+    def is_experiment_local(self, experiment_path: Path) -> bool:
         """
         Check if the experiment at the 'path' is remote or local
 
         Args:
-            path: The location of the experiment
+            experiment_path: The location of the experiment
 
         Returns:
             bool: True if the experiment at given path is local, False otherwise
         """
-        experiment_data = utils.read_json_file(path / 'experiment.json')
+        experiment_data = utils.read_json_file(experiment_path / 'experiment.json')
         if experiment_data["meta"]["backend"]["location"].strip().lower() == "local":
             return True
         return False
@@ -867,7 +866,7 @@ class LocalApi:
 
         return result_dir_deleted
 
-    def delete_experiment(self, experiment_name: Optional[str], path: Path) -> bool:
+    def delete_experiment(self, experiment_name: Optional[str], experiment_path: Path) -> bool:
         """
         Deletes the experiment files.
         When experiment name is None the current directory is taken as experiment path, the experiment files and
@@ -879,7 +878,7 @@ class LocalApi:
         Args:
             experiment_name: Optional. The experiment directory deleted will be ./experiment_name, otherwise the
             current directory
-            path: The location of the experiment
+            experiment_path: The location of the experiment
 
         Returns:
             True if the complete experiment (including directory experiment_name) was deleted, otherwise false (leaving
@@ -891,18 +890,18 @@ class LocalApi:
         experiment_dir_deleted = False
         all_subdir_deleted = True
 
-        experiment_json = path / 'experiment.json'
+        experiment_json = experiment_path / 'experiment.json'
         # Check if experiment.json exists and we're dealing with an experiment directory
-        if path.is_dir() and experiment_json.is_file():
-            experiment_input_path = path / 'input'
+        if experiment_path.is_dir() and experiment_json.is_file():
+            experiment_input_path = experiment_path / 'input'
             if experiment_input_path.is_dir():
                 all_subdir_deleted = self._delete_input(experiment_input_path) and all_subdir_deleted
 
-            experiment_raw_output_path = path / 'raw_output'
+            experiment_raw_output_path = experiment_path / 'raw_output'
             if experiment_raw_output_path.is_dir():
                 all_subdir_deleted = self._delete_raw_output(experiment_raw_output_path) and all_subdir_deleted
 
-            experiment_results_path = path / 'results'
+            experiment_results_path = experiment_path / 'results'
             if experiment_results_path.is_dir():
                 all_subdir_deleted = self._delete_results(experiment_results_path) and all_subdir_deleted
 
@@ -913,27 +912,28 @@ class LocalApi:
             # removed try to remove experiment dir
             if all_subdir_deleted and experiment_name is not None:
                 try:
-                    os.rmdir(path)
+                    os.rmdir(experiment_path)
                     experiment_dir_deleted = True
                 except OSError:  # The directory is not empty
                     pass
         else:
-            raise ExperimentDirectoryNotValid(str(path))
+            raise ExperimentDirectoryNotValid(str(experiment_path))
 
         return all_subdir_deleted and experiment_dir_deleted
 
-    def run_experiment(self, path: Path) -> ResultType:
+    def run_experiment(self, experiment_path: Path) -> ResultType:
         """
         An experiment is run on the backend. For this the round set manager is setup and called to process the asset
 
         Args:
-            path: The location of the experiment
+            experiment_path: The location of the experiment
 
         Returns:
             A dictionary containing the results of the run
         """
         local_round_set: RoundSetType = {"url": "local"}
-        round_set_manager = RoundSetManager(round_set=local_round_set, asset=self._get_asset(path), path=path)
+        round_set_manager = RoundSetManager(round_set=local_round_set, asset=self._get_asset(experiment_path),
+                                            experiment_path=experiment_path)
         result = round_set_manager.process()
         return result
 
@@ -963,7 +963,7 @@ class LocalApi:
 
         return output_converter.convert(round_number=1)
 
-    def validate_experiment(self, path: Path) -> ErrorDictType:
+    def validate_experiment(self, experiment_path: Path) -> ErrorDictType:
         """
         Validates the experiment by checking:
         - if the structure is correct and consists of an experiment.json
@@ -974,8 +974,7 @@ class LocalApi:
         - if the nodes and channels used in experiment.json are correct and valid for that network
 
         Args:
-            path: The location of the experiment
-            experiment_name: Name of the experiment
+            experiment_path: The location of the experiment
 
         Returns:
             Dictionary containing lists of error, warning and info messages of the validations that failed
@@ -983,20 +982,20 @@ class LocalApi:
         local = True
         error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
 
-        self._validate_experiment_json(path=path, error_dict=error_dict)
-        self._validate_experiment_input(path=path, local=local, error_dict=error_dict)
+        self._validate_experiment_json(experiment_path=experiment_path, error_dict=error_dict)
+        self._validate_experiment_input(experiment_path=experiment_path, local=local, error_dict=error_dict)
 
         return error_dict
 
-    def _validate_experiment_json(self, path: Path, error_dict: ErrorDictType) -> None:
+    def _validate_experiment_json(self, experiment_path: Path, error_dict: ErrorDictType) -> None:
         """
         This function validates if experiment.json contains valid json and if it passes schema validation.
 
         Args:
-            path: The location of the experiment
+            experiment_path: The location of the experiment
             error_dict: Dictionary containing error and warning messages of the validations that failed
         """
-        experiment_file_path = path / 'experiment.json'
+        experiment_file_path = experiment_path / 'experiment.json'
 
         # Validate experiment.json (does it exist and is valid json according to the schema)
 
@@ -1024,20 +1023,20 @@ class LocalApi:
                     f"In file '{experiment_file_path}': network '{experiment_network_slug}' "
                     f"does not exist")
 
-            self._validate_experiment_application(path, experiment_data, error_dict)
+            self._validate_experiment_application(experiment_path, experiment_data, error_dict)
 
-    def _validate_experiment_input(self, path: Path, local: bool, error_dict: ErrorDictType) -> None:
+    def _validate_experiment_input(self, experiment_path: Path, local: bool, error_dict: ErrorDictType) -> None:
         """
         Validates if the experiment file structures input directory containing a:
         - (local only) network.json, application.json, result.json, app_role1.py, app_role2.py, ...
 
         Args:
-            path: The location of the experiment
+            experiment_path: The location of the experiment
             local: If the experiment is a local or not
             error_dict: Dictionary containing error and warning messages of the validations that failed
         """
         # pylint: disable-msg=too-many-nested-blocks
-        experiment_input_path = path / 'input'
+        experiment_input_path = experiment_path / 'input'
 
         if experiment_input_path.is_dir():
             if local:
@@ -1121,20 +1120,20 @@ class LocalApi:
         else:
             error_dict["error"].append(f"No channels found for network '{experiment_network_slug}'")
 
-    def _validate_experiment_application(self, path: Path, experiment_data: Dict[str, Any],
+    def _validate_experiment_application(self, experiment_path: Path, experiment_data: Dict[str, Any],
                                          error_dict: ErrorDictType) -> None:
         """
         Validate the ['application'] key defined in the asset of experiment.json. Check if the roles match the roles
         that are defined in input/network.json
 
         Args:
-            path: The location of the experiment
+            experiment_path: The location of the experiment
             experiment_data: contents of the experiment.json file
             error_dict: Dictionary containing error and warning messages of the validations that failed
         """
 
         experiment_application_data = experiment_data["asset"]["application"]
-        experiment_input_path = path / 'input'
+        experiment_input_path = experiment_path / 'input'
 
         # Check if the roles defined in experiment.json ['application'] match the roles defined in input/network.json
         if (experiment_input_path / 'network.json').is_file():
@@ -1144,10 +1143,10 @@ class LocalApi:
                 for experiment_application_item in experiment_application_data:
                     experiment_roles = experiment_application_item["roles"]
                     if not set(experiment_roles).issubset(application_roles):
-                        error_dict["warning"].append(f"In file '{path / 'experiment.json'}': not all experiment roles "
-                                                     f"{experiment_roles} are defined as application roles "
-                                                     f"{application_roles}' in "
-                                                     f"'{experiment_input_path / 'network.json'}'")
+                        error_dict["warning"].append(f"In file '{experiment_path / 'experiment.json'}': not all "
+                                                     f"experiment roles {experiment_roles} are defined as application "
+                                                     f"roles {application_roles}' in "
+                                                     f"{experiment_input_path / 'network.json'}'")
             except MalformedJsonFile:
                 # The file 'network.json' will be checked against the schema in validate_experiment_input
                 pass

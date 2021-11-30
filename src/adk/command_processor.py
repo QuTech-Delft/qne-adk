@@ -23,9 +23,9 @@ class CommandProcessor:
         self.__remote.logout(host=host)
 
     def applications_create(
-        self, application_name: str, roles: List[str], path: Path
+        self, application_name: str, roles: List[str], application_path: Path
     ) -> None:
-        self.__local.create_application(application_name, roles, path)
+        self.__local.create_application(application_name, roles, application_path)
 
     @log_function
     def applications_init(self, path: Path) -> None:
@@ -59,10 +59,10 @@ class CommandProcessor:
         return app_list
 
     @log_function
-    def applications_delete(self, application_name: Optional[str], path: Path) -> bool:
+    def applications_delete(self, application_name: Optional[str], application_path: Path) -> bool:
         # be sure to call both local and remote
-        deleted_completely_local = self.__local.delete_application(application_name, path)
-        deleted_completely_remote = self.__remote.delete_application(application_name, path)
+        deleted_completely_local = self.__local.delete_application(application_name, application_path)
+        deleted_completely_remote = self.__remote.delete_application(application_name, application_path)
 
         return deleted_completely_local and deleted_completely_remote
 
@@ -71,8 +71,8 @@ class CommandProcessor:
         self.__remote.publish_application(application_name)
 
     @log_function
-    def applications_validate(self, application_name: str, path: Path) -> ErrorDictType:
-        return self.__local.is_application_valid(application_name, path)
+    def applications_validate(self, application_name: str, application_path: Path) -> ErrorDictType:
+        return self.__local.is_application_valid(application_name, application_path)
 
     @log_function
     def experiments_create(self, experiment_name: str, application_name: str, network_name: str, local: bool,
@@ -113,10 +113,10 @@ class CommandProcessor:
                 raise ApplicationNotFound(application_name)
 
     @log_function
-    def experiments_delete(self, experiment_name: Optional[str], path: Path) -> bool:
+    def experiments_delete(self, experiment_name: Optional[str], experiment_path: Path) -> bool:
         # be sure to call both local and remote
-        deleted_completely_local = self.__local.delete_experiment(experiment_name, path)
-        deleted_completely_remote = self.__remote.delete_experiment(experiment_name, path)
+        deleted_completely_local = self.__local.delete_experiment(experiment_name, experiment_path)
+        deleted_completely_remote = self.__remote.delete_experiment(experiment_name, experiment_path)
 
         return deleted_completely_local and deleted_completely_remote
 
@@ -125,14 +125,14 @@ class CommandProcessor:
         pass
 
     @log_function
-    def experiments_run(self, path: Path, block: bool) -> Optional[ResultType]:
+    def experiments_run(self, experiment_path: Path, block: bool) -> Optional[ResultType]:
 
         results = None
-        is_local = self.__local.is_experiment_local(path)
+        is_local = self.__local.is_experiment_local(experiment_path)
 
         if is_local:
-            results = self.__local.run_experiment(path)
-            self.__store_results(results, path)
+            results = self.__local.run_experiment(experiment_path)
+            self.__store_results(results, experiment_path)
 
         return results
 
@@ -141,19 +141,19 @@ class CommandProcessor:
         return self.__remote.list_experiments()
 
     @log_function
-    def experiments_validate(self, path: Path) -> ErrorDictType:
-        return self.__local.validate_experiment(path)
+    def experiments_validate(self, experiment_path: Path) -> ErrorDictType:
+        return self.__local.validate_experiment(experiment_path)
 
     @log_function
     def experiments_results(
-        self, all_results: bool, path: Path
+        self, all_results: bool, experiment_path: Path
     ) -> ResultType:
-        results: ResultType = self.__get_results(path=path)
+        results: ResultType = self.__get_results(experiment_path=experiment_path)
         return results
 
     @log_function
-    def __store_results(self, results: ResultType, path: Path) -> None:
-        processed_results_directory = path / "results"
+    def __store_results(self, results: ResultType, experiment_path: Path) -> None:
+        processed_results_directory = experiment_path / "results"
         if not processed_results_directory.exists():
             processed_results_directory.mkdir(parents=True)
 
@@ -161,8 +161,8 @@ class CommandProcessor:
         utils.write_json_file(processed_result_json_file, results, encoder_cls=utils.ComplexEncoder)
 
     @log_function
-    def __get_results(self, path: Path) -> ResultType:
-        processed_results_directory = path / "results"
+    def __get_results(self, experiment_path: Path) -> ResultType:
+        processed_results_directory = experiment_path / "results"
         if not processed_results_directory.exists():
             raise ResultDirectoryNotAvailable(str(processed_results_directory))
 
