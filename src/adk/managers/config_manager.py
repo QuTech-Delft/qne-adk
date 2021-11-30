@@ -35,14 +35,14 @@ class ConfigManager:
         """ Creates the application.json config file in the .qne/ root directory"""
         write_json_file(self.applications_config, {})
 
-    def add_application(self, application_name: str, path: Path) -> None:
+    def add_application(self, application_name: str, application_path: Path) -> None:
         """
         Takes care of saving the application name in the .qne/application.json root file together with the application
         path.
 
         Args:
             application_name: name of the application
-            path: the path where the application is stored
+            application_path: the path where the application is stored
 
         """
         # Extra check to make sure application name is stored in lowercase
@@ -52,7 +52,7 @@ class ConfigManager:
         applications = read_json_file(self.applications_config)
 
         # Store the app path
-        applications[application_name] = {'path': os.path.join(str(path), application_name, '')}
+        applications[application_name] = {'path': os.path.join(application_path, '')}
         write_json_file(self.applications_config, applications)
 
     def delete_application(self, application_name: str) -> None:
@@ -125,18 +125,18 @@ class ConfigManager:
         if application:
             if 'path' in application and os.path.exists(application['path']):
                 return application['path']
-
         return None
 
-    def get_application_from_path(self, path: Path) -> Tuple[str, Dict[str, str]]:
+    def get_application_from_path(self, application_path: Path) -> Tuple[str, Dict[str, str]]:
         applications = read_json_file(self.applications_config)
 
         for application_name in applications:
-            application_path = self.get_application_path(application_name)
-            if application_path is not None and application_path == os.path.join(str(path), ''):
+            root_file_application_path = self.get_application_path(application_name)
+            if root_file_application_path is not None and \
+               root_file_application_path == os.path.join(str(application_path), ''):
                 return application_name, applications[application_name]
 
-        raise ApplicationDoesNotExist(str(path))
+        raise ApplicationDoesNotExist(str(application_path))
 
     def application_exists(self, application_name: str) -> Tuple[bool, Any]:
         """

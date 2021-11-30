@@ -93,9 +93,9 @@ class TestConfigManager(unittest.TestCase):
             expected_value = copy.copy(self.mock_read_json)
             read_json_file_mock.return_value = self.mock_read_json
             config_manager = ConfigManager(self.path)
-            config_manager.add_application(application_name=self.caps_application, path=self.path)
+            config_manager.add_application(application_name=self.caps_application, application_path=self.path)
             read_json_file_mock.assert_called_once()
-            expected_value.update({"test_app": {"path": os.path.join(str(self.path), 'test_app', '')}})
+            expected_value.update({"test_app": {"path": os.path.join(str(self.path), '')}})
             write_json_file_mock.assert_called_once_with(self.path / "applications.json", expected_value)
 
     def test_delete_application(self):

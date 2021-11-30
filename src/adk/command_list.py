@@ -5,7 +5,7 @@ Creates the Typer app and its commands
 
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from tabulate import tabulate
 
 import typer
@@ -15,7 +15,8 @@ from adk.api.local_api import LocalApi
 from adk.api.remote_api import RemoteApi
 from adk.command_processor import CommandProcessor
 from adk.decorators import catch_qne_adk_exceptions
-from adk.exceptions import NotEnoughRoles, RolesNotUnique, CommandNotImplemented
+from adk.exceptions import NotEnoughRoles, RolesNotUnique, CommandNotImplemented, ExperimentDirectoryNotValid, \
+                           ApplicationNotFound
 from adk.managers.config_manager import ConfigManager
 from adk.settings import Settings
 from adk.type_aliases import ErrorDictType
@@ -85,8 +86,25 @@ def applications_create(
         validate_path_name("Role", role)
 
     cwd = Path.cwd()
-    processor.applications_create(application_name=application_name, roles=roles, path=cwd)
+    application_path = cwd / application_name
+    processor.applications_create(application_name=application_name, roles=roles, application_path=application_path)
     typer.echo(f"Application '{application_name}' created successfully in directory '{str(cwd)}'")
+
+
+def retrieve_application_name_and_path(application_name: Optional[str]) -> Tuple[Path, str]:
+    if application_name is not None:
+        validate_path_name("Application", application_name)
+        application_path = config_manager.get_application_path(application_name)
+        if application_path is not None:
+            application_path = Path(application_path)
+    else:
+        application_path = Path.cwd()
+        application_name, _ = config_manager.get_application_from_path(application_path)
+
+    if application_path is None or not application_path.is_dir():
+        raise ApplicationNotFound(application_name)
+
+    return application_path, application_name
 
 
 @applications_app.command("delete")
@@ -101,12 +119,11 @@ def applications_delete(
     not valid the application directory is fetched from the application configuration. When application_name is
     not given, the current directory is taken as application directory.
     """
-    # Temporary local only
-    if application_name is not None:
-        validate_path_name("Application", application_name)
 
-    cwd = Path.cwd()
-    deleted_completely = processor.applications_delete(application_name, path=cwd)
+    application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
+
+    deleted_completely = processor.applications_delete(application_name=application_name,
+                                                       application_path=application_path)
     if deleted_completely:
         typer.echo("Application deleted successfully")
     else:
@@ -193,14 +210,17 @@ def show_validation_messages(validation_dict: ErrorDictType) -> None:
 
 @applications_app.command("validate")
 @catch_qne_adk_exceptions
-def applications_validate() -> None:
+def applications_validate(
+    application_name: Optional[str] = typer.Argument(None, help="Name of the application")
+) -> None:
     """
     Validate the application.
     """
-    cwd = Path.cwd()
-    application_name, _ = config_manager.get_application_from_path(cwd)
+
+    application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
+
     typer.echo(f"Validate application '{application_name}'")
-    error_dict = processor.applications_validate(application_name=application_name)
+    error_dict = processor.applications_validate(application_name=application_name, application_path=application_path)
 
     show_validation_messages(error_dict)
 
@@ -208,7 +228,6 @@ def applications_validate() -> None:
         typer.echo(f"Application '{application_name}' is invalid")
     else:
         typer.echo(f"Application '{application_name}' is valid")
-
 
 @experiments_app.command("create")
 @catch_qne_adk_exceptions
@@ -230,7 +249,8 @@ def experiments_create(
 
     cwd = Path.cwd()
 
-    validate_dict = processor.applications_validate(application_name)
+    path, application_name = retrieve_application_name_and_path(application_name=application_name)
+    validate_dict = processor.applications_validate(application_name=application_name, application_path=path)
     if validate_dict["error"] or validate_dict["warning"]:
         show_validation_messages(validate_dict)
         typer.echo(f"Application '{application_name}' is invalid. Experiment not created.")
@@ -249,6 +269,21 @@ def experiments_list() -> None:
     raise CommandNotImplemented
 
 
+def retrieve_experiment_name_and_path(experiment_name: Optional[str]) -> Tuple[Path, str]:
+    path = Path.cwd()
+    if experiment_name is not None:
+        validate_path_name("Experiment", experiment_name)
+        experiment_path = path / experiment_name
+    else:
+        experiment_name = path.name
+        experiment_path = path
+
+    if not experiment_path.is_dir():
+        raise ExperimentDirectoryNotValid(str(experiment_path))
+
+    return experiment_path, experiment_name
+
+
 @experiments_app.command("delete")
 @catch_qne_adk_exceptions
 def experiments_delete(
@@ -259,12 +294,9 @@ def experiments_delete(
 
     When experiment_name is given ./experiment_name is taken as experiment path, otherwise current directory.
     """
-    # Temporary local only
-    if experiment_name is not None:
-        validate_path_name("Experiment", experiment_name)
 
-    cwd = Path.cwd()
-    deleted_completely = processor.experiments_delete(experiment_name, path=cwd)
+    experiment_path, experiment_name = retrieve_experiment_name_and_path(experiment_name=experiment_name)
+    deleted_completely = processor.experiments_delete(experiment_name=experiment_name, experiment_path=experiment_path)
     if deleted_completely:
         typer.echo("Experiment deleted successfully")
     else:
@@ -277,23 +309,23 @@ def experiments_delete(
 @experiments_app.command("run")
 @catch_qne_adk_exceptions
 def experiments_run(
-    block: bool = typer.Option(
-        False, "--block", help="Wait for the result to be returned"
-    )
+    experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment"),
+    block: bool = typer.Option(False, "--block", help="Wait for the result to be returned")
 ) -> None:
     """
     Execute a run of the experiment.
     """
-    cwd = Path.cwd()
+
+    experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
 
     # Validate the experiment before executing the run command
-    validate_dict = processor.experiments_validate(path=cwd)
+    validate_dict = processor.experiments_validate(experiment_path=experiment_path)
 
     if validate_dict["error"] or validate_dict["warning"]:
         show_validation_messages(validate_dict)
         typer.echo("Experiment is invalid. Please resolve the issues and then run the experiment.")
     else:
-        results = processor.experiments_run(path=cwd, block=block)
+        results = processor.experiments_run(experiment_path=experiment_path, block=block)
 
         if results:
             if "error" in results["round_result"]:
@@ -305,14 +337,17 @@ def experiments_run(
 
 @experiments_app.command("validate")
 @catch_qne_adk_exceptions
-def experiments_validate() -> None:
+def experiments_validate(
+    experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment")
+) -> None:
     """
     Validate the experiment configuration.
     """
-    cwd = Path.cwd()
-    experiment_name = cwd.name
+
+    experiment_path, experiment_name = retrieve_experiment_name_and_path(experiment_name=experiment_name)
     typer.echo(f"Validate experiment '{experiment_name}'\n")
-    error_dict = processor.experiments_validate(path=cwd)
+
+    error_dict = processor.experiments_validate(experiment_path=experiment_path)
     show_validation_messages(error_dict)
 
     if error_dict["error"] or error_dict["warning"]:
@@ -324,20 +359,18 @@ def experiments_validate() -> None:
 @experiments_app.command("results")
 @catch_qne_adk_exceptions
 def experiments_results(
-    all_results: bool = typer.Option(
-        False, "--all", help="Get all results for this experiment"
-    ),
-    show: bool = typer.Option(
-        False, "--show", help="Show the results on screen instead of saving to file"
-    ),
+    experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment"),
+    all_results: bool = typer.Option(False, "--all", help="Get all results for this experiment"),
+    show: bool = typer.Option(False, "--show", help="Show the results on screen instead of saving to file"),
 ) -> None:
     """
     Get results for an experiment.
     """
-    cwd = Path.cwd()
-    results = processor.experiments_results(all_results=all_results, path=cwd)
+
+    experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
+    results = processor.experiments_results(all_results=all_results, experiment_path=experiment_path)
     if show:
         typer.echo(results)
     else:
         result_noun = "Results are" if all_results else "Result is"
-        typer.echo(f"{result_noun} stored at location '{cwd}/results/processed.json'")
+        typer.echo(f"{result_noun} stored at location '{experiment_path}/results/processed.json'")

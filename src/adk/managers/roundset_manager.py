@@ -19,16 +19,16 @@ class RoundSetManager:
     Uses the OutputConverter class to process the output of netqasm and convert it to a result in QNE format.
     If the application run fails, then an error result is generated containing the reason for failure.
     """
-    def __init__(self, round_set: RoundSetType, asset: Dict[str, Any], path: Path) -> None:
+    def __init__(self, round_set: RoundSetType, asset: Dict[str, Any], experiment_path: Path) -> None:
         self.__asset = asset
         self.__round_set = round_set
-        self.__path = path
-        self.__input_dir = str(path / "input")
-        self.__log_dir = str(path / "raw_output")
+        self.__path = experiment_path
+        self.__input_dir = str(experiment_path / "input")
+        self.__log_dir = str(experiment_path / "raw_output")
         self.__output_dir = "LAST"
         self.__fully_connected_network_generator = FullyConnectedNetworkGenerator()
         self.__input_parser = InputParser(
-            input_dir=str(path / "input"),
+            input_dir=str(experiment_path / "input"),
             network_generator=self.__fully_connected_network_generator
         )
         self.__output_converter = OutputConverter(
