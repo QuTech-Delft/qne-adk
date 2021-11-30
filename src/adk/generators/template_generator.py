@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, List
 import yaml
 
 from adk.generators.network_generator import FullyConnectedNetworkGenerator
-from adk.type_aliases import TemplatesType
+from adk.type_aliases import TemplateType
 
 class BaseTemplate(ABC):
     """Base template for creating necessary config files for NetSquid.
@@ -41,7 +41,7 @@ class BaseTemplate(ABC):
             yaml.dump(self._config, config_file)
 
     @staticmethod
-    def _unpack_template(templates: TemplatesType, param_key: str, role: Optional[str] = None) -> Dict[str, Any]:
+    def _unpack_template(templates: TemplateType, param_key: str, role: Optional[str] = None) -> Dict[str, Any]:
         """Method to unpack a list of templates.
 
         By design, templates are contained in a list. Every template has a values list that contains all

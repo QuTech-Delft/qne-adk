@@ -118,7 +118,7 @@ class OutputConverter:
         return sorted(logs, key=lambda l: l['WCT'])  # type:ignore[no-any-return]
 
     def convert(self, round_number: int) -> ResultType:
-        """Convert result and log files into a Result format compatible with the QNE
+        """Convert result and log files for one round number into a Result format compatible with the QNE
 
         NetSquid logs all actions that are performed in the applications. These log_entries are converted into
         instructions that can be interpreted by either humans or end-user interfaces.
