@@ -8,6 +8,29 @@
     "meta": {
       "type": "object",
       "properties": {
+        "application": {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string"
+            },
+            "app_version": {
+              "type": "string",
+              "format": "uri-reference"
+            },
+            "multi_round": {
+              "type": "boolean"
+            },
+            "application_id": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "slug",
+            "app_version",
+            "multi_round"
+          ]
+        },
         "backend": {
           "type": "object",
           "properties": {
@@ -31,12 +54,24 @@
         },
         "description": {
           "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "experiment_id": {
+          "type": "integer"
+        },
+        "round_set": {
+          "type": "string",
+          "format": "uri-reference"
         }
       },
       "required": [
+        "application",
         "backend",
         "number_of_rounds",
-        "description"
+        "description",
+        "name"
       ]
     },
     "asset": {

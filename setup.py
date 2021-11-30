@@ -43,6 +43,9 @@ def get_long_description():
     return long_description
 
 
+apistar = 'apistar@git+https://github.com/QFer/apistar@fix/issue-657/appending-path-to-server-url#egg=apistar',
+
+
 setup(
     name="qne-adk",
     description="Application Development Kit to interact with the Quantum Network Explorer",
@@ -80,7 +83,8 @@ setup(
     ],
     license="MIT",
     packages=find_packages(where="src", exclude=["*tests*"]),
-    install_requires=["typer[all]", "netqasm", "pydantic", "tabulate", "jsonschema", "pyyaml", "typing-extensions"],
+    install_requires=["typer[all]", "netqasm", "pydantic", "tabulate", "jsonschema", "pyyaml", "typing-extensions",
+                      apistar, "typesystem==0.2.4", "pyjwt"],
     extras_require={
         "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort", "types-tabulate", "types-PyYAML"],
         "rtd": [

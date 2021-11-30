@@ -3,7 +3,7 @@ from pathlib import Path
 import shutil
 import subprocess
 from subprocess import CalledProcessError, TimeoutExpired
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from adk.parsers.input_parser import InputParser
 from adk.parsers.output_converter import OutputConverter
@@ -38,7 +38,7 @@ class RoundSetManager:
             instruction_converter=self.__fully_connected_network_generator
         )
 
-    def process(self) -> ResultType:
+    def process(self) -> List[ResultType]:
         """
         Process a round by running the application on simulator.
 
@@ -50,6 +50,9 @@ class RoundSetManager:
         self.__input_parser.prepare_input(self.__asset)
         self.__output_converter.prepare_output()
 
+        exception_type: str = ""
+        message: str = ""
+        trace: Optional[str] = None
         try:
             self._run_application()
         except CalledProcessError as exc:
@@ -73,7 +76,7 @@ class RoundSetManager:
         else:
             result = self.__output_converter.convert(round_number)
 
-        return result
+        return [result]
 
     def __clean(self) -> None:
         """Cleans up all files in the input directory.

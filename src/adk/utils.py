@@ -7,6 +7,7 @@ import traceback
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 from adk.exceptions import JsonFileNotFound, MalformedJsonFile, InvalidPathName
+from adk.type_aliases import ErrorDictType
 
 
 class ComplexEncoder(json.JSONEncoder):
@@ -97,6 +98,11 @@ def reorder_data(original_data: List[Dict[str, Any]], desired_order: List[str]) 
         reordered_item = {key: item.get(key, '-') for key in desired_order}
         reordered_data.append(reordered_item)
     return reordered_data
+
+
+def get_empty_errordict() -> ErrorDictType:
+    """Return empty error dictionary"""
+    return {"error": [], "warning": [], "info": []}
 
 
 def get_dummy_application(roles: List[Any]) -> List[Dict[str, Any]]:

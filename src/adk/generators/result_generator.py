@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Optional
 
-from adk.type_aliases import ResultType, RoundSetType, RoundResultType, CumulativeResultType, InstructionType
+from adk.type_aliases import (ResultType, RoundSetType, RoundResultType, CumulativeResultType, InstructionType)
 
 
 class ResultGenerator:
@@ -18,12 +18,13 @@ class ResultGenerator:
 
 class ErrorResultGenerator:
     @staticmethod
-    def generate(round_set: RoundSetType, round_number: int, exception: str, message: str, trace: str) -> ResultType:
+    def generate(round_set: RoundSetType, round_number: int, exception: str, message: str,
+                 trace: Optional[str]) -> ResultType:
         round_result = {
             "error": {
                 "exception": exception,
                 "message": message,
-                "trace": trace,
+                "trace": trace if not None else "",
             }
         }
         return {
