@@ -77,7 +77,7 @@ class TestValidators(unittest.TestCase):
             read_json_file_mock.side_effect = [self.json_file, self.schema_file]
 
             validate_json_schema(self.path, self.path)
-            read_json_file_mock.call_count = 2
+            self.assertEqual(read_json_file_mock.call_count, 2)
             system_mock.assert_called_once()
             read_json_file_mock.assert_called_with(self.path)
 
@@ -88,7 +88,7 @@ class TestValidators(unittest.TestCase):
             read_json_file_mock.side_effect = [self.json_file, self.schema_file]
             validate_json_schema(self.path, self.path)
             system_mock.assert_called_once()
-            read_json_file_mock.call_count = 2
+            self.assertEqual(read_json_file_mock.call_count, 2)
             read_json_file_mock.assert_called_with(self.path)
 
             # Raise ValidationError when validation returns False
@@ -105,7 +105,7 @@ class TestValidators(unittest.TestCase):
             system_mock.return_value = "Windows"
             read_json_file_mock.side_effect = [wrong_json_file, self.schema_file]
             validate_json_schema(self.path, self.path)
-            read_json_file_mock.call_count = 2
+            self.assertEqual(read_json_file_mock.call_count, 2)
             read_json_file_mock.assert_called_with(self.path)
             system_mock.assert_called_once()
 
