@@ -94,7 +94,12 @@ def applications_create(
 def retrieve_application_name_and_path(application_name: Optional[str]) -> Tuple[Path, str]:
     if application_name is not None:
         validate_path_name("Application", application_name)
-        application_path = Path(str(config_manager.get_application_path(application_name)))
+        application_path_temp = config_manager.get_application_path(application_name)
+        if application_path_temp is None:
+            application_path = application_path_temp
+        else:
+            application_path_unwrapped: str = application_path_temp
+            application_path = Path(application_path_unwrapped)
     else:
         application_path = Path.cwd()
         application_name, _ = config_manager.get_application_from_path(application_path)
