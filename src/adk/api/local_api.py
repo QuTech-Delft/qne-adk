@@ -243,7 +243,8 @@ class LocalApi:
         Args:
             application_name: name of the application
             roles: a list of roles
-            path: the path where the application is stored
+            application_path: the path where the application is stored
+
         Raises:
             DirectoryAlreadyExists: Raised when directory (or file) application_name already exists
         """
