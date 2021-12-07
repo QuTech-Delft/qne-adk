@@ -1,13 +1,15 @@
+###################
 Network information
--------------------
+###################
 When creating an application, the networks that will be available for this application depends on the number of roles
 that are given as parameter. Later, when running an experiment for this application, the user can choose one of the
 available networks for this application to run their experiment on. Each network is built out of channels, and each
 channel consists of two nodes. Below, all the channels and nodes of three of the currently implemented networks are
 listed, namely: Europe, The Netherlands, and Randstad.
 
+******
 Europe
-______
+******
 ``slug``: europe
 
 Available channels:
@@ -31,8 +33,9 @@ Available nodes:
 * delft
 * barcelona
 
+***************
 The Netherlands
-_______________
+***************
 ``slug``: the-netherlands
 
 Available channels:
@@ -51,8 +54,9 @@ Available nodes:
 * eindhoven
 * enschede
 
+********
 Randstad
-________
+********
 ``slug``: randstad
 
 Available channels:
