@@ -1,0 +1,17 @@
+{
+  "slug": "amsterdam-leiden",
+  "node1": "amsterdam",
+  "node2": "leiden",
+  "parameters": [
+    {
+      "slug": "elementary-link-fidelity",
+      "values": [
+        {
+          "name": "fidelity",
+          "value": 1.0,
+          "scale_value": 1.0
+        }
+      ]
+    }
+  ]
+}

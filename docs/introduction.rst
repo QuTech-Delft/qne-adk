@@ -262,8 +262,12 @@ Get the results for an experiment that has been run.
 
 More documentation
 ------------------
-More documentation about these commands and about the files that are generated can be found in the QNE-ADK user guide
-on the Quantum Network Explorer `Knowledge base <https://www.quantum-network.com/knowledge-base/qne-adk>`_.
+Following this step-by-step documentation, it will give you a better understanding of:
+
+* what each command implies
+* which files are generated and their purpose
+* a better understanding of what a quantum network consists of
+* how to create and run your own applications and experiments
 
 Bug reports
 -----------

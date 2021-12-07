@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "backend": {
+      "location": "local",
+      "type": "slug-of-the-backendtype"
+    },
+    "number_of_rounds": "number-of-rounds",
+    "description": "text"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "backend": {
+      "location": "local",
+      "type": "local_netsquid"
+    },
+    "number_of_rounds": 1,
+    "description": "teleport: experiment description"
+  }
+}

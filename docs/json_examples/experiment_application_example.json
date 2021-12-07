@@ -1,0 +1,12 @@
+{
+  "roles": [
+    "Sender"
+  ],
+  "values": [
+    {
+      "name": "x",
+      "value": 0,
+      "scale_value": 1.0
+    }
+  ]
+}
