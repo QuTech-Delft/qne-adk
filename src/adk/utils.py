@@ -102,8 +102,8 @@ def get_dummy_application(roles: List[Any]) -> List[Dict[str, Any]]:
 
     for role in roles:
         single_input = {
-          "title": "Title for this application",
-          "description": "Description of this application",
+          "title": "Title for this input",
+          "description": "Description of this input",
           "values": [
             {
               "name": "x",
