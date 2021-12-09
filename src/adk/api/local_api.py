@@ -15,7 +15,8 @@ from adk.settings import BASE_DIR
 from adk.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
                               app_configApplicationType, AssetType, assetApplicationType, assetNetworkType,
                               ExperimentType, ErrorDictType, GenericNetworkData, ResultType, RoundSetType,
-                              ChannelData, NetworkData, NodeData, TemplateData)
+                              ChannelData, NetworkData, NodeData, TemplateData, AssetNodeListType,
+                              AssetChannelListType)
 from adk.validators import validate_json_file, validate_json_schema
 
 
@@ -242,7 +243,8 @@ class LocalApi:
         Args:
             application_name: name of the application
             roles: a list of roles
-            path: the path where the application is stored
+            application_path: the path where the application is stored
+
         Raises:
             DirectoryAlreadyExists: Raised when directory (or file) application_name already exists
         """
@@ -523,6 +525,7 @@ class LocalApi:
         if not (application_path / 'MANIFEST.ini').is_file():
             error_dict["warning"].append(f"{application_path} should contain the file 'MANIFEST.ini'")
 
+
     def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
                            path: Path, application_name: str) -> None:
         """
@@ -649,32 +652,16 @@ class LocalApi:
 
         return input_list
 
-    def create_asset_network(self, network_data: assetNetworkType, app_config: AppConfigType) -> assetNetworkType:
-        """
-        Prepare the asset by filling the network parameters with default values
-
-        Args:
-            network_data: Network information containing channels and nodes list
-            app_config: A dictionary containing application configuration information
-
-        Returns:
-            Filled Network parameters with default values
-
-        """
-        # pylint: disable-msg=too-many-locals
-
-        templates = {template["slug"]: template for template in self.__templates_data["templates"]}
-        node_list = network_data["nodes"]
-        channel_list = network_data["channels"]
-
-        # Fill roles information
+    def __fill_asset_role_information(self, network_data: assetNetworkType, app_config: AppConfigType,
+                                      node_list: AssetNodeListType) -> None:
         network_data["roles"] = {}
         if "network" in app_config:
             if "roles" in app_config["network"]:
                 for index, role in enumerate(app_config["network"]["roles"]):
                     network_data["roles"][role] = node_list[index]["slug"]
 
-        # Fill channel information (parameters)
+    def __fill_asset_channel_information(self, channel_list: AssetChannelListType,
+                                         templates: Dict[str, Dict[str, Any]]) -> None:
         for channel in channel_list:
             filled_params_channel = []
             for param in channel["parameters"]:
@@ -683,7 +670,7 @@ class LocalApi:
 
             channel["parameters"] = filled_params_channel
 
-        # Fill Nodes information (parameters)
+    def __fill_asset_node_information(self, node_list: AssetNodeListType, templates: Dict[str, Dict[str, Any]]) -> None:
         for node in node_list:
             filled_params_node = []
             for param in node["node_parameters"]:
@@ -707,6 +694,32 @@ class LocalApi:
 
             del node["number_of_qubits"]
             del node["qubit_parameters"]
+
+    def create_asset_network(self, network_data: assetNetworkType, app_config: AppConfigType) -> assetNetworkType:
+        """
+        Prepare the asset by filling the network parameters with default values
+
+        Args:
+            network_data: Network information containing channels and nodes list
+            app_config: A dictionary containing application configuration information
+
+        Returns:
+            Filled Network parameters with default values
+
+        """
+
+        templates = {template["slug"]: template for template in self.__templates_data["templates"]}
+        node_list = network_data["nodes"]
+        channel_list = network_data["channels"]
+
+        # Fill roles information
+        self.__fill_asset_role_information(network_data, app_config, node_list)
+
+        # Fill channel information (parameters)
+        self.__fill_asset_channel_information(channel_list, templates)
+
+        # Fill Nodes information (parameters)
+        self.__fill_asset_node_information(node_list, templates)
 
         return network_data
 
@@ -1025,6 +1038,28 @@ class LocalApi:
 
             self._validate_experiment_application(experiment_path, experiment_data, error_dict)
 
+    def __check_experiment_input_role_files(self, experiment_input_path: Path, error_dict: ErrorDictType) -> None:
+        # Check if the app files for the roles from network.json exist in the
+        # experiment/input directory
+        application_file_names = self.__get_role_file_names(experiment_input_path)
+        for application_file_name in application_file_names:
+            if not (experiment_input_path / application_file_name).is_file():
+                error_dict["error"].append(f"'{experiment_input_path}' is missing the file: "
+                                           f"'{application_file_name}'")
+
+    def __check_all_experiment_input_files_exist(self, experiment_input_path: Path, error_dict: ErrorDictType) -> None:
+        for file in self.__get_config_file_names():
+            if (experiment_input_path / file).is_file():
+                app_schema_path = Path(os.path.join(BASE_DIR), 'schema', 'applications', '')
+                valid, message = validate_json_schema(experiment_input_path / file, app_schema_path / file)
+                if valid:
+                    if file == 'network.json':
+                        self.__check_experiment_input_role_files(experiment_input_path, error_dict)
+                else:
+                    error_dict["error"].append(message)
+            else:
+                error_dict["error"].append(f"'{experiment_input_path}' should contain the file '{file}'")
+
     def _validate_experiment_input(self, experiment_path: Path, local: bool, error_dict: ErrorDictType) -> None:
         """
         Validates if the experiment file structures input directory containing a:
@@ -1035,28 +1070,11 @@ class LocalApi:
             local: If the experiment is a local or not
             error_dict: Dictionary containing error and warning messages of the validations that failed
         """
-        # pylint: disable-msg=too-many-nested-blocks
         experiment_input_path = experiment_path / 'input'
 
         if experiment_input_path.is_dir():
             if local:
-                for file in self.__get_config_file_names():
-                    if (experiment_input_path / file).is_file():
-                        app_schema_path = Path(os.path.join(BASE_DIR), 'schema', 'applications', '')
-                        valid, message = validate_json_schema(experiment_input_path / file, app_schema_path / file)
-                        if valid:
-                            if file == 'network.json':
-                                # Check if the app files for the roles from network.json exist in the
-                                # experiment/input directory
-                                application_file_names = self.__get_role_file_names(experiment_input_path)
-                                for application_file_name in application_file_names:
-                                    if not (experiment_input_path / application_file_name).is_file():
-                                        error_dict["error"].append(f"'{experiment_input_path}' is missing the file: "
-                                                                   f"'{application_file_name}'")
-                        else:
-                            error_dict["error"].append(message)
-                    else:
-                        error_dict["error"].append(f"'{experiment_input_path}' should contain the file '{file}'")
+                self.__check_all_experiment_input_files_exist(experiment_input_path, error_dict)
         else:
             error_dict["error"].append(f"Required directory not found: '{experiment_input_path}'")
 

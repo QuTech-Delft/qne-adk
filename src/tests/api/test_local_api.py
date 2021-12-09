@@ -872,34 +872,55 @@ class ExperimentValidate(AppValidate):
             self.assertEqual(data['channels'], channel_info_list)
             self.assertEqual(data['nodes'], node_info_list)
 
-    def test_create_asset_network(self):
-        # pylint: disable-msg=too-many-statements, too-many-locals
-        with patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock:
+    def test__fill_asset_role_information(self):
+        with patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock, \
+             patch.object(LocalApi, "_LocalApi__fill_asset_node_information") as fill_asset_node_information_mock, \
+             patch.object(LocalApi, "_LocalApi__fill_asset_channel_information") as fill_asset_channel_information_mock:
 
             mock_network_data = {
-                        "name": 'Network 1',
-                        "slug": 'network-slug-1',
-                        "channels": self.channel_info_list,
-                        "nodes": self.node_info_list,
+                "name": 'Network 1',
+                "slug": 'network-slug-1',
+                "channels": self.channel_info_list,
+                "nodes": self.node_info_list,
             }
+
             mock_app_config = {'application': [{'app': 'foo'}],
                                'network': {'networks': ['network-slug-2', 'network-slug-1'],
                                            'roles': ['role1', 'role2']}
                                }
-            # Initialize the data for networks, channels, nodes and templates
-            read_generic_mock.side_effect = [self.mock_network_data, self.mock_channel_data,
-                                             self.mock_node_data, self.mock_template_data]
 
+            read_generic_mock.return_value = self.mock_template_data
             test_local_api = LocalApi(config_manager=self.config_manager)
-
             asset_network = test_local_api.create_asset_network(network_data=mock_network_data,
                                                                 app_config=mock_app_config)
-
             # Check Roles data
             self.assertIn('roles', asset_network)
             self.assertIn('role1', asset_network['roles'])
             self.assertIn('role2', asset_network['roles'])
+            fill_asset_channel_information_mock.assert_called_once()
+            fill_asset_node_information_mock.assert_called_once()
 
+    def test__fill_asset_channel_information(self):
+        with patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock, \
+             patch.object(LocalApi, "_LocalApi__fill_asset_role_information") as fill_asset_role_information_mock, \
+             patch.object(LocalApi, "_LocalApi__fill_asset_node_information") as fill_asset_node_information_mock:
+
+            mock_network_data = {
+                "name": 'Network 1',
+                "slug": 'network-slug-1',
+                "channels": self.channel_info_list,
+                "nodes": self.node_info_list,
+            }
+
+            mock_app_config = {'application': [{'app': 'foo'}],
+                               'network': {'networks': ['network-slug-2', 'network-slug-1'],
+                                           'roles': ['role1', 'role2']}
+                               }
+
+            read_generic_mock.return_value = self.mock_template_data
+            test_local_api = LocalApi(config_manager=self.config_manager)
+            asset_network = test_local_api.create_asset_network(network_data=mock_network_data,
+                                                                app_config=mock_app_config)
             # Check Channels data
             self.assertIn('channels', asset_network)
             self.assertEqual(len(asset_network["channels"]), 3)
@@ -927,6 +948,36 @@ class ExperimentValidate(AppValidate):
             self.assertEqual((c3_channel["slug"]), "c3-slug")
             self.assertEqual(len(c3_channel["parameters"]), 1)
             self.assertDictEqual(c3_channel["parameters"][0], expected_param_2_dict)
+
+            fill_asset_role_information_mock.assert_called_once()
+            fill_asset_node_information_mock.assert_called_once()
+
+    def test__fill_asset_node_information(self):
+        with patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock, \
+             patch.object(LocalApi, "_LocalApi__fill_asset_role_information") as fill_asset_role_information_mock, \
+             patch.object(LocalApi, "_LocalApi__fill_asset_channel_information") as fill_asset_channel_information_mock:
+
+            mock_network_data = {
+                "name": 'Network 1',
+                "slug": 'network-slug-1',
+                "channels": self.channel_info_list,
+                "nodes": self.node_info_list,
+            }
+
+            mock_app_config = {'application': [{'app': 'foo'}],
+                               'network': {'networks': ['network-slug-2', 'network-slug-1'],
+                                           'roles': ['role1', 'role2']}
+                               }
+
+            read_generic_mock.return_value = self.mock_template_data
+            test_local_api = LocalApi(config_manager=self.config_manager)
+            asset_network = test_local_api.create_asset_network(network_data=mock_network_data,
+                                                                app_config=mock_app_config)
+
+            expected_param_1_dict = {'slug': 'param-1',
+                                     'values': [{'name': 'fidelity', 'value': 1.0, 'scale_value': 1.0}]}
+            expected_param_2_dict = {'slug': 'param-2',
+                                     'values': [{'name': 't1', 'value': 0, 'scale_value': 12.0}]}
 
             # Check Nodes data
             self.assertIn('nodes', asset_network)
@@ -981,6 +1032,35 @@ class ExperimentValidate(AppValidate):
             self.assertEqual(len(n3_node["qubits"][0]['qubit_parameters']), 1)
             self.assertDictEqual(n3_node["qubits"][0]['qubit_parameters'][0], expected_param_2_dict)
 
+            fill_asset_role_information_mock.assert_called_once()
+            fill_asset_channel_information_mock.assert_called_once()
+
+    def test_create_asset_network_temp(self):
+        with patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock, \
+             patch.object(LocalApi, "_LocalApi__fill_asset_role_information") as fill_asset_role_information_mock, \
+             patch.object(LocalApi, "_LocalApi__fill_asset_node_information") as fill_asset_node_information_mock, \
+             patch.object(LocalApi, "_LocalApi__fill_asset_channel_information") as fill_asset_channel_information_mock:
+
+            mock_network_data = {
+                "name": 'Network 1',
+                "slug": 'network-slug-1',
+                "channels": self.channel_info_list,
+                "nodes": self.node_info_list,
+            }
+
+            mock_app_config = {'application': [{'app': 'foo'}],
+                               'network': {'networks': ['network-slug-2', 'network-slug-1'],
+                                           'roles': ['role1', 'role2']}
+                               }
+
+            read_generic_mock.return_value = self.mock_template_data
+            test_local_api = LocalApi(config_manager=self.config_manager)
+            test_local_api.create_asset_network(network_data=mock_network_data, app_config=mock_app_config)
+
+            fill_asset_role_information_mock.assert_called_once()
+            fill_asset_channel_information_mock.assert_called_once()
+            fill_asset_node_information_mock.assert_called_once()
+
     def test_get_network_nodes(self):
         with patch.object(LocalApi, "_LocalApi__read_generic_data") as read_generic_mock:
             read_generic_mock.side_effect = \
@@ -1024,6 +1104,7 @@ class ExperimentValidate(AppValidate):
                 ]
 
             test_local_api = LocalApi(config_manager=self.config_manager)
+
             data = test_local_api._get_network_nodes()  # pylint: disable=W0212
             self.assertEqual(data, {'randstad': ['amsterdam', 'leiden', 'the-hague']})
 

@@ -110,7 +110,7 @@ class ConfigManager:
                 return application
         return None
 
-    def get_application_path(self, application_name: str) -> Any:
+    def get_application_path(self, application_name: str) -> Optional[str]:
         """
         Reads the applications.json config file for getting the path using the application_name.
 
@@ -124,7 +124,8 @@ class ConfigManager:
         application = self.get_application(application_name)
         if application:
             if 'path' in application and os.path.exists(application['path']):
-                return application['path']
+                return str(application['path'])
+
         return None
 
     def get_application_from_path(self, application_path: Path) -> Tuple[str, Dict[str, str]]:
