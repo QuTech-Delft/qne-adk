@@ -8,12 +8,15 @@ from apistar.exceptions import ErrorResponse
 
 from adk import utils
 from adk.api.qne_client import QneFrontendClient
-from adk.exceptions import ExperimentFailed, JobTimeoutError
+from adk.exceptions import ExperimentFailed, ExperimentValueError, JobTimeoutError
 from adk.generators.result_generator import ResultGenerator
 from adk.managers.config_manager import ConfigManager
 from adk.managers.auth_manager import AuthManager
-from adk.type_aliases import (AppConfigType, ApplicationType, AssetType, ErrorDictType, ExperimentType,
-                              FinalResultType, GenericNetworkData, ExperimentDataType, ResultType, RoundSetType)
+from adk.managers.resource_manager import ResourceManager
+from adk.type_aliases import (AppConfigType, AppResultType, AppSourceType, AppVersionType,
+                              ApplicationType, ApplicationDataType, AssetType, ErrorDictType,
+                              ExperimentType, FinalResultType, GenericNetworkData, ExperimentDataType, ResultType,
+                              RoundSetType)
 from adk.settings import BASE_DIR
 
 
@@ -37,6 +40,9 @@ QNE_JOB_SUCCESS_STATES = (
 
 
 class RemoteApi():
+    """
+    Defines the methods used for remote communication with api-router
+    """
     def __init__(self, config_manager: ConfigManager) -> None:
         self.__config_manager: ConfigManager = config_manager
         config_dir = self.__config_manager.get_config_dir()
@@ -52,7 +58,7 @@ class RemoteApi():
         self.__headers: Dict[str, str] = {}
         self.__openapi_client_class = Client
         self.__auth_class = TokenAuthentication
-        self.__client: Client = None
+        self.resource_manager = ResourceManager(self.__qne_client)
 
     def __login_user(self, username: str, password: str, host: str) -> Optional[str]:
         self.__refresh_token = None
@@ -67,66 +73,230 @@ class RemoteApi():
         pass
 
     def login(self, username: str, password: str, host: str) -> None:
+        """
+        Login the user on host (uri) based upon the username/password values given
+        """
         self.auth_manager.login(username, password, host)
 
     def __logout_user(self, host: str) -> None:
         self.__qne_client.logout(host)
 
     def logout(self, host: str) -> bool:
+        """
+        Logout the user by deleting the entry in the resource
+        """
         if not self.__qne_client.is_logged_in():
             return False
         self.auth_manager.logout(host)
         return True
 
     def get_active_host(self) -> str:
+        """
+        Get the host as base_uri the user is logged in
+        """
         return self.__base_uri
 
     def list_applications(self) -> List[ApplicationType]:
+        """
+        Get the list of applications (public and enabled) from the api-router
+
+        Returns:
+             the list of applications
+        """
         return self.__qne_client.list_applications()
 
     def delete_application(self, application_id: Optional[str]) -> bool:
-        """experiment id is the experiment to delete. When not found 404 or another error return False
-        return True when no error was raised
+        """
+        Delete the remote application for the authenticated user
+
+        Args:
+            application id is the application to delete.
+
+        Returns:
+            False when not found 404 or another error
+            True when no error was raised
         """
         if application_id is not None and application_id.isdigit():
             try:
-                self.__qne_client.destroy_application(f"/fake_url/{application_id}/")
+                self.__qne_client.destroy_application(application_id)
             except ErrorResponse:
                 return False
 
-            # experiment deleted (inclusive all assets/round_sets and results)
+            # application deleted
             return True
         return False
 
-    def upload_application(self, application: str) -> None:
-        pass
+    def upload_application(self,
+                           application_path: Path,
+                           application_data: ApplicationDataType,
+                           application_config: AppConfigType,
+                           application_source: AppSourceType,
+                           application_result: AppResultType) -> ApplicationDataType:
+        """
+        Upload the application to the remote server
 
-    def __create_application(self, token: str, application: str) -> int:
-        return 0
+        Args:
+            application_path:
+            application_data: application data
+            application_config: application configuration
+            application_source:
+            application_result
 
-    def __create_application_version(self, token: str, application_id: int) -> int:
-        return 0
+        Returns:
+            True when uploaded successfully, otherwise False
+        """
+        # if application id present, update that application
+        application = None
+        application_id = None
+        if "application_id" in application_data["meta"]:
+            application_id = str(application_data["meta"]["application_id"])
+            application = self.__get_application_by_id(application_id)
 
-    def __create_application_config(self, token: str, application_version_id: int) -> None:
-        pass
+        if application is None:
+            # create application
+            application_to_create = self.__create_application(application_data)
+            application = self.__qne_client.create_application(application_to_create)
+            # app_version_to_create = self.__create_app_version(application)
+            # app_version = self.__qne_client.create_app_version(app_version_to_create)
+            # app_config_to_create = self.__create_app_config(application_data, application_config, app_version)
+            # app_config = self.__qne_client.create_app_config(app_config_to_create)
+            # app_result_to_create = self.__create_app_result(application_result, app_version)
+            # app_result = self.__qne_client.create_app_result(app_result_to_create)
+            app_config = {"network": { "roles": ["Alice", "Bob"]}}
+            app_version = {"url": ""}
+            app_source_to_create = self.__create_app_source(application_data, app_version,
+                                                            app_config, application_path)
+            app_source = self.__qne_client.create_app_source(app_source_to_create)
+        else:
+            # update application
+            application_to_update = self.__create_application(application_data)
+            application = self.__qne_client.partial_update_application(application_id, application_to_update)
 
-    def __create_application_source(self, token: str, application_version_id: int) -> None:
-        pass
+        application_data["meta"]["application_id"] = application["id"]
+        application_data["meta"]["slug"] = application["slug"]
 
-    def __create_application_result(self, token: str, application_version_id: int) -> None:
-        pass
+        application_data["meta"]["application"]["app_version"] = app_version["id"]
+        return application_data
+
+    @staticmethod
+    def __create_application(application_data: ApplicationDataType) -> ApplicationType:
+        application_name = application_data["meta"]["name"] if "name" in application_data["meta"] else ""
+        application_description =\
+            application_data["meta"]["description"] if "description" in application_data["meta"] else ""
+        application_author =\
+            application_data["meta"]["author"] if "author" in application_data["meta"] else ""
+        application_email =\
+            application_data["meta"]["email"] if "email" in application_data["meta"] else ""
+
+        application: ApplicationType = {
+            "name": application_name,
+            "description": application_description,
+            "author": application_author,
+            "email": application_email
+        }
+        return application
+
+    @staticmethod
+    def __create_app_version(application: ApplicationType, version: int = 1) -> AppVersionType:
+        app_version: AppVersionType = {
+            "application": application["url"],
+            "version": version
+        }
+        return app_version
+
+    @staticmethod
+    def __create_app_config(application_data: ApplicationDataType,
+                            application_config: AppConfigType,
+                            app_version: AppVersionType) -> AppConfigType:
+        multi_round = \
+            application_data["meta"]["config"]["multi_round"] if "multi_round" in application_data else False
+        app_config: AppConfigType = {
+            "app_version": app_version["url"],
+            "network": application_config["network"],
+            "application": application_config["application"],
+            "multi_round": multi_round
+        }
+        return app_config
+
+    def __create_app_source(self, application_data: ApplicationDataType, app_version: AppVersionType,
+                            app_config: AppConfigType, application_path: Path) -> AppSourceType:
+        app_source = self.resource_manager.prepare_resources(application_data, application_path, app_config)
+        app_source["app_version"] = app_version["url"]
+        app_source["output_parser"] = {}
+        return app_source
+
+    @staticmethod
+    def __create_app_result(app_version: AppVersionType,
+                            result_data: AppResultType) -> AppResultType:
+        app_result: AppResultType = {
+            "app_version": app_version["url"],
+            "round_result_view": result_data["round_result_view"],
+            "cumulative_result_view": result_data["cumulative_result_view"],
+            "final_result_view": result_data["final_result_view"]
+        }
+        return app_result
 
     def publish_application(self, application: str) -> None:
         pass
 
+    def __get_application_by_id(self, application_id: Optional[str]) -> Optional[ApplicationType]:
+        """
+        Get the application object from api-router for this remote application
+
+        Args:
+            application_id: id of the application
+
+        Returns:
+            Application object or None when the application was not found remotely
+        """
+        if application_id is not None and application_id.isdigit():
+            app_list = self.list_applications()
+            for application in app_list:
+                if application["id"] == int(application_id):
+                    return application
+        return None
+
     def __get_application_by_slug(self, application_slug: str) -> Optional[ApplicationType]:
+        """
+        Get the application object from api-router for this remote application
+
+        Args:
+            application_slug: Slug of the application
+
+        Returns:
+            Application object or None when the application was not found remotely
+        """
         app_list = self.list_applications()
         for application in app_list:
             if application["slug"] == application_slug.lower():
                 return application
         return None
 
+    def get_application_id(self, application_slug: str) -> Optional[int]:
+        """
+        Get the app id from api-router for this remote application
+
+        Args:
+            application_slug: Slug of the application
+
+        Returns:
+            id or None when the application was not found remotely
+        """
+        application = self.__get_application_by_slug(application_slug)
+        if application is not None:
+            return application["id"]
+        return None
+
     def get_application_config(self, application_slug: str) -> Optional[AppConfigType]:
+        """
+        Get the app config from api-router for this remote application
+
+        Args:
+            application_slug: Slug of the application
+
+        Returns:
+            App config or None when the application was not found remotely
+        """
         application = self.__get_application_by_slug(application_slug)
         if application is not None:
             return self.__qne_client.app_config_application(application["url"])
@@ -151,12 +321,18 @@ class RemoteApi():
         return error_dict
 
     def delete_experiment(self, experiment_id: Optional[str]) -> bool:
-        """experiment id is the experiment to delete. When not found 404 or another error return False
-        return True when no error was raised. The experiment is deleted (including all assets/round_sets/results)
+        """
+        Delete the remote experiment for the authenticated user
+        Args:
+            experiment_id: is the experiment to delete.
+
+        Returns:
+            False when not found 404 or another error occurs
+            True when no error was raised. The experiment is deleted (including all assets/round_sets/results)
         """
         if experiment_id is not None and experiment_id.isdigit():
             try:
-                self.__qne_client.destroy_experiment(f"/fake_url/{experiment_id}/")
+                self.__qne_client.destroy_experiment(experiment_id)
             except ErrorResponse:
                 return False
 
@@ -164,6 +340,9 @@ class RemoteApi():
         return False
 
     def experiments_list(self) -> List[ExperimentType]:
+        """
+        Get the remote experiments for the authenticated user from api-router
+        """
         experiment_list = self.__qne_client.list_experiments()
         for experiment in experiment_list:
             app_version = self.__qne_client.retrieve_appversion(experiment["app_version"])
@@ -172,28 +351,37 @@ class RemoteApi():
 
         return experiment_list
 
-    def __create_experiment(self, application_slug: str, app_version: str) -> Optional[ExperimentType]:
+    def __create_experiment(self, application_slug: str, app_version: str) -> ExperimentType:
+        """
+        Create and return an experiment object for sending to api-router
+        """
         user = self.__qne_client.retrieve_user()
+        if user is None:
+            raise ExperimentValueError("Current logged in user not a valid remote user")
         application = self.__get_application_by_slug(application_slug)
-        if application is not None and user is not None:
-            app_config = self.get_application_config(application_slug)
-            app_version_url = app_config["app_version"]
+        if application is None:
+            raise ExperimentValueError(f"Application in experiment data '{application_slug}' is not a remote "
+                                       f"application")
+        app_config = self.get_application_config(application_slug)
+        app_version_url = app_config["app_version"]
 
-            if app_version_url != app_version:
-                # TODO error: app config based on another version of the application
-                return None
-            user_url = user["url"]
-            experiment: ExperimentType = {
-                "app_version": app_version_url,
-                "personal_note": "Experiment created by qne-adk",
-                "is_marked": False,
-                "owner": user_url
-            }
-            return experiment
+        if app_version != app_version_url:
+            raise ExperimentValueError(f"App version in experiment data '{app_version}' is not equal to the "
+                                       f"current remote version of the application '{app_version_url}'")
+        user_url = user["url"]
+        experiment: ExperimentType = {
+            "app_version": app_version_url,
+            "personal_note": "Experiment created by qne-adk",
+            "is_marked": False,
+            "owner": user_url
+        }
+        return experiment
 
-        return None
-
-    def __create_round_set(self, asset_url: str, number_of_rounds: int) -> RoundSetType:
+    @staticmethod
+    def __create_round_set(asset_url: str, number_of_rounds: int) -> RoundSetType:
+        """
+        Create and return a round set object for sending to api-router
+        """
         round_set: RoundSetType = {
           "number_of_rounds": number_of_rounds,
           "status": "NEW",
@@ -201,14 +389,19 @@ class RemoteApi():
         }
         return round_set
 
-    def __translate_asset(self, asset_to_create: AssetType, experiment_url: str) -> AssetType:
+    @staticmethod
+    def __translate_asset(asset_to_create: AssetType, experiment_url: str) -> AssetType:
+        """
+        Because of differences in channel definition for api-router networks and asset networks we need a fix to
+        translate these (local) channels to a format that the backend expects.
+        Also the asset needs an experiment entry with the experiment url
+        """
         experiment_channels = asset_to_create["network"]["channels"]
         new_channels = []
         for channel in experiment_channels:
-            new_channel = {}
-            new_channel["node_slug1"] = channel["node1"]
-            new_channel["node_slug2"] = channel["node2"]
-            new_channel["parameters"] = channel["parameters"]
+            new_channel = {"node_slug1": channel["node1"],
+                           "node_slug2": channel["node2"],
+                           "parameters": channel["parameters"]}
             new_channels.append(new_channel)
 
         asset_to_create["network"]["channels"] = new_channels
@@ -216,6 +409,15 @@ class RemoteApi():
         return asset_to_create
 
     def run_experiment(self, experiment_data: ExperimentDataType) -> Tuple[str, str]:
+        """
+        Send the objects to api-router to run this experiment. The steps are:
+        1. add an experiment for this app_version
+        2. add an asset object that holds the app config
+        3. add a round set for number_of_rounds rounds to run the experiment
+
+        Args:
+            experiment_data: which holds the experiment data needed to generate the experiment
+        """
         application_slug = experiment_data["meta"]["application"]["slug"]
         app_version = experiment_data["meta"]["application"]["app_version"]
         experiment_to_create = self.__create_experiment(application_slug, app_version)
@@ -229,8 +431,18 @@ class RemoteApi():
 
         return round_set["url"], experiment["id"]
 
-    def get_results(self, round_set_url: str, block: bool = False, wait: int = 2,
-                    timeout: int = 30) -> Optional[List[ResultType]]:
+    def get_results(self, round_set_url: str, block: bool = False, timeout: int = 30,
+                    wait: int = 2) -> Optional[List[ResultType]]:
+        """
+        For a job running, get the results. When block is True, block the call for 'timeout' seconds until the result
+        is received
+
+        Args:
+            round_set_url: which holds the results and status of the run of the remote experiment
+            block: When True retry for a number of seconds
+            timeout: retry for this number of seconds to get the result
+            wait: number of seconds to wait between calls to api router for the results
+        """
         start_time = time.time()
         round_set = self.__qne_client.retrieve_roundset(round_set_url)
         status = round_set["status"]
@@ -244,7 +456,12 @@ class RemoteApi():
         return self.__get_results(round_set)
 
     def __get_results(self, round_set: RoundSetType) -> Optional[List[ResultType]]:
-        # For a finished job and completed job, get the results
+        """
+        For a completed job, get the results
+
+        Args:
+            round_set: which holds the results and status of the run of the remote experiment
+        """
         status = round_set["status"]
         round_set_url = round_set["url"]
 
@@ -268,7 +485,12 @@ class RemoteApi():
         return None
 
     def __get_final_result(self, round_set: RoundSetType) -> Optional[FinalResultType]:
-        # For a finished job, get the final result
+        """
+        For a completed job, get the final result.
+
+        Args:
+            round_set: which holds the results and status of the run of the remote experiment
+        """
         status = round_set["status"]
         round_set_url = round_set["url"]
 
@@ -289,9 +511,6 @@ class RemoteApi():
 
         return None
 
-    def __results_exists(self, path: Path) -> bool:
-        pass
-
     def list_networks(self) -> List[Dict[str, Any]]:
         """
         Function to list the networks
@@ -304,13 +523,12 @@ class RemoteApi():
     @staticmethod
     def __write_network_data(entity_name: str, network_data: GenericNetworkData) -> None:
         """
-            Writes the json file specified by the parameter 'entity_name'.
-            entity_name can be 'networks', 'channels', 'nodes', 'templates'
+        Writes the json file specified by the parameter 'entity_name'.
+        entity_name can be 'networks', 'channels', 'nodes', 'templates'
 
-            Params:
-                entity_name: The type of the data to read
-                network_data: The data to write
-
+        Args:
+            entity_name: The type of the data to read
+            network_data: The data to write
         """
         file_name = Path(BASE_DIR) / 'networks' / f'{entity_name}.json'
         utils.write_json_file(file_name, network_data)
@@ -322,6 +540,13 @@ class RemoteApi():
         return utils.read_json_file(file_name)
 
     def __update_networks_networks(self, overwrite: bool) -> None:
+        """
+        Get the remote networks and update the local network definitions
+
+        Args:
+            overwrite: When True, replace the local files. Otherwise try to merge (keeping the new local network
+            entities)
+        """
         entity = "networks"
         networks_json = {}
 
@@ -358,8 +583,14 @@ class RemoteApi():
                 list_of_dict.append(dict_item)
 
     def __update_networks_channels(self, overwrite: bool) -> None:
-        entity = "channels"
+        """
+        Get the remote channels and update the local channel definitions
 
+        Args:
+            overwrite: When True, replace the local files. Otherwise try to merge (keeping the new local network
+            entities)
+        """
+        entity = "channels"
         channels_json = {}
         channel_json = [] if overwrite else self.__read_network_data(entity)[entity]
         channels = self.__qne_client.list_channels()
@@ -381,6 +612,13 @@ class RemoteApi():
         self.__write_network_data(entity, channels_json)
 
     def __update_networks_nodes(self, overwrite: bool) -> None:
+        """
+        Get the remote nodes and update the local node definitions
+
+        Args:
+            overwrite: When True, replace the local files. Otherwise try to merge (keeping the new local network
+            entities)
+        """
         entity = "nodes"
         nodes_json = {}
         node_json = [] if overwrite else self.__read_network_data(entity)[entity]
@@ -407,6 +645,13 @@ class RemoteApi():
         self.__write_network_data(entity, nodes_json)
 
     def __update_networks_templates(self, overwrite: bool) -> None:
+        """
+        Get the remote templates and update the local template definitions
+
+        Args:
+            overwrite: When True, replace the local files. Otherwise try to merge (keeping the new local network
+            entities)
+        """
         entity = "templates"
         templates_json = {}
         template_json = [] if overwrite else self.__read_network_data(entity)[entity]
@@ -428,10 +673,14 @@ class RemoteApi():
 
     def update_networks(self, overwrite: bool) -> bool:
         """
-        Function to get the remote networks and update the local network definitions
+        Get the remote networks and update the local network definitions
+
+        Args:
+            overwrite: When True replace the local files, otherwise try to merge (keeping the new local network
+            entities)
 
         Returns:
-            success of not
+            success (True) or not (False)
         """
         try:
             self.__update_networks_networks(overwrite)

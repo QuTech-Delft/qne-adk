@@ -9,7 +9,7 @@ class ApiClientError(QneAdkException):
     """Raised on error from api client"""
 
     def __init__(self, message: str) -> None:
-        super().__init__(f'{message}')
+        super().__init__(f"{message}")
 
 
 class ApplicationAlreadyExists(QneAdkException):
@@ -90,6 +90,13 @@ class ExperimentFailed(QneAdkException):
         super().__init__(f"{message}")
 
 
+class ExperimentNotRun(QneAdkException):
+    """Raised when experiment was not run but results were fetched"""
+
+    def __init__(self, experiment_path: str) -> None:
+        super().__init__(f"Experiment in directory '{experiment_path}' did not run via command 'experiment run'")
+
+
 class ExperimentValueError(QneAdkException):
     """Raised when a value in the experiment is not valid"""
 
@@ -109,7 +116,7 @@ class InvalidPathName(QneAdkException):
 class JobTimeoutError(QneAdkException):
     """Waiting for job results time out"""
     def __init__(self, message: str) -> None:
-        super().__init__(f"{message}'")
+        super().__init__(f"{message}")
 
 
 class JsonFileNotFound(QneAdkException):
@@ -181,3 +188,9 @@ class RolesNotUnique(QneAdkException):
     def __init__(self) -> None:
         super().__init__("The role names must be unique")
 
+
+class SchemaError(QneAdkException):
+    """Raised when error during schema validation"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(f"{message}")

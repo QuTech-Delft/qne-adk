@@ -4,10 +4,11 @@ from typing import Any, cast, Dict, List, Optional
 from adk.api.local_api import LocalApi
 from adk.api.remote_api import RemoteApi
 from adk.decorators import log_function
-from adk.exceptions import (ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication,
-                           ResultDirectoryNotAvailable)
-from adk.type_aliases import ApplicationType, ExperimentType, ErrorDictType, NetworkType, ResultType
+from adk.exceptions import (ApplicationNotFound, DirectoryAlreadyExists, ExperimentNotRun,
+                            NetworkNotAvailableForApplication, ResultDirectoryNotAvailable)
+from adk.type_aliases import ApplicationType, ExperimentType, ErrorDictType, ResultType
 from adk import utils
+
 
 class CommandProcessor:
     def __init__(self, remote_api: RemoteApi, local_api: LocalApi):
@@ -22,18 +23,40 @@ class CommandProcessor:
     def logout(self, host: str) -> bool:
         return self.__remote.logout(host=host)
 
-    def applications_create(
-        self, application_name: str, roles: List[str], application_path: Path
-    ) -> None:
+    def applications_create(self, application_name: str, roles: List[str], application_path: Path) -> None:
         self.__local.create_application(application_name, roles, application_path)
 
     @log_function
-    def applications_init(self, path: Path) -> None:
-        self.__local.init_application(path)
+    def applications_init(self, application_path: Path) -> None:
+        self.__local.init_application(application_path)
 
     @log_function
-    def applications_upload(self, application_name: str) -> None:
-        self.__remote.upload_application(application_name)
+    def applications_upload(self, application_name: str, application_path: Path) -> bool:
+        """
+        Upload the application to the remote server
+
+        Args:
+            application_name: application name
+            application_path: location of application files
+
+        Returns:
+            True when uploaded successfully, otherwise False
+        """
+        app_config = self.__local.get_application_config(application_name)
+        if app_config:
+            application_data = self.__local.get_application_data(application_path)
+            app_source = None
+            app_result = self.__local.get_application_result(application_name)
+            application_data = self.__remote.upload_application(application_path=application_path,
+                                                                application_data=application_data,
+                                                                application_config=app_config,
+                                                                application_source=app_source,
+                                                                application_result=app_result)
+            self.__local.set_application_data(application_path, application_data)
+        else:
+            raise ApplicationNotFound(application_name)
+
+        return True
 
     @log_function
     def applications_list(self, remote: bool, local: bool) -> Dict[str, List[ApplicationType]]:
@@ -61,9 +84,16 @@ class CommandProcessor:
     @log_function
     def applications_delete(self, application_name: Optional[str], application_path: Path) -> bool:
         """get the remote application id before we delete the local application"""
-        application_id = self.__local.get_remote_id_application(application_name, application_path)
-        # be sure to call both local and remote
-        deleted_completely_remote = self.__remote.delete_application(application_id)
+        application_id = self.__local.get_application_id(application_path)
+        deleted_completely_remote = \
+            self.__remote.delete_application(application_id) if application_id is not None else True
+        # todo we don't have to update manifest, it will be deleted now, unless we introduce a --remote flag
+        # application_data = self.__local.get_application_data(application_path)
+        # if "application_id" in application_data["meta"]:
+        #     del application_data["meta"]["application_id"]
+        # if "slug" in application_data["meta"]:
+        #     del application_data["meta"]["slug"]
+        # self.__local.set_application_data(application_path, application_data)
         deleted_completely_local = self.__local.delete_application(application_name, application_path)
 
         return deleted_completely_local and deleted_completely_remote
@@ -73,14 +103,15 @@ class CommandProcessor:
         self.__remote.publish_application(application_name)
 
     @log_function
-    def applications_validate(self, application_name: str, local: bool = True) -> ErrorDictType:
+    def applications_validate(self, application_name: str, application_path: Path, local: bool = True) -> ErrorDictType:
         if local:
-            return self.__local.is_application_valid(application_name)
+            return self.__local.is_application_valid(application_name, application_path)
         else:
             return self.__remote.is_application_valid(application_name)
 
     @log_function
     def __is_application_local(self, application_name: str) -> bool:
+        # return config_manager.application_exists(application_name)
         pass
 
     @log_function
@@ -133,20 +164,31 @@ class CommandProcessor:
         return self.__remote.experiments_list()
 
     @log_function
-    def experiments_validate(self, path: Path) -> ErrorDictType:
+    def experiments_validate(self, experiment_path: Path) -> ErrorDictType:
         """Validate the local experiment files"""
-        return self.__local.validate_experiment(path)
+        return self.__local.validate_experiment(experiment_path)
 
     @log_function
-    def experiments_delete(self, experiment_name: Optional[str], experiment_path: Path) -> bool:
-        """get the remote experiment id before we delete the local experiment"""
-        experiment_id = self.__local.get_experiment_id(experiment_name, experiment_path)
-        deleted_completely_remote =\
-            self.__remote.delete_experiment(experiment_id) if experiment_id is not None else True
+    def experiments_delete_remote_only(self, experiment_id: str) -> bool:
+        """
+        Delete the remote experiment.
+        """
+        return self.__remote.delete_experiment(experiment_id)
+
+    @log_function
+    def experiments_delete(self, experiment_name: str, experiment_path: Path) -> bool:
+        """
+        Get the remote experiment id registered for this experiment when it run remote, delete this remote experiment.
+        Then delete the local experiment.
+        """
+        deleted_remote = True
+        remote = not self.__local.is_experiment_local(experiment_path=experiment_path)
+        if remote:
+            experiment_id = self.__local.get_experiment_id(experiment_name, experiment_path)
+            deleted_remote = self.__remote.delete_experiment(experiment_id) if experiment_id is not None else True
         deleted_completely_local = self.__local.delete_experiment(experiment_name, experiment_path)
 
-
-        return deleted_completely_local and deleted_completely_remote
+        return deleted_completely_local and deleted_remote
 
     @log_function
     def experiments_run(self, experiment_path: Path, block: bool = True) -> Optional[List[ResultType]]:
@@ -175,17 +217,21 @@ class CommandProcessor:
     def experiments_results(self, all_results: bool, experiment_path: Path) -> Optional[List[ResultType]]:
         """Get the experiment results
         Returns:
-            None if remote results are not yet available, otherwise True
+            None if remote results are not (yet) available, otherwise True
         """
+        results = None
         remote = not self.__local.is_experiment_local(experiment_path=experiment_path)
         if remote:
             round_set = self.__local.get_experiment_round_set(experiment_path)
-            if not self.__results_available(round_set, experiment_path):
-                results = self.__remote.get_results(round_set)
-                if results is not None:
-                    self.__store_results(results, experiment_path)
+            if round_set is not None:
+                if not self.__results_available(round_set, experiment_path):
+                    results = self.__remote.get_results(round_set)
+                    if results is not None:
+                        self.__store_results(results, experiment_path)
+                else:
+                    results = self.__get_results(experiment_path=experiment_path)
             else:
-                results = self.__get_results(experiment_path=experiment_path)
+                raise ExperimentNotRun(str(experiment_path))
         else:
             results = self.__get_results(experiment_path=experiment_path)
 
