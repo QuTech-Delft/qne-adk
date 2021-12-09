@@ -45,6 +45,7 @@ RoundSetType = Dict[str, Union[DefaultPayloadType, float]]
 AssetType = Dict[str, Union[DefaultPayloadType, assetNetworkType, assetApplicationType]]
 ExperimentType = Dict[str, Union[DefaultPayloadType, bool]]
 ExperimentDataType = Dict[str, Dict[str, Any]]
+ApplicationDataType = Dict[str, Dict[str, Any]]
 
 ResultType = Dict[str, Union[DefaultPayloadType, round_resultType, cumulative_resultType, instructionsType]]
 FinalResultType = Dict[str, Union[DefaultPayloadType, Dict[str, Any]]]

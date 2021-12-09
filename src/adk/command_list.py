@@ -49,7 +49,7 @@ def login(
     ),
 ) -> None:
     """
-    Log in to a Quantum Network Explorer.
+    Log in to a Quantum Network Explorer
     """
     processor.login(host=host, username=username, password=password)
     host = remote_api.get_active_host()
@@ -60,7 +60,7 @@ def login(
 @catch_qne_adk_exceptions
 def logout(host: str = typer.Argument(None)) -> None:
     """
-    Log out from a Quantum Network Explorer.
+    Log out from a Quantum Network Explorer
     """
     if processor.logout(host=host):
         logout_host = "active host" if host is None else f"'{host}'"
@@ -101,6 +101,7 @@ def applications_create(
 
 def retrieve_application_name_and_path(application_name: Optional[str]) -> Tuple[Path, str]:
     """
+    For local applications only
     Retrieve the application_path and application_name from the configuration, cwd and parameters given
     """
     if application_name is not None:
@@ -127,13 +128,12 @@ def applications_delete(
     application_name: Optional[str] = typer.Argument(None, help="Name of the application")
 ) -> None:
     """
-    Delete application files from application directory. Currently only local
+    Delete application files from application directory.
 
     When application_name is given ./application_name is taken as application directory, when this directory is
     not valid the application directory is fetched from the application configuration. When application_name is
     not given, the current directory is taken as application directory.
     """
-
     application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
 
     deleted_completely = processor.applications_delete(application_name=application_name,
@@ -158,11 +158,29 @@ def applications_init() -> None:
 
 @applications_app.command("upload")
 @catch_qne_adk_exceptions
-def applications_upload() -> None:
+def applications_upload(
+    application_name: Optional[str] = typer.Argument(None, help="Name of the application")
+) -> None:
     """
     Create or update a remote application.
+
+    When application_name is given ./application_name is taken as application directory, when this directory is
+    not valid the application directory is fetched from the application configuration. When application_name is
+    not given, the current directory is taken as application directory.
     """
-    raise CommandNotImplemented
+    application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
+    validate_dict = processor.applications_validate(application_name=application_name,
+                                                    application_path=application_path)
+    if validate_dict["error"] or validate_dict["warning"]:
+        show_validation_messages(validate_dict)
+        typer.echo(f"Application '{application_name}' is invalid. Application not uploaded.")
+    else:
+        uploaded_success = processor.applications_upload(application_name=application_name,
+                                                         application_path=application_path)
+        if uploaded_success:
+            typer.echo("Application uploaded successfully")
+        else:
+            typer.echo("Application not uploaded")
 
 
 @applications_app.command("list")
@@ -200,9 +218,10 @@ def applications_list(
         if len(applications["remote"]) == 0:
             typer.echo("There are no remote applications available")
         else:
-            desired_order_columns = ["slug", "id", "is_public", "is_disabled"]
+            desired_order_columns = ["slug", "name", "id", "is_public", "is_disabled"]
             remote_app_list = reorder_data(applications["remote"], desired_order_columns)
-            typer.echo(tabulate(remote_app_list, headers={"slug": "application",
+            typer.echo(tabulate(remote_app_list, headers={"slug": "application name",
+                                                          "name": "application full name",
                                                           "id": "application id",
                                                           "is_public": "public",
                                                           "is_disabled": "disabled"}))
@@ -266,9 +285,9 @@ def experiments_create(
     validate_path_name("Experiment", experiment_name)
 
     cwd = Path.cwd()
-    path, application_name = retrieve_application_name_and_path(application_name=application_name)
-
-    validate_dict = processor.applications_validate(application_name=application_name, local=local)
+    application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
+    validate_dict = processor.applications_validate(application_name=application_name,
+                                                    application_path=application_path, local=local)
     if validate_dict["error"] or validate_dict["warning"]:
         show_validation_messages(validate_dict)
         typer.echo(f"Application '{application_name}' is invalid. Experiment not created.")
@@ -282,7 +301,7 @@ def experiments_create(
 @catch_qne_adk_exceptions
 def experiments_list() -> None:
     """
-    List experiments.
+    List remote experiments.
     """
     experiments = processor.experiments_list()
     if len(experiments) == 0:
@@ -300,7 +319,7 @@ def experiments_list() -> None:
 
 def retrieve_experiment_name_and_path(experiment_name: Optional[str]) -> Tuple[Path, str]:
     """
-    Retrieve the experiment_path and experiment_name from the cwd and parameters given
+    Retrieve the experiment_path and experiment_name from the cwd and parameters given.
     """
     path = Path.cwd()
     if experiment_name is not None:
@@ -310,7 +329,7 @@ def retrieve_experiment_name_and_path(experiment_name: Optional[str]) -> Tuple[P
         experiment_name = path.name
         experiment_path = path
 
-    if not experiment_path.is_dir():
+    if not local_api.is_valid_experiment_path(experiment_path):
         raise ExperimentDirectoryNotValid(str(experiment_path))
 
     return experiment_path, experiment_name
@@ -319,23 +338,45 @@ def retrieve_experiment_name_and_path(experiment_name: Optional[str]) -> Tuple[P
 @experiments_app.command("delete")
 @catch_qne_adk_exceptions
 def experiments_delete(
-    experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment")
+    experiment_name_or_id: Optional[str] = typer.Argument(None, help="Name of the experiment or remote id"),
+    remote: bool = typer.Option(
+        False, "--remote", help="Delete a remote experiment"
+    )
 ) -> None:
     """
     Delete experiment files.
 
-    When experiment_name is given ./experiment_name is taken as experiment path, otherwise current directory.
+    Local: When deleting an experiment locally, argument EXPERIMENT_NAME_OR_ID is the local experiment name, which is
+    the subdirectory containing the experiment files. When the argument is empty the current directory is taken as
+    experiment directory.
+    The local experiment files are deleted, when the experiment was created with '--remote' and the experiment was run
+    remotely, the remote experiment is also deleted.
+
+    Remote: the argument EXPERIMENT_NAME_OR_ID is the remote experiment id to delete. No local files are deleted.
     """
-    arg_experiment_name = experiment_name
-    experiment_path, experiment_name = retrieve_experiment_name_and_path(experiment_name=experiment_name)
-    deleted_completely = processor.experiments_delete(experiment_name=experiment_name, experiment_path=experiment_path)
-    if deleted_completely:
-        typer.echo("Experiment deleted successfully")
-    else:
+    arg_experiment_name = experiment_name_or_id
+    if remote:
         if arg_experiment_name is None:
-            typer.echo("Experiment files deleted")
+            typer.echo("Remote experiment not deleted. No remote experiment id given")
         else:
-            typer.echo("Experiment files deleted, directory not empty")
+            deleted_completely = processor.experiments_delete_remote_only(experiment_name_or_id)
+            if deleted_completely:
+                typer.echo(f"Remote experiment with experiment id {experiment_name_or_id} deleted successfully")
+            else:
+                typer.echo("Remote experiment not deleted. No valid experiment id given")
+    else:
+        # local
+        experiment_path, experiment_name = retrieve_experiment_name_and_path(experiment_name=experiment_name_or_id)
+
+        deleted_completely = processor.experiments_delete(experiment_name=experiment_name,
+                                                          experiment_path=experiment_path)
+        if deleted_completely:
+            typer.echo("Experiment deleted successfully")
+        else:
+            if arg_experiment_name is None:
+                typer.echo("Experiment files deleted")
+            else:
+                typer.echo("Experiment files deleted, directory not empty")
 
 
 @experiments_app.command("run")
@@ -345,7 +386,7 @@ def experiments_run(
     block: bool = typer.Option(False, "--block", help="Wait for the result to be returned")
 ) -> None:
     """
-    Execute a run of the experiment.
+    Run an experiment.
     """
     experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
     # Validate the experiment before executing the run command
@@ -355,6 +396,8 @@ def experiments_run(
         show_validation_messages(validate_dict)
         typer.echo("Experiment is invalid. Please resolve the issues and then run the experiment.")
     else:
+        if block:
+            typer.echo("Experiment is sent to the remote server. Please wait until the results are received...")
         results = processor.experiments_run(experiment_path=experiment_path, block=block)
         if results is not None:
             if "error" in results[0]["round_result"]:
@@ -374,7 +417,6 @@ def experiments_validate(
     """
     Validate the experiment configuration.
     """
-
     experiment_path, experiment_name = retrieve_experiment_name_and_path(experiment_name=experiment_name)
     typer.echo(f"Validate experiment '{experiment_name}'\n")
 
@@ -395,7 +437,7 @@ def experiments_results(
     show: bool = typer.Option(False, "--show", help="Show the results on screen instead of saving to file"),
 ) -> None:
     """
-    Get results for an experiment.
+    Get results for an experiment that run successfully.
     """
     experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
     results = processor.experiments_results(all_results=all_results, experiment_path=experiment_path)
@@ -406,7 +448,7 @@ def experiments_results(
             result_noun = "Results are" if all_results else "Result is"
             typer.echo(f"{result_noun} stored at location '{experiment_path / 'results' / 'processed.json'}'")
     else:
-        typer.echo("Results not yet received from backend. Check again later using command 'experiment results'")
+        typer.echo("No results received from backend yet. Check again later using command 'experiment results'")
 
 
 @networks_app.command("list")

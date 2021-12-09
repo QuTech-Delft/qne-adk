@@ -206,6 +206,15 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         For testing front end functionality.
         All possible endpoints are implemented which can be reached by a front end.
     """
+    def upload_source_files(self, file_path: str) -> Any:
+        """Upload source files for an application to the api-routerdown.
+
+        Args:
+            file_path: name of the file it has on the local disk.
+        """
+        response = self._client_post(file_path, stream=True)
+        return response
+
     def create_token(self) -> TokenType:
         response = self._action('createToken')
         return cast(TokenType, response)
@@ -223,9 +232,43 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         response = self._action('retrieveApplication', id=application_id)
         return cast(ApplicationType, response)
 
-    def destroy_application(self, application_url: str) -> None:
-        _, application_id = QneClient.parse_url(application_url)
+    def destroy_application(self, application_id: str) -> None:
         self._action('destroyApplication', id=application_id)
+
+    def partial_update_application(self, application_id: str, application: ApplicationType) -> ApplicationType:
+        params = self._cast_parameter_type({
+            'name': application['name'],
+            'description': application['description'],
+            'author': application['author'],
+            'email': application['email']
+        })
+        response = self._action('partialUpdateApplication', id=application_id, application=params)
+        return cast(ApplicationType, response)
+
+    def create_application(self, application: ApplicationType) -> ApplicationType:
+        params = self._cast_parameter_type(application)
+        response = self._action('createApplication', application=params)
+        return cast(ApplicationType, response)
+
+    def create_app_version(self, app_version: AppVersionType) -> AppVersionType:
+        params = self._cast_parameter_type(app_version)
+        response = self._action('createAppVersion', appversion=params)
+        return cast(AppVersionType, response)
+
+    def create_app_config(self, app_config: AppConfigType) -> AppConfigType:
+        params = self._cast_parameter_type(app_config)
+        response = self._action('createAppConfig', appconfig=params)
+        return cast(AppConfigType, response)
+
+    def create_app_result(self, app_result: AppResultType) -> AppResultType:
+        params = self._cast_parameter_type(app_result)
+        response = self._action('createAppResult', appresult=params)
+        return cast(AppResultType, response)
+
+    def create_app_source(self, app_source: AppSourceType) -> AppSourceType:
+        params = self._cast_parameter_type(app_source)
+        response = self._action('createAppSource', appsource=params)
+        return cast(AppSourceType, response)
 
     def app_config_application(self, application_url: str) -> AppConfigType:
         _, application_id = QneClient.parse_url(application_url)
@@ -338,8 +381,7 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         response = self._action('partialUpdateExperiment', id=experiment_id, experiment=params)
         return cast(ExperimentType, response)
 
-    def destroy_experiment(self, experiment_url: str) -> None:
-        _, experiment_id = QneClient.parse_url(experiment_url)
+    def destroy_experiment(self, experiment_id: str) -> None:
         self._action('destroyExperiment', id=experiment_id)
 
     def assets_latest_experiment(self, experiment_url: str) -> AssetType:
