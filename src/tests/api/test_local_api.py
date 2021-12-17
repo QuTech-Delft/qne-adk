@@ -10,6 +10,7 @@ from adk.exceptions import (ApplicationAlreadyExists, ApplicationDoesNotExist, E
 from adk.managers.roundset_manager import RoundSetManager
 from adk.parsers.output_converter import OutputConverter
 
+
 # pylint: disable=R0902
 # Too many instance attributes
 class AppValidate(unittest.TestCase):
@@ -573,7 +574,7 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Sender', 'Receiver']), \
              patch("adk.api.local_api.os.rmdir"):
 
-            resulting_path_mock.return_value=('app_dir', None)
+            resulting_path_mock.return_value = ('app_dir', None)
             is_dir_mock.side_effect = [False, False]
             self.assertRaises(ApplicationDoesNotExist, self.local_api.delete_application, 'app_dir',
                               application_path=Path('dummy'))
@@ -591,6 +592,7 @@ class ApplicationValidate(AppValidate):
             self.assertEqual(unlink_mock.call_count, 6)
             self.assertEqual(rmdir_mock.call_count, 2)
             self.assertFalse(delete_application_output)
+
 
 # pylint: disable=R0904
 # Too many public methods
@@ -866,7 +868,7 @@ class ExperimentValidate(AppValidate):
             validate_experiment_channels_mock.assert_called_once_with(self.experiment_file_path,
                                                                       self.mock_experiment_data, self.error_dict)
             validate_experiment_application_mock.assert_called_once_with(self.path, self.mock_experiment_data,
-                                                                   self.error_dict)
+                                                                         self.error_dict)
 
     def test_validate_experiment_json_experiment_not_valid(self):
         with patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
@@ -878,7 +880,7 @@ class ExperimentValidate(AppValidate):
             self.local_api.validate_experiment(self.path)
             validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
                                                                    error_dict={'error': ['message'], 'warning': [],
-                                                                                    'info': []})
+                                                                               'info': []})
             path_join_mock.assert_called_once()
             validate_json_schema_mock.assert_called_once_with(self.experiment_file_path, self.path)
 
@@ -891,8 +893,6 @@ class ExperimentValidate(AppValidate):
              patch.object(LocalApi, "_validate_experiment_nodes"), \
              patch.object(LocalApi, "_validate_experiment_channels"), \
              patch.object(LocalApi, "_validate_experiment_application"):
-
-
 
             experiment_data = {
                 "meta": {
@@ -953,28 +953,15 @@ class ExperimentValidate(AppValidate):
                                                                          error_dict)
 
     def test_validate_experiment_input_all_ok(self):
-        with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
-             patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
-             patch.object(LocalApi, "_LocalApi__get_config_file_names") as get_config_file_names_mock, \
-             patch("adk.api.local_api.Path.is_file") as is_file_mock, \
-             patch("adk.api.local_api.os.path.join") as path_join_mock, \
-             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
-             patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock:
+        with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
+             patch.object(LocalApi, "_LocalApi__check_all_experiment_input_files_exist") as exp_input_files_mock:
 
             is_dir_mock.return_value = True
-            is_file_mock.return_value = True
-            path_join_mock.return_value = self.path
-            validate_json_schema_mock.return_value = True, None
-            get_config_file_names_mock.return_value = self.config_files
-            get_role_file_names_mock.return_value = self.roles
             self.local_api.validate_experiment(self.path)
             validate_experiment_json_mock.assert_called_once_with(experiment_path=self.path, error_dict=self.error_dict)
+            exp_input_files_mock.assert_called_once_with(self.path / 'input', self.error_dict)
             is_dir_mock.assert_called_once()
-            get_config_file_names_mock.assert_called_once()
-            is_file_mock.call_count = 5
-            validate_json_schema_mock.call_count = 3
-            get_role_file_names_mock.call_count = 3
-            get_role_file_names_mock.assert_called_with(self.path / "input")
 
     def test_validate_experiment_input_no_dir_exist(self):
         with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
@@ -990,9 +977,9 @@ class ExperimentValidate(AppValidate):
 
     def test_validate_experiment_input_file_missing(self):
         with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
-            patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
-            patch.object(LocalApi, "_LocalApi__get_config_file_names") as get_config_file_names_mock, \
-            patch("adk.api.local_api.Path.is_file") as is_file_mock:
+             patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
+             patch.object(LocalApi, "_LocalApi__get_config_file_names") as get_config_file_names_mock, \
+             patch("adk.api.local_api.Path.is_file") as is_file_mock:
 
             error_message1 = f"'{self.path / 'input'}' should contain the file 'application.json'"
             error_message2 = f"'{self.path / 'input'}' should contain the file 'network.json'"
@@ -1006,7 +993,7 @@ class ExperimentValidate(AppValidate):
             self.local_api.validate_experiment(self.path)
             is_dir_mock.assert_called_once()
             get_config_file_names_mock.assert_called_once()
-            is_file_mock.call_count = 3
+            self.assertEqual(is_file_mock.call_count, 3)
             validate_experiment_json_mock.assert_called_once_with(experiment_path=self.path, error_dict=error_dict)
 
     def test_validate_experiment_input_experiment_data_invalid(self):
@@ -1026,8 +1013,8 @@ class ExperimentValidate(AppValidate):
             self.local_api.validate_experiment(self.path)
             is_dir_mock.assert_called_once()
             get_config_file_names_mock.assert_called_once()
-            is_file_mock.call_count = 3
-            validate_json_schema_mock.call_count = 3
+            self.assertEqual(is_file_mock.call_count, 3)
+            self.assertEqual(validate_json_schema_mock.call_count, 3)
             validate_experiment_json_mock.assert_called_once_with(experiment_path=self.path, error_dict=error_dict)
 
     def test_validate_experiment_input_missing_role_file_names(self):
@@ -1051,11 +1038,10 @@ class ExperimentValidate(AppValidate):
             self.local_api.validate_experiment(self.path)
             is_dir_mock.assert_called_once()
             get_config_file_names_mock.assert_called_once()
-            is_file_mock.call_count = 5
-            validate_json_schema_mock.call_count = 3
+            self.assertEqual(is_file_mock.call_count, 5)
+            self.assertEqual(validate_json_schema_mock.call_count, 3)
             get_role_file_names_mock.assert_called_once_with(self.path / "input")
             validate_experiment_json_mock.assert_called_once_with(experiment_path=self.path, error_dict=error_dict)
-
 
     def test_validate_experiment_nodes(self):
         with patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
@@ -1085,7 +1071,6 @@ class ExperimentValidate(AppValidate):
                     }
                 }
             }
-
 
             path_join_mock.return_value = self.path
             validate_experiment_input_mock.return_value = self.error_dict
@@ -1196,7 +1181,6 @@ class ExperimentValidate(AppValidate):
              patch.object(LocalApi, "_validate_experiment_nodes"), \
              patch.object(LocalApi, "_validate_experiment_channels"), \
              patch("adk.api.local_api.Path.is_file") as is_file_mock:
-             # patch("adk.api.local_api.set") as issubset_mock:
 
             experiment_data = {
                 "meta": {
@@ -1204,8 +1188,8 @@ class ExperimentValidate(AppValidate):
                         "location": "local",
                         "type": "local_netsquid"
                     },
-                "number_of_rounds": 1,
-                "description": "exptest3: experiment description"
+                    "number_of_rounds": 1,
+                    "description": "exptest3: experiment description"
                 },
                 "asset": {
                     "network": {
@@ -1248,14 +1232,13 @@ class ExperimentValidate(AppValidate):
             validate_experiment_input_mock.return_value = self.error_dict
             validate_json_schema_mock.return_value = True, None
             is_file_mock.return_value = True
-            # issubset_mock.return_value = False
             read_json_file_mock.return_value = {'networks': ['randstad', 'europe', 'the-netherlands'],
                                                 'roles': ['sender', 'receiver']}
 
             self.local_api.validate_experiment(self.path)
             is_file_mock.assert_called_once()
             read_json_file_mock.assert_called_with(self.path / "input/network.json")
-            read_json_file_mock.call_count = 2
+            self.assertEqual(read_json_file_mock.call_count, 2)
 
     def test_run_experiment(self):
         with patch.object(LocalApi, "_get_asset") as get_asset_mock, \
