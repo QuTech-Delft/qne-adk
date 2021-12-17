@@ -38,7 +38,7 @@ After executing this command, you should have a directory structure that looks l
 
 .. image:: images/application_structure.png
 
-The ``config`` directory consists of json files to configure your application. ``The application.json`` serves as a kind of
+The ``config`` directory consists of json files to configure your application. ``application.json`` serves as a kind of
 template for the inputs that the user can give to the application. The ``network.json`` contains the networks that are
 available and the role names based on the roles that are given as input. The ``result.json`` is used as a kind of template
 to display the results on the Quantum Internet Explorer website. But since QNE-ADK can only be used for running
@@ -49,13 +49,13 @@ in the application a python file is created. The file names of these application
 specified while creating the application.
 
 To make sure that your application has all the necessary and the correct structure, you can validate it with the
-following command (assuming you are in your application directory):
+following command:
 
 .. code-block:: console
 
-    qne application validate
+    qne application validate teleport
 
-You have now created your application and are ready to prepare the contents of the and src files.
+You have now created your application and are ready to prepare the contents of the config and src files.
 
 Config configuration
 --------------------

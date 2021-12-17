@@ -65,7 +65,9 @@ If you want to install for development, install with:
 
 .. code-block:: console
 
-    pip install .[dev]
+    pip install -e .[dev]
+
+*Note: installing for development will install packages that are needed to develop the QNE-ADK itself.*
 
 Installing for generating documentation
 ---------------------------------------
