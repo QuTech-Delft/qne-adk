@@ -128,7 +128,7 @@ class TestCommandProcessor(unittest.TestCase):
     def test_experiments_validate(self):
         with patch.object(LocalApi, "validate_experiment") as validate_exp_mock:
             validate_exp_mock.return_value = self.error_dict
-            self.assertEqual(self.processor.experiments_validate(path=self.path), self.error_dict)
+            self.assertEqual(self.processor.experiments_validate(experiment_path=self.path), self.error_dict)
             validate_exp_mock.assert_called_once_with(self.path)
 
     def test_experiments_run(self):

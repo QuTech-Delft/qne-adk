@@ -835,8 +835,9 @@ class ExperimentValidate(AppValidate):
              patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input:
 
             self.assertEqual(self.local_api.validate_experiment(self.path), self.error_dict)
-            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=self.error_dict)
-            validate_experiment_input.assert_called_once_with(path=self.path, local=True, error_dict=self.error_dict)
+            validate_experiment_json_mock.assert_called_once_with(experiment_path=self.path, error_dict=self.error_dict)
+            validate_experiment_input.assert_called_once_with(experiment_path=self.path, local=True,
+                                                              error_dict=self.error_dict)
 
     def test_validate_experiment_json_all_ok(self):
         with patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
@@ -854,7 +855,7 @@ class ExperimentValidate(AppValidate):
             read_json_file_mock.return_value = self.mock_experiment_data
             get_network_info_mock.return_value = "slug"
             self.local_api.validate_experiment(self.path)
-            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
                                                                    error_dict=self.error_dict)
             path_join_mock.assert_called_once()
             validate_json_schema_mock.assert_called_once_with(self.experiment_file_path, self.path)
@@ -875,7 +876,7 @@ class ExperimentValidate(AppValidate):
             path_join_mock.return_value = self.path
             validate_json_schema_mock.return_value = False, "message"
             self.local_api.validate_experiment(self.path)
-            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
                                                                    error_dict={'error': ['message'], 'warning': [],
                                                                                     'info': []})
             path_join_mock.assert_called_once()
@@ -919,7 +920,7 @@ class ExperimentValidate(AppValidate):
             read_json_file_mock.return_value = experiment_data
             get_network_info_mock.return_value = "slug"
             self.local_api.validate_experiment(self.path)
-            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
                                                                    error_dict=error_dict)
             path_join_mock.assert_called_once()
             validate_json_schema_mock.assert_called_once_with(self.experiment_file_path, self.path)
@@ -943,7 +944,7 @@ class ExperimentValidate(AppValidate):
             read_json_file_mock.return_value = self.mock_experiment_data
             get_network_info_mock.return_value = None
             self.local_api.validate_experiment(self.path)
-            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
                                                                    error_dict=error_dict)
             path_join_mock.assert_called_once()
             validate_json_schema_mock.assert_called_once_with(self.experiment_file_path, self.path)
@@ -967,7 +968,7 @@ class ExperimentValidate(AppValidate):
             get_config_file_names_mock.return_value = self.config_files
             get_role_file_names_mock.return_value = self.roles
             self.local_api.validate_experiment(self.path)
-            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=self.error_dict)
+            validate_experiment_json_mock.assert_called_once_with(experiment_path=self.path, error_dict=self.error_dict)
             is_dir_mock.assert_called_once()
             get_config_file_names_mock.assert_called_once()
             is_file_mock.call_count = 5
@@ -985,7 +986,7 @@ class ExperimentValidate(AppValidate):
             is_dir_mock.return_value = False
             self.local_api.validate_experiment(self.path)
             is_dir_mock.assert_called_once()
-            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=error_dict)
+            validate_experiment_json_mock.assert_called_once_with(experiment_path=self.path, error_dict=error_dict)
 
     def test_validate_experiment_input_file_missing(self):
         with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
@@ -1006,7 +1007,7 @@ class ExperimentValidate(AppValidate):
             is_dir_mock.assert_called_once()
             get_config_file_names_mock.assert_called_once()
             is_file_mock.call_count = 3
-            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=error_dict)
+            validate_experiment_json_mock.assert_called_once_with(experiment_path=self.path, error_dict=error_dict)
 
     def test_validate_experiment_input_experiment_data_invalid(self):
         with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
@@ -1027,7 +1028,7 @@ class ExperimentValidate(AppValidate):
             get_config_file_names_mock.assert_called_once()
             is_file_mock.call_count = 3
             validate_json_schema_mock.call_count = 3
-            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=error_dict)
+            validate_experiment_json_mock.assert_called_once_with(experiment_path=self.path, error_dict=error_dict)
 
     def test_validate_experiment_input_missing_role_file_names(self):
         with patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
@@ -1053,7 +1054,7 @@ class ExperimentValidate(AppValidate):
             is_file_mock.call_count = 5
             validate_json_schema_mock.call_count = 3
             get_role_file_names_mock.assert_called_once_with(self.path / "input")
-            validate_experiment_json_mock.assert_called_once_with(path=self.path, error_dict=error_dict)
+            validate_experiment_json_mock.assert_called_once_with(experiment_path=self.path, error_dict=error_dict)
 
 
     def test_validate_experiment_nodes(self):
@@ -1093,7 +1094,7 @@ class ExperimentValidate(AppValidate):
             get_network_nodes_mock.return_value = self.all_network_nodes
             self.local_api.validate_experiment(self.path)
             get_network_nodes_mock.assert_called_once()
-            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
                                                                    error_dict=self.error_dict)
 
             # length of experiment_nodes is greater than network_nodes and n6 does not exist in network
@@ -1112,7 +1113,7 @@ class ExperimentValidate(AppValidate):
             read_json_file_mock.return_value = experiment_data_too_many_nodes
             self.local_api.validate_experiment(self.path)
             get_network_nodes_mock.assert_called_once()
-            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
                                                                    error_dict=error_dict)
 
     def test_validate_experiment_channels(self):
@@ -1151,7 +1152,7 @@ class ExperimentValidate(AppValidate):
             get_channels_for_network_mock.return_value = self.all_network_channels
             self.local_api.validate_experiment(self.path)
             get_channels_for_network_mock.assert_called_once_with(network_slug='randstad')
-            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
                                                                    error_dict=self.error_dict)
 
             # length of experiment_channels is greater than network_nodes and n5-n6 does not exist in network
@@ -1173,7 +1174,7 @@ class ExperimentValidate(AppValidate):
             read_json_file_mock.return_value = experiment_data_too_many_channels
             self.local_api.validate_experiment(self.path)
             get_channels_for_network_mock.assert_called_once_with(network_slug='randstad')
-            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
                                                                    error_dict=error_dict)
 
             # If network_channels is None
@@ -1183,7 +1184,7 @@ class ExperimentValidate(AppValidate):
             get_channels_for_network_mock.return_value = None
             self.local_api.validate_experiment(self.path)
             get_channels_for_network_mock.assert_called_once_with(network_slug='randstad')
-            validate_experiment_input_mock.assert_called_once_with(path=self.path, local=True,
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
                                                                    error_dict=error_dict)
 
     def test_validate_experiment_application(self):

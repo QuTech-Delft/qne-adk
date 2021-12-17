@@ -324,57 +324,53 @@ class TestCommandList(unittest.TestCase):
             validate_path_name_mock.assert_called_once_with("Experiment", self.experiment_name)
             is_dir_mock.assert_called_once()
 
-
     def test_experiment_validate(self):
-        with patch("adk.command_list.Path.cwd") as mock_cwd, \
+        with patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_experiment_name_and_path_mock, \
              patch.object(CommandProcessor, 'experiments_validate') as experiments_validate_mock, \
              patch("adk.command_list.show_validation_messages") as show_validation_messages_mock:
 
-            mock_cwd.return_value = self.path
             experiments_validate_mock.return_value = {"error": {"error"}, "warning": {"warning"}, "info": {"info"}}
+            retrieve_experiment_name_and_path_mock.return_value = (self.path, self.experiment_name)
 
             experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
-            mock_cwd.assert_called_once()
-            experiments_validate_mock.assert_called_once_with(path=self.path)
+            retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
+            experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
             show_validation_messages_mock.assert_called_once()
             self.assertIn("Experiment is invalid", experiment_validate_output.stdout)
 
             # When only 'error' has items
             experiments_validate_mock.reset_mock()
-            mock_cwd.reset_mock()
+            retrieve_experiment_name_and_path_mock.reset_mock()
             show_validation_messages_mock.reset_mock()
-            mock_cwd.return_value = self.path
             experiments_validate_mock.return_value = {"error": {"error"}, "warning": {}, "info": {}}
 
             experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
-            mock_cwd.assert_called_once()
-            experiments_validate_mock.assert_called_once_with(path=self.path)
+            retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
+            experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
             show_validation_messages_mock.assert_called_once()
             self.assertIn("Experiment is invalid", experiment_validate_output.stdout)
 
             # When application is valid (no items in error, warning and info)
             experiments_validate_mock.reset_mock()
-            mock_cwd.reset_mock()
+            retrieve_experiment_name_and_path_mock.reset_mock()
             show_validation_messages_mock.reset_mock()
-            mock_cwd.return_value = self.path
             experiments_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
 
             experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
-            mock_cwd.assert_called_once()
-            experiments_validate_mock.assert_called_once_with(path=self.path)
+            retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
+            experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
             show_validation_messages_mock.assert_called_once()
             self.assertIn("Experiment is valid", experiment_validate_output.stdout)
 
             # When application is valid with item in in 'info'
             experiments_validate_mock.reset_mock()
-            mock_cwd.reset_mock()
+            retrieve_experiment_name_and_path_mock.reset_mock()
             show_validation_messages_mock.reset_mock()
-            mock_cwd.return_value = self.path
             experiments_validate_mock.return_value = {"error": {}, "warning": {}, "info": {"info"}}
 
             experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
-            mock_cwd.assert_called_once()
-            experiments_validate_mock.assert_called_once_with(path=self.path)
+            retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
+            experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
             show_validation_messages_mock.assert_called_once()
             self.assertIn("Experiment is valid", experiment_validate_output.stdout)
 
