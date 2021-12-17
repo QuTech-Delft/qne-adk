@@ -175,6 +175,7 @@ class TestCommandList(unittest.TestCase):
             self.assertIn("Experiment files deleted, directory not empty",
                           experiment_delete_output.stdout)
 
+
     def test_retrieve_application_name_and_path(self):
         with patch("adk.command_list.validate_path_name") as validate_path_name_mock, \
              patch("adk.command_list.Path.cwd") as cwd_mock, \
@@ -323,9 +324,55 @@ class TestCommandList(unittest.TestCase):
             validate_path_name_mock.assert_called_once_with("Experiment", self.experiment_name)
             is_dir_mock.assert_called_once()
 
-
     def test_experiment_validate(self):
-        pass
+        with patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_experiment_name_and_path_mock, \
+             patch.object(CommandProcessor, 'experiments_validate') as experiments_validate_mock, \
+             patch("adk.command_list.show_validation_messages") as show_validation_messages_mock:
+
+            experiments_validate_mock.return_value = {"error": {"error"}, "warning": {"warning"}, "info": {"info"}}
+            retrieve_experiment_name_and_path_mock.return_value = (self.path, self.experiment_name)
+
+            experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
+            retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
+            experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
+            show_validation_messages_mock.assert_called_once()
+            self.assertIn("Experiment is invalid", experiment_validate_output.stdout)
+
+            # When only 'error' has items
+            experiments_validate_mock.reset_mock()
+            retrieve_experiment_name_and_path_mock.reset_mock()
+            show_validation_messages_mock.reset_mock()
+            experiments_validate_mock.return_value = {"error": {"error"}, "warning": {}, "info": {}}
+
+            experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
+            retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
+            experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
+            show_validation_messages_mock.assert_called_once()
+            self.assertIn("Experiment is invalid", experiment_validate_output.stdout)
+
+            # When application is valid (no items in error, warning and info)
+            experiments_validate_mock.reset_mock()
+            retrieve_experiment_name_and_path_mock.reset_mock()
+            show_validation_messages_mock.reset_mock()
+            experiments_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
+
+            experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
+            retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
+            experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
+            show_validation_messages_mock.assert_called_once()
+            self.assertIn("Experiment is valid", experiment_validate_output.stdout)
+
+            # When application is valid with item in in 'info'
+            experiments_validate_mock.reset_mock()
+            retrieve_experiment_name_and_path_mock.reset_mock()
+            show_validation_messages_mock.reset_mock()
+            experiments_validate_mock.return_value = {"error": {}, "warning": {}, "info": {"info"}}
+
+            experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
+            retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
+            experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
+            show_validation_messages_mock.assert_called_once()
+            self.assertIn("Experiment is valid", experiment_validate_output.stdout)
 
     def test_experiment_run(self):
         with patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock, \
