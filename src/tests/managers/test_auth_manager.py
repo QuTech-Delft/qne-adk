@@ -3,6 +3,7 @@ import unittest
 
 from adk.managers.auth_manager import AuthManager
 
+
 class TestAuthManager(unittest.TestCase):
 
     def setUp(self):
@@ -38,17 +39,14 @@ class TestAuthManager(unittest.TestCase):
             host_token_mock.assert_called_once_with('token')
             set_active_host_mock.assert_called_once_with('host_from_token')
 
-    def test_delete_token(self):
-        self.assertEqual(self.auth_manager.delete_token('test_host'), None)
-
     def test_get_active_host(self):
         host = self.auth_manager.get_active_host()
         self.assertEqual(host, 'HOST')
 
     def test_load_token(self):
         with patch.object(AuthManager, "_AuthManager__fetch_token") as fetch_token_mock, \
-            patch.object(AuthManager, "_AuthManager__has_token") as has_token_mock, \
-            patch.object(AuthManager, "_AuthManager__get_token") as get_token_mock:
+             patch.object(AuthManager, "_AuthManager__has_token") as has_token_mock, \
+             patch.object(AuthManager, "_AuthManager__get_token") as get_token_mock:
 
             has_token_mock.return_value = True
             self.auth_manager.load_token()

@@ -13,7 +13,7 @@ from adk.generators.result_generator import ResultGenerator
 from adk.managers.config_manager import ConfigManager
 from adk.managers.auth_manager import AuthManager
 from adk.managers.resource_manager import ResourceManager
-from adk.type_aliases import (AppConfigType, AppResultType, AppSourceType, AppVersionType,
+from adk.type_aliases import (AppConfigType, AppResultType, AppSourceFilesType, AppVersionType,
                               ApplicationType, ApplicationDataType, AssetType, ErrorDictType,
                               ExperimentType, FinalResultType, GenericNetworkData, ExperimentDataType, ResultType,
                               RoundSetType)
@@ -33,6 +33,7 @@ QNE_JOB_FINAL_STATES = (
     JobStatus.COMPLETE,
     JobStatus.FAILED,
 )
+
 # The status of the qne_job when it is executed successfully
 QNE_JOB_SUCCESS_STATES = (
     JobStatus.COMPLETE,
@@ -58,7 +59,7 @@ class RemoteApi():
         self.__headers: Dict[str, str] = {}
         self.__openapi_client_class = Client
         self.__auth_class = TokenAuthentication
-        self.resource_manager = ResourceManager(self.__qne_client)
+        self.__resource_manager = ResourceManager()
 
     def __login_user(self, username: str, password: str, host: str) -> Optional[str]:
         self.__refresh_token = None
@@ -110,7 +111,7 @@ class RemoteApi():
         Delete the remote application for the authenticated user
 
         Args:
-            application id is the application to delete.
+            application_id is the application to delete.
 
         Returns:
             False when not found 404 or another error
@@ -122,7 +123,7 @@ class RemoteApi():
             except ErrorResponse:
                 return False
 
-            # application deleted
+            # application deleted successfully
             return True
         return False
 
@@ -130,17 +131,15 @@ class RemoteApi():
                            application_path: Path,
                            application_data: ApplicationDataType,
                            application_config: AppConfigType,
-                           application_source: AppSourceType,
                            application_result: AppResultType) -> ApplicationDataType:
         """
         Upload the application to the remote server
 
         Args:
-            application_path:
-            application_data: application data
-            application_config: application configuration
-            application_source:
-            application_result
+            application_path: location of application files
+            application_data: application data from manifest.json
+            application_config: application configuration structure
+            application_result: application result structure
 
         Returns:
             True when uploaded successfully, otherwise False
@@ -148,45 +147,66 @@ class RemoteApi():
         # if application id present, update that application
         application = None
         application_id = None
-        if "application_id" in application_data["meta"]:
-            application_id = str(application_data["meta"]["application_id"])
+        if "application_id" in application_data["remote"]:
+            application_id = str(application_data["remote"]["application_id"])
             application = self.__get_application_by_id(application_id)
 
         if application is None:
-            # create application
-            application_to_create = self.__create_application(application_data)
-            application = self.__qne_client.create_application(application_to_create)
-            # app_version_to_create = self.__create_app_version(application)
-            # app_version = self.__qne_client.create_app_version(app_version_to_create)
-            # app_config_to_create = self.__create_app_config(application_data, application_config, app_version)
-            # app_config = self.__qne_client.create_app_config(app_config_to_create)
-            # app_result_to_create = self.__create_app_result(application_result, app_version)
-            # app_result = self.__qne_client.create_app_result(app_result_to_create)
-            app_config = {"network": { "roles": ["Alice", "Bob"]}}
-            app_version = {"url": ""}
-            app_source_to_create = self.__create_app_source(application_data, app_version,
-                                                            app_config, application_path)
-            app_source = self.__qne_client.create_app_source(app_source_to_create)
+            try:
+                # create application data structure for remote
+                application_data["remote"] = {"application": "",
+                                              "application_id": 0,
+                                              "slug": "",
+                                              "app_version": {"app_version": "",
+                                                              "app_config": "",
+                                                              "app_result": "",
+                                                              "app_source": ""
+                                                              }
+                                              }
+
+                application_to_create = self.__create_application(application_data)
+                application = self.__qne_client.create_application(application_to_create)
+                application_data["remote"]["application"] = application["url"]
+                application_data["remote"]["application_id"] = application["id"]
+                application_data["remote"]["slug"] = application["slug"]
+                app_version_to_create = self.__create_app_version(application)
+                app_version = self.__qne_client.create_app_version(app_version_to_create)
+                application_data["remote"]["app_version"]["app_version"] = app_version["url"]
+                app_config_to_create = self.__create_app_config(application_data, application_config, app_version)
+                app_config = self.__qne_client.create_app_config(app_config_to_create)
+                application_data["remote"]["app_version"]["app_config"] = app_config["url"]
+                app_result_to_create = self.__create_app_result(application_result, app_version)
+                app_result = self.__qne_client.create_app_result(app_result_to_create)
+                application_data["remote"]["app_version"]["app_result"] = app_result["url"]
+                app_source_to_create = self.__create_app_source(application_data, app_version,
+                                                                application_config, application_path)
+                app_source = self.__qne_client.create_app_source(app_source_to_create)
+                application_data["remote"]["app_version"]["app_source"] = app_source["url"]
+            except Exception as e:
+                if application is not None and "id" in application:
+                    # delete app
+                    self.delete_application(str(application["id"]))
+                # and rethrow exception
+                raise e
         else:
             # update application
             application_to_update = self.__create_application(application_data)
             application = self.__qne_client.partial_update_application(application_id, application_to_update)
+            application_data["remote"]["application"] = application["url"]
+            application_data["remote"]["application_id"] = application["id"]
+            application_data["remote"]["slug"] = application["slug"]
 
-        application_data["meta"]["application_id"] = application["id"]
-        application_data["meta"]["slug"] = application["slug"]
-
-        application_data["meta"]["application"]["app_version"] = app_version["id"]
         return application_data
 
     @staticmethod
     def __create_application(application_data: ApplicationDataType) -> ApplicationType:
-        application_name = application_data["meta"]["name"] if "name" in application_data["meta"] else ""
+        application_name = application_data["application"]["name"] if "name" in application_data["application"] else ""
         application_description =\
-            application_data["meta"]["description"] if "description" in application_data["meta"] else ""
+            application_data["application"]["description"] if "description" in application_data["application"] else ""
         application_author =\
-            application_data["meta"]["author"] if "author" in application_data["meta"] else ""
+            application_data["application"]["author"] if "author" in application_data["application"] else ""
         application_email =\
-            application_data["meta"]["email"] if "email" in application_data["meta"] else ""
+            application_data["application"]["email"] if "email" in application_data["application"] else ""
 
         application: ApplicationType = {
             "name": application_name,
@@ -208,8 +228,8 @@ class RemoteApi():
     def __create_app_config(application_data: ApplicationDataType,
                             application_config: AppConfigType,
                             app_version: AppVersionType) -> AppConfigType:
-        multi_round = \
-            application_data["meta"]["config"]["multi_round"] if "multi_round" in application_data else False
+        multi_round = application_data["application"]["multi_round"] if \
+            "multi_round" in application_data["application"] else False
         app_config: AppConfigType = {
             "app_version": app_version["url"],
             "network": application_config["network"],
@@ -219,15 +239,20 @@ class RemoteApi():
         return app_config
 
     def __create_app_source(self, application_data: ApplicationDataType, app_version: AppVersionType,
-                            app_config: AppConfigType, application_path: Path) -> AppSourceType:
-        app_source = self.resource_manager.prepare_resources(application_data, application_path, app_config)
-        app_source["app_version"] = app_version["url"]
-        app_source["output_parser"] = {}
-        return app_source
+                            app_config: AppConfigType, application_path: Path) -> AppSourceFilesType:
+
+        resource_path, resource_file = self.__resource_manager.prepare_resources(application_data, application_path,
+                                                                                 app_config)
+        app_source_files: AppSourceFilesType = {
+            "source_files": (resource_file, open(resource_path, 'rb')),
+            "app_version": (None, app_version['url']),
+            "output_parser": (None, '{}')
+        }
+        return app_source_files
 
     @staticmethod
-    def __create_app_result(app_version: AppVersionType,
-                            result_data: AppResultType) -> AppResultType:
+    def __create_app_result(result_data: AppResultType,
+                            app_version: AppVersionType) -> AppResultType:
         app_result: AppResultType = {
             "app_version": app_version["url"],
             "round_result_view": result_data["round_result_view"],
@@ -302,7 +327,7 @@ class RemoteApi():
             return self.__qne_client.app_config_application(application["url"])
         return None
 
-    def is_application_valid(self, application_slug: str) -> ErrorDictType:
+    def validate_application(self, application_slug: str) -> ErrorDictType:
         """
         Function that checks if:
         - The application is valid by validating if it exists remotely

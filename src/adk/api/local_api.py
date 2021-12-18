@@ -15,7 +15,7 @@ from adk.parsers.output_converter import OutputConverter
 from adk.settings import BASE_DIR
 from adk.type_aliases import (AppConfigType, AppResultType, ApplicationType, ApplicationDataType, app_configNetworkType,
                               app_configApplicationType, AssetType, assetApplicationType, assetNetworkType,
-                              ExperimentType, ErrorDictType, ExperimentDataType, GenericNetworkData, ResultType,
+                              ErrorDictType, ExperimentDataType, ResultType,
                               RoundSetType, ChannelData, MetaType, NetworkData, NodeData, TemplateData,
                               AssetNodeListType, AssetChannelListType)
 from adk.validators import validate_json_file, validate_json_schema
@@ -212,26 +212,43 @@ class LocalApi():
         return network_nodes
 
     def get_application_id(self, application_path: Path) -> Optional[str]:
+        """
+        Get the application id from manifest.json
+
+        Args:
+            application_path: The location of the application
+
+        Returns:
+            Application id or None
+        """
         application_data = self.get_application_data(application_path)
-        if "application_id" in application_data["meta"]:
-            return str(application_data["meta"]["application_id"])
+        if "application_id" in application_data["remote"]:
+            return str(application_data["remote"]["application_id"])
         return None
 
     @staticmethod
     def set_application_data(application_path: Path, application_data: ApplicationDataType) -> None:
+        """
+        Write the application data to manifest.json
+
+        Args:
+            application_path: The location of the application
+            application_data: New or updated application data
+
+        """
         manifest_json_file = application_path / 'manifest.json'
         utils.write_json_file(manifest_json_file, application_data)
 
     @staticmethod
     def get_application_data(application_path: Path) -> ApplicationDataType:
         """
-        Get the data (meta and asset) from manifest.json
+        Get the application data from manifest.json
 
         Args:
             application_path: The location of the application
 
         Returns:
-            A dictionary containing the data information
+            A dictionary containing the application data
         """
         manifest_json_file = application_path / 'manifest.json'
         application_data = utils.read_json_file(manifest_json_file)
@@ -319,7 +336,12 @@ class LocalApi():
                                                                 })
 
         # Manifest.json configuration
-        utils.write_json_file(application_path / 'manifest.json', {})
+        utils.write_json_file(application_path / 'manifest.json', {"application": {"name": f"{application_name}",
+                                                                                   "description": "",
+                                                                                   "author": "",
+                                                                                   "email": "",
+                                                                                   "multi_round": False},
+                                                                   "remote": {}})
 
         self.__config_manager.add_application(application_name=application_name, application_path=application_path)
 
@@ -442,7 +464,24 @@ class LocalApi():
         self.__config_manager.delete_application(application_name_from_config)
         return all_subdir_deleted and application_dir_deleted
 
-    def is_application_valid(self, application_name: str, application_path: Path) -> ErrorDictType:
+    @staticmethod
+    def _validate_manifest_json(application_path: Path, error_dict: ErrorDictType) -> None:
+        """
+        This function validates if manifest.json contains valid json and if it passes schema validation.
+
+        Args:
+            application_path: The location of the application
+            error_dict: Dictionary containing error and warning messages of the validations that failed
+        """
+        manifest_json_file = application_path / 'manifest.json'
+
+        # Validate manifest.json (does it exist and is valid json according to the schema)
+        manifest_schema = Path(os.path.join(BASE_DIR, 'schema', 'applications', 'manifest.json', ''))
+        valid, message = validate_json_schema(manifest_json_file, manifest_schema)
+        if not valid:
+            error_dict["error"].append(message)
+
+    def validate_application(self, application_name: str, application_path: Path) -> ErrorDictType:
         """
         Function that checks if:
         - The application is valid by validating if it exists in .qne/application.json
@@ -466,6 +505,7 @@ class LocalApi():
         application_exists, _ = self.__config_manager.application_exists(application_name)
 
         if application_exists:
+            self._validate_manifest_json(application_path, error_dict)
             self.__is_structure_valid(application_path, error_dict)
             self.__is_config_valid(application_path, error_dict)
             self.__is_python_valid(application_path, error_dict)

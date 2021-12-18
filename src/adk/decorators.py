@@ -24,6 +24,7 @@ def catch_qne_adk_exceptions(func: Callable[..., Any]) -> Any:
 
 
 def log_function(func: Callable[..., Any]) -> Any:
+    """ Decorator function to log entry and exit of the method/function """
     def log_function_name(*args: Any, **kwargs: Any) -> Any:
         logging.debug("Method '%s' has been entered.", func.__name__)
         resp = func(*args, **kwargs)
