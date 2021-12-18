@@ -330,7 +330,7 @@ class ApplicationValidate(AppValidate):
             structure_mock.assert_called_once_with(self.application, self.roles, self.path)
             application_exists_mock.assert_called_once_with(self.application)
 
-    def test_is_application_valid(self):
+    def test_validate_application(self):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
              patch.object(self.config_manager, "application_exists") as application_exists_mock, \
              patch.object(LocalApi, "_LocalApi__is_config_valid") as is_config_valid_mock, \
@@ -340,7 +340,7 @@ class ApplicationValidate(AppValidate):
             # If application is not unique, is_config_valid() returns an error and warning
             application_exists_mock.return_value = True, None
 
-            self.assertEqual(self.local_api.is_application_valid(application_name=self.application,
+            self.assertEqual(self.local_api.validate_application(application_name=self.application,
                                                                  application_path=self.path),
                              self.error_dict)
 
@@ -353,7 +353,7 @@ class ApplicationValidate(AppValidate):
             # If application is unique
             application_exists_mock.reset_mock()
             application_exists_mock.return_value = False, None
-            self.assertEqual(self.local_api.is_application_valid(application_name=self.application,
+            self.assertEqual(self.local_api.validate_application(application_name=self.application,
                                                                  application_path=self.path),
                              {"error": [f"Application '{self.application}' does not exist"], "warning": [], "info": []})
             application_exists_mock.assert_called_once_with(self.application)
@@ -536,7 +536,7 @@ class ApplicationValidate(AppValidate):
             listdir_mock.return_value = ["app_role1.py", "app_role2.py"]
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py"]
             validate_json_file_mock.return_value = (True, None)
-            error_dict = self.local_api.is_application_valid(application_name=self.application,
+            error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
             self.assertEqual(is_dir_mock.call_count, 2)
             self.assertEqual(is_file_mock.call_count, 4)
@@ -561,7 +561,7 @@ class ApplicationValidate(AppValidate):
             listdir_mock.return_value = ["app_role1.py", "app_role3.py", "app_role4.py"]
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py"]
             validate_json_file_mock.return_value = (True, None)
-            error_dict = self.local_api.is_application_valid(application_name=self.application,
+            error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
             self.assertEqual(is_dir_mock.call_count, 2)
             self.assertEqual(is_file_mock.call_count, 4)
@@ -584,7 +584,7 @@ class ApplicationValidate(AppValidate):
             is_dir_mock.side_effect = [False, True, True, True]
             is_file_mock.side_effect = [True, False, True, True, True]
             validate_json_file_mock.return_value = (False, "Invalid json")
-            error_dict = self.local_api.is_application_valid(application_name=self.application,
+            error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
             self.assertEqual(is_dir_mock.call_count, 2)
             self.assertEqual(is_file_mock.call_count, 1)
@@ -610,7 +610,7 @@ class ApplicationValidate(AppValidate):
             validate_json_file_mock.return_value = (True, None)
             listdir_mock.return_value = []
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py"]
-            error_dict = self.local_api.is_application_valid(application_name=self.application,
+            error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
             self.assertEqual(is_dir_mock.call_count, 2)
             self.assertEqual(is_file_mock.call_count, 4)
@@ -634,7 +634,7 @@ class ApplicationValidate(AppValidate):
             is_structure_valid_mock.return_value = self.error_dict
             validate_json_file_mock.return_value = True, None
             validate_json_schema_mock.return_value = True, None
-            self.local_api.is_application_valid(application_name=self.application, application_path=self.path)
+            self.local_api.validate_application(application_name=self.application, application_path=self.path)
             self.assertEqual(is_file_mock.call_count, 3)
             self.assertEqual(validate_json_schema_mock.call_count, 3)
 
@@ -642,7 +642,7 @@ class ApplicationValidate(AppValidate):
             is_file_mock.reset_mock()
             validate_json_schema_mock.reset_mock()
             validate_json_schema_mock.return_value = (False, "Error")
-            self.local_api.is_application_valid(application_name=self.application, application_path=self.path)
+            self.local_api.validate_application(application_name=self.application, application_path=self.path)
             self.assertEqual(is_file_mock.call_count, 3)
             self.assertEqual(validate_json_schema_mock.call_count, 3)
 

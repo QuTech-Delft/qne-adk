@@ -83,8 +83,8 @@
     }
   },
   "required": [
-      "meta",
-      "asset"
+    "meta",
+    "asset"
   ],
   "additionalProperties": false
 }

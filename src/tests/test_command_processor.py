@@ -42,9 +42,9 @@ class TestCommandProcessor(unittest.TestCase):
             create_application_mock.assert_called_once_with(self.application, self.roles, self.path)
 
     def test_applications_validate(self):
-        with patch.object(LocalApi, "is_application_valid") as is_application_valid_mock:
+        with patch.object(LocalApi, "validate_application") as validate_application_mock:
             self.processor.applications_validate(self.application, self.path)
-            is_application_valid_mock.assert_called_once_with(self.application, self.path)
+            validate_application_mock.assert_called_once_with(self.application, self.path)
 
     def test_application_delete(self):
         with patch.object(LocalApi, "delete_application") as local_delete_application_mock, \

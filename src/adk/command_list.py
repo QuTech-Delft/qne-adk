@@ -110,8 +110,7 @@ def retrieve_application_name_and_path(application_name: Optional[str]) -> Tuple
         if application_path_temp is None:
             application_path = application_path_temp
         else:
-            application_path_unwrapped: str = application_path_temp
-            application_path = Path(application_path_unwrapped)
+            application_path = Path(application_path_temp)
     else:
         application_path = Path.cwd()
         application_name, _ = config_manager.get_application_from_path(application_path)
@@ -130,9 +129,9 @@ def applications_delete(
     """
     Delete application files from application directory.
 
-    When application_name is given ./application_name is taken as application directory, when this directory is
-    not valid the application directory is fetched from the application configuration. When application_name is
-    not given, the current directory is taken as application directory.
+    When application_name is given ./application_name is taken as application directory, when this directory does not
+    contain an application the application directory is fetched from the application configuration.
+    When application_name is not given, the current directory is taken as application directory.
     """
     application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
 
@@ -164,9 +163,9 @@ def applications_upload(
     """
     Create or update a remote application.
 
-    When application_name is given ./application_name is taken as application directory, when this directory is
-    not valid the application directory is fetched from the application configuration. When application_name is
-    not given, the current directory is taken as application directory.
+    When application_name is given ./application_name is taken as application directory, when this directory does not
+    contain an application the application directory is fetched from the application configuration.
+    When application_name is not given, the current directory is taken as application directory.
     """
     application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
     validate_dict = processor.applications_validate(application_name=application_name,
@@ -254,6 +253,10 @@ def applications_validate(
 ) -> None:
     """
     Validate the application created locally.
+
+    When application_name is given ./application_name is taken as application directory, when this directory does not
+    contain an application the application directory is fetched from the application configuration.
+    When application_name is not given, the current directory is taken as application directory.
     """
     application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
 
@@ -506,4 +509,3 @@ def networks_update(
         typer.echo("The local networks are updated")
     else:
         typer.echo("The local networks are not updated completely")
-

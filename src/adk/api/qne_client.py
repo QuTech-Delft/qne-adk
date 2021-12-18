@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 import jwt
 import requests
 from requests.models import Response
-from requests.auth import AuthBase
+from requests.auth import AuthBase, HTTPBasicAuth
 
 from apistar import Client
 from apistar.client.auth import TokenAuthentication
@@ -18,7 +18,7 @@ from adk.parsers.encoders import JSONEncoder
 from adk.type_aliases import (ActionsType, ParametersType, TemplateType, NodeType, ChannelType, NetworkType,
                               ApplicationType, AppVersionType, AppSourceType, AppConfigType, AppResultType,
                               RoundSetType, AssetType, ExperimentType, ResultType, FinalResultType, BackendType,
-                              NetworkListType, UserType, BackendTypeType, TokenType)
+                              NetworkListType, UserType, BackendTypeType, TokenType, AppSourceFilesType)
 
 
 class QneClient:
@@ -40,7 +40,7 @@ class QneClient:
         self.__headers: Dict[str, str] = {}
         self.__openapi_client_class = Client
         self.__auth_class = TokenAuthentication
-        self.__client: Client = None
+        self.__client: Optional[Client] = None
 
     def _set_open_api_client(self, auth: Optional[AuthBase] = None) -> None:
         """Sets or updates the open api client mainly because of access tokens changing.
@@ -183,6 +183,18 @@ class QneClient:
             param_set2 = {}
         return cast(ParametersType, {**param_set1, **param_set2})
 
+    @property
+    def base_uri(self) -> str:
+        return self.__base_uri
+
+    @property
+    def username(self) -> str:
+        return self.__username
+
+    @property
+    def password(self) -> str:
+        return self.__password
+
     @staticmethod
     def parse_url(url: str) -> Tuple[str, str]:
         """Parse an API url to extract the resource type and id.
@@ -206,15 +218,6 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         For testing front end functionality.
         All possible endpoints are implemented which can be reached by a front end.
     """
-    def upload_source_files(self, file_path: str) -> Any:
-        """Upload source files for an application to the api-routerdown.
-
-        Args:
-            file_path: name of the file it has on the local disk.
-        """
-        response = self._client_post(file_path, stream=True)
-        return response
-
     def create_token(self) -> TokenType:
         response = self._action('createToken')
         return cast(TokenType, response)
@@ -265,10 +268,15 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         response = self._action('createAppResult', appresult=params)
         return cast(AppResultType, response)
 
-    def create_app_source(self, app_source: AppSourceType) -> AppSourceType:
-        params = self._cast_parameter_type(app_source)
-        response = self._action('createAppSource', appsource=params)
-        return cast(AppSourceType, response)
+    def create_app_source(self, app_source_files: AppSourceFilesType) -> AppSourceType:
+        """
+        Upload source files for an application to the api-router. This uses an alternative approach because of
+        the file that has to be uploaded.
+        """
+        app_source_url = urljoin(self.base_uri, 'app-sources/')
+        auth = HTTPBasicAuth(self.username, self.password)
+        response = self._client_post(url=app_source_url, files=app_source_files, auth=auth)
+        return response.json()
 
     def app_config_application(self, application_url: str) -> AppConfigType:
         _, application_id = QneClient.parse_url(application_url)

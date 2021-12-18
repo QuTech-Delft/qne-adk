@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "file:manifest.json",
+  "title": "Application",
+  "description": "Describes an Application consisting of basic application data and a remote section",
+  "type": "object",
+  "properties": {
+    "application": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "author": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "multi_round": {
+            "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "author",
+        "email",
+        "multi_round"
+      ],
+      "additionalProperties": false
+    },
+    "remote": {
+      "type": "object",
+      "properties": {
+        "application_id": {
+          "type": "integer"
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[-a-zA-Z0-9_]+$"
+        },
+        "application": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "app_version": {
+          "type": "object",
+          "properties": {
+            "app_version": {
+              "type": "string",
+              "format": "uri-reference"
+            },
+            "app_config": {
+              "type": "string",
+              "format": "uri-reference"
+            },
+            "app_result": {
+              "type": "string",
+              "format": "uri-reference"
+            },
+            "app_source": {
+              "type": "string",
+              "format": "uri-reference"
+            }
+          },
+          "required": [
+            "app_version",
+            "app_config",
+            "app_result",
+            "app_source"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "application",
+    "remote"
+  ],
+  "additionalProperties": false
+}

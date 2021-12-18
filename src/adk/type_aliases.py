@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Union, Tuple
 from typing_extensions import TypedDict
 
 DefaultPayloadType = Union[int, str]
@@ -37,6 +37,7 @@ AppSourceType = Dict[str, Union[DefaultPayloadType, bool]]
 AppConfigType = Dict[str, Union[DefaultPayloadType, bool, app_configNetworkType, app_configApplicationType]]
 AppResultType = Dict[str, Union[DefaultPayloadType, bool, round_result_viewType, cumulative_result_viewType,
                                 final_result_viewType]]
+AppSourceFilesType = Dict[str, Tuple[Any, Any]]
 
 TokenType = Dict[str, str]
 MetaType = Dict[str, Any]
@@ -57,7 +58,7 @@ BackendType = Dict[str, DefaultPayloadType]
 BackendTypeType = Dict[str, Union[DefaultPayloadType, bool]]
 
 ActionsType = Union[str, List[str]]
-ParametersType = Union[str, Dict[str, str]]
+ParametersType = Union[str, Dict[str, str], Any]
 
 NetworkData = Dict[str, Dict[str, Dict[str, Any]]]
 ChannelData = Dict[str, List[Dict[str, Any]]]
