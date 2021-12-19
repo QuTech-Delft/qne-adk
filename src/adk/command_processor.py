@@ -20,7 +20,7 @@ class CommandProcessor:
         self.__remote.login(username=username, password=password, host=host)
 
     @log_function
-    def logout(self, host: str) -> bool:
+    def logout(self, host: Optional[str]) -> bool:
         return self.__remote.logout(host=host)
 
     def applications_create(self, application_name: str, roles: List[str], application_path: Path) -> None:
@@ -104,8 +104,7 @@ class CommandProcessor:
     def applications_validate(self, application_name: str, application_path: Path, local: bool = True) -> ErrorDictType:
         if local:
             return self.__local.validate_application(application_name, application_path)
-        else:
-            return self.__remote.validate_application(application_name)
+        return self.__remote.validate_application(application_name)
 
     @log_function
     def __is_application_local(self, application_name: str) -> bool:
@@ -182,7 +181,7 @@ class CommandProcessor:
         deleted_remote = True
         remote = not self.__local.is_experiment_local(experiment_path=experiment_path)
         if remote:
-            experiment_id = self.__local.get_experiment_id(experiment_name, experiment_path)
+            experiment_id = self.__local.get_experiment_id(experiment_path)
             deleted_remote = self.__remote.delete_experiment(experiment_id) if experiment_id is not None else True
         deleted_completely_local = self.__local.delete_experiment(experiment_name, experiment_path)
 
@@ -263,7 +262,7 @@ class CommandProcessor:
         return cast(List[ResultType], utils.read_json_file(processed_result_json_file))
 
     @log_function
-    def list_networks(self, remote: bool, local: bool) -> Dict[str, List[Dict[str, Any]]]:
+    def networks_list(self, remote: bool, local: bool) -> Dict[str, List[Dict[str, Any]]]:
         """
         List the networks available to the user on remote/local/both
 
@@ -286,7 +285,7 @@ class CommandProcessor:
         return network_list
 
     @log_function
-    def update_networks(self, overwrite: bool) -> bool:
+    def networks_update(self, overwrite: bool) -> bool:
         """
         Get the remote networks and store them in ./networks
 

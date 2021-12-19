@@ -1,4 +1,3 @@
-import json
 import os.path
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -8,20 +7,17 @@ from adk.type_aliases import (FallbackFunctionType, LoginFunctionType, LogoutFun
                               TokenFetchFunctionType)
 from adk.utils import read_json_file, write_json_file
 
-# username = os.environ.get('QNE_EMAIL', None)
-# password = os.environ.get('QNE_PASSWORD', None)
 QNE_URL = os.environ.get('QNE_URL', 'https://api.quantum-network.com')
 
 
 class AuthManager:
     def __init__(self, config_dir: Path, login_function: LoginFunctionType, fallback_function: FallbackFunctionType,
                  logout_function: LogoutFunctionType):
-        self.__config_dir = config_dir
-        if os.path.isfile(str(self.__config_dir)):
-            raise DirectoryIsFile(str(self.__config_dir))
-        if not os.path.isdir(str(self.__config_dir)):
-            self.__config_dir.mkdir(parents=True)
-        self.auth_config = self.__config_dir / 'qnerc'
+        if os.path.isfile(str(config_dir)):
+            raise DirectoryIsFile(str(config_dir))
+        if not os.path.isdir(str(config_dir)):
+            config_dir.mkdir(parents=True)
+        self.auth_config = config_dir / 'qnerc'
 
         if not self.auth_config.is_file():
             self.__create_config()
@@ -92,7 +88,7 @@ class AuthManager:
         :param host: the Quantum Network host for which the token is saved.
         :param token: the Quantum Network token to save.
         """
-        accounts = dict()
+        accounts = {}
         accounts[host] = {"token": token, "username": username, "password": password}
         write_json_file(self.auth_config, accounts)
 
@@ -106,7 +102,7 @@ class AuthManager:
     def get_host_from_token(self, token: str) -> Optional[str]:
         """Get the host for a certain token.
 
-        :param host: the Quantum Network host for which the token is deleted.
+        :param token: the token for which the Quantum Network host is searched for.
         """
         accounts = read_json_file(self.auth_config)
         for uri in accounts:
@@ -114,9 +110,7 @@ class AuthManager:
                 return uri
         return None
 
-    def __fetch_token(
-        self, function: TokenFetchFunctionType, payload: Dict[str, Any]
-    ) -> str:
+    def __fetch_token(self, function: TokenFetchFunctionType, payload: Dict[str, Any]) -> str:
         return function(**payload)   # type: ignore[call-arg]
 
     def __delete_token(self, host: str) -> None:

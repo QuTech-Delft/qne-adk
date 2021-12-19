@@ -21,7 +21,9 @@ from adk.type_aliases import (AppConfigType, AppResultType, ApplicationType, App
 from adk.validators import validate_json_file, validate_json_schema
 
 
-class LocalApi():
+# pylint: disable=R0904
+# Too many public methods
+class LocalApi:
     """
     Defines the methods used for local handling of the commands
     """
@@ -337,9 +339,9 @@ class LocalApi():
 
         # Manifest.json configuration
         utils.write_json_file(application_path / 'manifest.json', {"application": {"name": f"{application_name}",
-                                                                                   "description": "",
-                                                                                   "author": "",
-                                                                                   "email": "",
+                                                                                   "description": "add description",
+                                                                                   "author": "add your name",
+                                                                                   "email": "add@your.email",
                                                                                    "multi_round": False},
                                                                    "remote": {}})
 
@@ -715,7 +717,6 @@ class LocalApi():
 
         return role_inputs
 
-<<<<<<< HEAD
     def __get_result_variables(self, application_path: Path, role_name: str) -> List[str]:
 
         with open(application_path / 'config' / 'result.json', encoding='utf-8') as f:
@@ -1060,7 +1061,7 @@ class LocalApi():
                                        f"'{experiment_json_file}'")
         return False
 
-    def get_experiment_id(self, experiment_name: Optional[str], experiment_path: Path) -> Optional[str]:
+    def get_experiment_id(self, experiment_path: Path) -> Optional[str]:
         if not self.is_experiment_local(experiment_path):
             experiment_data = self.get_experiment_data(experiment_path)
             if "experiment_id" in experiment_data["meta"]:
@@ -1399,7 +1400,7 @@ class LocalApi():
             experiment_data = self.get_experiment_data(experiment_path)
             # location is required field in schema
             location = experiment_data["meta"]["backend"]["location"].strip().lower()
-            if location != "local" and location != "remote":
+            if location not in ["local", "remote"]:
                 error_dict["warning"].append(f"In file '{experiment_json_file}': only 'local' or 'remote' is supported "
                                              f"for property 'location'")
             # slug is now also a required field

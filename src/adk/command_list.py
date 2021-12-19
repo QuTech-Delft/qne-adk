@@ -58,7 +58,7 @@ def login(
 
 @app.command("logout")
 @catch_qne_adk_exceptions
-def logout(host: str = typer.Argument(None)) -> None:
+def logout(host: Optional[str] = typer.Argument(None)) -> None:
     """
     Log out from a Quantum Network Explorer
     """
@@ -66,7 +66,7 @@ def logout(host: str = typer.Argument(None)) -> None:
         logout_host = "active host" if host is None else f"'{host}'"
         typer.echo(f"Logging out from {logout_host} succeeded")
     else:
-        typer.echo(f"Not logged in to a host")
+        typer.echo("Not logged in to a host")
 
 
 @applications_app.command("create")
@@ -210,7 +210,7 @@ def applications_list(
             typer.echo(tabulate(local_app_list, headers={"name": "application",
                                                          "id": "application id",
                                                          "path": "path"}))
-            typer.echo('{len(applications["local"])} local application(s)')
+            typer.echo(f'{len(applications["local"])} local application(s)')
             typer.echo()
 
     if remote:
@@ -288,7 +288,10 @@ def experiments_create(
     validate_path_name("Experiment", experiment_name)
 
     cwd = Path.cwd()
-    application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
+    application_path = ""
+    if local:
+        application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
+
     validate_dict = processor.applications_validate(application_name=application_name,
                                                     application_path=application_path, local=local)
     if validate_dict["error"] or validate_dict["warning"]:
@@ -470,7 +473,7 @@ def networks_list(
     if not remote and not local:
         local = True
 
-    networks = processor.list_networks(remote=remote, local=local)
+    networks = processor.networks_list(remote=remote, local=local)
     if local:
         if len(networks["local"]) == 0:
             typer.echo("There are no local networks available")
@@ -504,7 +507,7 @@ def networks_update(
     """
     Get remote networks and update local network files.
     """
-    updated = processor.update_networks(overwrite=overwrite)
+    updated = processor.networks_update(overwrite=overwrite)
     if updated:
         typer.echo("The local networks are updated")
     else:
