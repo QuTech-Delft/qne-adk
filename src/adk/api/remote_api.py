@@ -40,7 +40,7 @@ QNE_JOB_SUCCESS_STATES = (
 )
 
 
-class RemoteApi():
+class RemoteApi:
     """
     Defines the methods used for remote communication with api-router
     """
@@ -82,7 +82,7 @@ class RemoteApi():
     def __logout_user(self, host: str) -> None:
         self.__qne_client.logout(host)
 
-    def logout(self, host: str) -> bool:
+    def logout(self, host: Optional[str]) -> bool:
         """
         Logout the user by deleting the entry in the resource
         """
@@ -164,23 +164,23 @@ class RemoteApi():
                                                               }
                                               }
 
-                application_to_create = self.__create_application(application_data)
-                application = self.__qne_client.create_application(application_to_create)
+                object_to_create = self.__create_application(application_data)
+                application = self.__qne_client.create_application(object_to_create)
                 application_data["remote"]["application"] = application["url"]
                 application_data["remote"]["application_id"] = application["id"]
                 application_data["remote"]["slug"] = application["slug"]
-                app_version_to_create = self.__create_app_version(application)
-                app_version = self.__qne_client.create_app_version(app_version_to_create)
+                object_to_create = self.__create_app_version(application)
+                app_version = self.__qne_client.create_app_version(object_to_create)
                 application_data["remote"]["app_version"]["app_version"] = app_version["url"]
-                app_config_to_create = self.__create_app_config(application_data, application_config, app_version)
-                app_config = self.__qne_client.create_app_config(app_config_to_create)
+                object_to_create = self.__create_app_config(application_data, application_config, app_version)
+                app_config = self.__qne_client.create_app_config(object_to_create)
                 application_data["remote"]["app_version"]["app_config"] = app_config["url"]
-                app_result_to_create = self.__create_app_result(application_result, app_version)
-                app_result = self.__qne_client.create_app_result(app_result_to_create)
+                object_to_create = self.__create_app_result(application_result, app_version)
+                app_result = self.__qne_client.create_app_result(object_to_create)
                 application_data["remote"]["app_version"]["app_result"] = app_result["url"]
-                app_source_to_create = self.__create_app_source(application_data, app_version,
-                                                                application_config, application_path)
-                app_source = self.__qne_client.create_app_source(app_source_to_create)
+                object_to_create = self.__create_app_source(application_data, app_version,
+                                                            application_config, application_path)
+                app_source = self.__qne_client.create_app_source(object_to_create)
                 application_data["remote"]["app_version"]["app_source"] = app_source["url"]
             except Exception as e:
                 if application is not None and "id" in application:
@@ -244,7 +244,7 @@ class RemoteApi():
         resource_path, resource_file = self.__resource_manager.prepare_resources(application_data, application_path,
                                                                                  app_config)
         app_source_files: AppSourceFilesType = {
-            "source_files": (resource_file, open(resource_path, 'rb')),
+            "source_files": (resource_file, open(resource_path, 'rb')),  # pylint: disable=R1732
             "app_version": (None, app_version['url']),
             "output_parser": (None, '{}')
         }
@@ -503,9 +503,9 @@ class RemoteApi():
                     result_list.append(round_result)
 
                 return result_list
-            else:
-                # round set failed
-                raise ExperimentFailed(f"Experiment for round set '{round_set_url}' failed. No results available")
+
+            # round set failed
+            raise ExperimentFailed(f"Experiment for round set '{round_set_url}' failed. No results available")
 
         return None
 
@@ -530,9 +530,9 @@ class RemoteApi():
                     pass
 
                 return final_result
-            else:
-                # round set failed
-                raise ExperimentFailed(f"Experiment for round set '{round_set_url}' failed. No results available")
+
+            # round set failed
+            raise ExperimentFailed(f"Experiment for round set '{round_set_url}' failed. No results available")
 
         return None
 
@@ -599,7 +599,7 @@ class RemoteApi():
         else:
             # overwrite if it existed, otherwise append
             found = False
-            for i in range(len(list_of_dict)):
+            for i, _ in enumerate(list_of_dict):
                 if list_of_dict[i]["slug"] == dict_item["slug"]:
                     list_of_dict[i] = dict_item
                     found = True

@@ -157,12 +157,13 @@ class QneClient:
         except ClientError as error:
             message_text = ''
             for message in error.messages:
-                message_text += f"API ClientError ({message.code}): {message.text} {str(message.index) if message.index is not None else ''}\n"
-            raise ApiClientError(message_text)
+                message_text += f"API ClientError ({message.code}): " \
+                                f"{message.text} {str(message.index) if message.index is not None else ''}\n"
+            raise ApiClientError(message_text)  # pylint: disable=W0707
         except ErrorResponse as error:
             if error.status_code != 401:
                 message_text = f"API ClientError ({error.status_code}): {error.content}"
-                raise ApiClientError(message_text)
+                raise ApiClientError(message_text)  # pylint: disable=W0707
 
             self._authenticate()
             return self.__client.request(operation_id, **params)

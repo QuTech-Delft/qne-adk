@@ -164,7 +164,7 @@ class NotLoggedIn(QneAdkException):
     """Raised when remote host api is called without being logged in"""
 
     def __init__(self) -> None:
-        super().__init__(f"Cannot connect to remote. Not logged in")
+        super().__init__("Cannot connect to remote. Not logged in")
 
 
 class PackageNotComplete(QneAdkException):
