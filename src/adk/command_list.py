@@ -288,7 +288,7 @@ def experiments_create(
     validate_path_name("Experiment", experiment_name)
 
     cwd = Path.cwd()
-    application_path = ""
+    application_path = Path()
     if local:
         application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
 

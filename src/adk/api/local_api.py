@@ -562,7 +562,7 @@ class LocalApi:
             app_config_network: app_configNetworkType = utils.read_json_file(network_json_path)
 
             app_config = {"application": app_config_application, "network": app_config_network}
-            return app_config
+            return cast(AppConfigType, app_config)
 
         return None
 
@@ -871,7 +871,7 @@ class LocalApi:
         """
         input_list = []
         if "application" in app_config:
-            for input_param in app_config["application"]:
+            for input_param in cast(app_configApplicationType, app_config["application"]):
                 item = {
                     "roles": input_param["roles"],
                     "values": []
@@ -892,8 +892,9 @@ class LocalApi:
                                       node_list: AssetNodeListType) -> None:
         network_data["roles"] = {}
         if "network" in app_config:
-            if "roles" in app_config["network"]:
-                for index, role in enumerate(app_config["network"]["roles"]):
+            app_config_network: app_configNetworkType = cast(app_configNetworkType, app_config["network"])
+            if "roles" in app_config_network:
+                for index, role in enumerate(app_config_network["roles"]):
                     network_data["roles"][role] = node_list[index]["slug"]
 
     def __fill_asset_channel_information(self, channel_list: AssetChannelListType,
@@ -1017,8 +1018,9 @@ class LocalApi:
         network_slug = self._get_network_slug(network_name)
         if network_slug:
             if "network" in app_config:
-                if "networks" in app_config["network"]:
-                    if network_slug in app_config["network"]["networks"]:
+                app_config_network: app_configNetworkType = cast(app_configNetworkType, app_config["network"])
+                if "networks" in app_config_network:
+                    if network_slug in app_config_network["networks"]:
                         return True
 
         return False
@@ -1131,7 +1133,7 @@ class LocalApi:
             MetaType: meta-structure
         """
         experiment_data = self.get_experiment_data(experiment_path)
-        return cast(MetaType, experiment_data["meta"])
+        return experiment_data["meta"]
 
     def get_experiment_round_set(self, experiment_path: Path) -> Optional[str]:
         """

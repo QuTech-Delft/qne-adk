@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, cast, Dict, List, Optional, Tuple, Union
 import time
 
 from apistar import Client
@@ -13,10 +13,11 @@ from adk.generators.result_generator import ResultGenerator
 from adk.managers.config_manager import ConfigManager
 from adk.managers.auth_manager import AuthManager
 from adk.managers.resource_manager import ResourceManager
-from adk.type_aliases import (AppConfigType, AppResultType, AppSourceFilesType, AppVersionType,
-                              ApplicationType, ApplicationDataType, AssetType, ErrorDictType,
+from adk.type_aliases import (AppConfigType, app_configNetworkType, AppResultType, AppSourceFilesType, AppVersionType,
+                              ApplicationType, ApplicationDataType, AssetType, assetNetworkType, ErrorDictType,
                               ExperimentType, FinalResultType, GenericNetworkData, ExperimentDataType, ResultType,
-                              RoundSetType)
+                              RoundSetType, round_resultType, cumulative_resultType, instructionsType, ChannelType,
+                              parametersType, coordinatesType, listValuesType)
 from adk.settings import BASE_DIR
 
 
@@ -61,7 +62,7 @@ class RemoteApi:
         self.__auth_class = TokenAuthentication
         self.__resource_manager = ResourceManager()
 
-    def __login_user(self, username: str, password: str, host: str) -> Optional[str]:
+    def __login_user(self, username: str, password: str, host: str) -> str:
         self.__refresh_token = None
         self.__base_uri = host
         self.__username = username
@@ -127,7 +128,7 @@ class RemoteApi:
             return True
         return False
 
-    def upload_application(self,
+    def upload_application(self,  # pylint: disable=R0914
                            application_path: Path,
                            application_data: ApplicationDataType,
                            application_config: AppConfigType,
@@ -164,23 +165,23 @@ class RemoteApi:
                                                               }
                                               }
 
-                object_to_create = self.__create_application(application_data)
-                application = self.__qne_client.create_application(object_to_create)
+                application_to_create = self.__create_application(application_data)
+                application = self.__qne_client.create_application(application_to_create)
                 application_data["remote"]["application"] = application["url"]
                 application_data["remote"]["application_id"] = application["id"]
                 application_data["remote"]["slug"] = application["slug"]
-                object_to_create = self.__create_app_version(application)
-                app_version = self.__qne_client.create_app_version(object_to_create)
+                app_version_to_create = self.__create_app_version(application)
+                app_version = self.__qne_client.create_app_version(app_version_to_create)
                 application_data["remote"]["app_version"]["app_version"] = app_version["url"]
-                object_to_create = self.__create_app_config(application_data, application_config, app_version)
-                app_config = self.__qne_client.create_app_config(object_to_create)
+                app_config_to_create = self.__create_app_config(application_data, application_config, app_version)
+                app_config = self.__qne_client.create_app_config(app_config_to_create)
                 application_data["remote"]["app_version"]["app_config"] = app_config["url"]
-                object_to_create = self.__create_app_result(application_result, app_version)
-                app_result = self.__qne_client.create_app_result(object_to_create)
+                app_result_to_create = self.__create_app_result(application_result, app_version)
+                app_result = self.__qne_client.create_app_result(app_result_to_create)
                 application_data["remote"]["app_version"]["app_result"] = app_result["url"]
-                object_to_create = self.__create_app_source(application_data, app_version,
-                                                            application_config, application_path)
-                app_source = self.__qne_client.create_app_source(object_to_create)
+                app_source_to_create = self.__create_app_source(application_data, app_version,
+                                                                application_config, application_path)
+                app_source = self.__qne_client.create_app_source(app_source_to_create)
                 application_data["remote"]["app_version"]["app_source"] = app_source["url"]
             except Exception as e:
                 if application is not None and "id" in application:
@@ -191,6 +192,7 @@ class RemoteApi:
         else:
             # update application
             application_to_update = self.__create_application(application_data)
+            assert application_id is not None
             application = self.__qne_client.partial_update_application(application_id, application_to_update)
             application_data["remote"]["application"] = application["url"]
             application_data["remote"]["application_id"] = application["id"]
@@ -241,8 +243,9 @@ class RemoteApi:
     def __create_app_source(self, application_data: ApplicationDataType, app_version: AppVersionType,
                             app_config: AppConfigType, application_path: Path) -> AppSourceFilesType:
 
+        app_config_network: app_configNetworkType = cast(app_configNetworkType, app_config["network"])
         resource_path, resource_file = self.__resource_manager.prepare_resources(application_data, application_path,
-                                                                                 app_config)
+                                                                                 app_config_network)
         app_source_files: AppSourceFilesType = {
             "source_files": (resource_file, open(resource_path, 'rb')),  # pylint: disable=R1732
             "app_version": (None, app_version['url']),
@@ -309,7 +312,7 @@ class RemoteApi:
         """
         application = self.__get_application_by_slug(application_slug)
         if application is not None:
-            return application["id"]
+            return int(application["id"])
         return None
 
     def get_application_config(self, application_slug: str) -> Optional[AppConfigType]:
@@ -324,7 +327,7 @@ class RemoteApi:
         """
         application = self.__get_application_by_slug(application_slug)
         if application is not None:
-            return self.__qne_client.app_config_application(application["url"])
+            return self.__qne_client.app_config_application(str(application["url"]))
         return None
 
     def validate_application(self, application_slug: str) -> ErrorDictType:
@@ -370,8 +373,8 @@ class RemoteApi:
         """
         experiment_list = self.__qne_client.list_experiments()
         for experiment in experiment_list:
-            app_version = self.__qne_client.retrieve_appversion(experiment["app_version"])
-            application = self.__qne_client.retrieve_application(app_version["application"])
+            app_version = self.__qne_client.retrieve_appversion(str(experiment["app_version"]))
+            application = self.__qne_client.retrieve_application(str(app_version["application"]))
             experiment["name"] = application["slug"]
 
         return experiment_list
@@ -388,7 +391,9 @@ class RemoteApi:
             raise ExperimentValueError(f"Application in experiment data '{application_slug}' is not a remote "
                                        f"application")
         app_config = self.get_application_config(application_slug)
-        app_version_url = app_config["app_version"]
+        if app_config is None:
+            raise ExperimentValueError(f"Application '{application_slug}' is not a remote application")
+        app_version_url = str(app_config["app_version"])
 
         if app_version != app_version_url:
             raise ExperimentValueError(f"App version in experiment data '{app_version}' is not equal to the "
@@ -421,7 +426,8 @@ class RemoteApi:
         translate these (local) channels to a format that the backend expects.
         Also the asset needs an experiment entry with the experiment url
         """
-        experiment_channels = asset_to_create["network"]["channels"]
+        asset_network = cast(assetNetworkType, asset_to_create["network"])
+        experiment_channels = asset_network["channels"]
         new_channels = []
         for channel in experiment_channels:
             new_channel = {"node_slug1": channel["node1"],
@@ -429,7 +435,7 @@ class RemoteApi:
                            "parameters": channel["parameters"]}
             new_channels.append(new_channel)
 
-        asset_to_create["network"]["channels"] = new_channels
+        asset_network["channels"] = new_channels
         asset_to_create["experiment"] = experiment_url
         return asset_to_create
 
@@ -447,14 +453,14 @@ class RemoteApi:
         app_version = experiment_data["meta"]["application"]["app_version"]
         experiment_to_create = self.__create_experiment(application_slug, app_version)
         experiment = self.__qne_client.create_experiment(experiment_to_create)
-        asset_to_create = experiment_data["asset"]
-        asset_to_create = self.__translate_asset(asset_to_create, experiment["url"])
+        experiment_asset = experiment_data["asset"]
+        asset_to_create = self.__translate_asset(experiment_asset, str(experiment["url"]))
         asset = self.__qne_client.create_asset(asset_to_create)
         number_of_rounds = experiment_data["meta"]["number_of_rounds"]
-        round_set_to_create = self.__create_round_set(asset["url"], number_of_rounds)
+        round_set_to_create = self.__create_round_set(str(asset["url"]), number_of_rounds)
         round_set = self.__qne_client.create_roundset(round_set_to_create)
 
-        return round_set["url"], experiment["id"]
+        return str(round_set["url"]), str(experiment["id"])
 
     def get_results(self, round_set_url: str, block: bool = False, timeout: int = 30,
                     wait: int = 2) -> Optional[List[ResultType]]:
@@ -493,13 +499,16 @@ class RemoteApi:
         if status in QNE_JOB_FINAL_STATES:
             if status in QNE_JOB_SUCCESS_STATES:
                 # round_set completed
-                round_set_url = round_set["url"]
+                round_set_url = str(round_set["url"])
                 results = self.__qne_client.results_roundset(round_set_url)
 
                 result_list = []
                 for result in results:
-                    round_result = ResultGenerator.generate(round_set, result["round_number"], result["round_result"],
-                                                            result["instructions"], result["cumulative_result"])
+                    round_result = ResultGenerator.generate(round_set,
+                                                            cast(int, result["round_number"]),
+                                                            cast(round_resultType, result["round_result"]),
+                                                            cast(instructionsType, result["instructions"]),
+                                                            cast(cumulative_resultType, result["cumulative_result"]))
                     result_list.append(round_result)
 
                 return result_list
@@ -517,7 +526,7 @@ class RemoteApi:
             round_set: which holds the results and status of the run of the remote experiment
         """
         status = round_set["status"]
-        round_set_url = round_set["url"]
+        round_set_url = str(round_set["url"])
 
         if status in QNE_JOB_FINAL_STATES:
             if status in QNE_JOB_SUCCESS_STATES:
@@ -562,7 +571,7 @@ class RemoteApi:
     def __read_network_data(entity_name: str) -> GenericNetworkData:
         """ TODO: In local api the network is already read. It may be more efficient to use these values """
         file_name = Path(BASE_DIR) / 'networks' / f'{entity_name}.json'
-        return utils.read_json_file(file_name)
+        return cast(GenericNetworkData, utils.read_json_file(file_name))
 
     def __update_networks_networks(self, overwrite: bool) -> None:
         """
@@ -578,13 +587,13 @@ class RemoteApi:
         network_json = {} if overwrite else self.__read_network_data(entity)[entity]
         networks = self.__qne_client.list_networks()
         for network in networks:
-            network_type_json = {}
-            network_type = self.__qne_client.retrieve_network(network["url"])
-            network_type_json["name"] = network_type["name"]
-            network_type_json["slug"] = network_type["slug"]
-            network_type_channels = []
-            for channel in network_type["channels"]:
-                network_type_channels.append(channel["slug"])
+            network_type_json: Dict[str, Union[str, List[str]]] = {}
+            network_type = self.__qne_client.retrieve_network(str(network["url"]))
+            network_type_json["name"] = str(network_type["name"])
+            network_type_json["slug"] = str(network_type["slug"])
+            network_type_channels: List[str] = []
+            for channel in cast(List[ChannelType], network_type["channels"]):
+                network_type_channels.append(str(channel["slug"]))
 
             network_type_json["channels"] = network_type_channels
             network_json[network["slug"]] = network_type_json
@@ -620,15 +629,15 @@ class RemoteApi:
         channel_json = [] if overwrite else self.__read_network_data(entity)[entity]
         channels = self.__qne_client.list_channels()
         for channel in channels:
-            channel_type_json = {"slug": channel["slug"]}
-            node = self.__qne_client.retrieve_node(channel["node1"])
-            channel_type_json["node1"] = node["slug"]
-            node = self.__qne_client.retrieve_node(channel["node2"])
-            channel_type_json["node2"] = node["slug"]
-            channel_parameters = []
-            for parameter in channel["parameters"]:
+            channel_type_json: Dict[str, Union[str, List[str]]] = {"slug": str(channel["slug"])}
+            node = self.__qne_client.retrieve_node(str(channel["node1"]))
+            channel_type_json["node1"] = str(node["slug"])
+            node = self.__qne_client.retrieve_node(str(channel["node2"]))
+            channel_type_json["node2"] = str(node["slug"])
+            channel_parameters: List[str] = []
+            for parameter in cast(parametersType, channel["parameters"]):
                 template = self.__qne_client.retrieve_template(parameter)
-                channel_parameters.append(template["slug"])
+                channel_parameters.append(str(template["slug"]))
             channel_type_json["parameters"] = channel_parameters
 
             self.__update_list(channel_json, channel_type_json, overwrite)
@@ -650,18 +659,18 @@ class RemoteApi:
         nodes = self.__qne_client.list_nodes()
         for node in nodes:
             node_type_json = {"name": node["name"], "slug": node["slug"],
-                              "coordinates": {"latitude": node["coordinates"]["latitude"],
-                                              "longitude": node["coordinates"]["longitude"]}}
-            node_parameters = []
-            for parameter in node["node_parameters"]:
+                              "coordinates": {"latitude": cast(coordinatesType, node["coordinates"])["latitude"],
+                                              "longitude": cast(coordinatesType, node["coordinates"])["longitude"]}}
+            node_parameters: List[str] = []
+            for parameter in cast(parametersType, node["node_parameters"]):
                 template = self.__qne_client.retrieve_template(parameter)
-                node_parameters.append(template["slug"])
+                node_parameters.append(str(template["slug"]))
             node_type_json["node_parameters"] = node_parameters
             node_type_json["number_of_qubits"] = node["number_of_qubits"]
-            qubit_parameters = []
-            for parameter in node["qubit_parameters"]:
+            qubit_parameters: List[str] = []
+            for parameter in cast(parametersType, node["qubit_parameters"]):
                 template = self.__qne_client.retrieve_template(parameter)
-                qubit_parameters.append(template["slug"])
+                qubit_parameters.append(str(template["slug"]))
             node_type_json["qubit_parameters"] = qubit_parameters
 
             self.__update_list(node_json, node_type_json, overwrite)
@@ -686,7 +695,7 @@ class RemoteApi:
             del template["url"]
             del template["description"]
             template_values = []
-            for value in template["values"]:
+            for value in cast(listValuesType, template["values"]):
                 value["unit"] = ""
                 value["scale_value"] = 1.0
                 template_values.append(value)

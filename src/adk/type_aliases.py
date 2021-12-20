@@ -24,8 +24,7 @@ parametersType = List[str]
 TemplateType = Dict[str, Union[DefaultPayloadType, listValuesType]]
 NodeType = Dict[str, Union[DefaultPayloadType, coordinatesType, parametersType]]
 ChannelType = Dict[str, Union[DefaultPayloadType, parametersType]]
-NetworkType = Dict[str, Union[DefaultPayloadType, ChannelType]]
-# TODO NetworkType = Dict[str, List[Dict[str, Any]]]
+NetworkType = Dict[str, Union[DefaultPayloadType, List[ChannelType], List[NodeType]]]
 NetworkListType = Dict[str, Union[DefaultPayloadType]]
 TemplatesType = Dict[str, List[Dict[str, Any]]]
 AssetChannelListType = List[Dict[str, Any]]
@@ -66,6 +65,8 @@ NodeData = Dict[str, List[Dict[str, Any]]]
 TemplateData = Dict[str, List[Dict[str, Any]]]
 GenericNetworkData = Dict[str, Any]
 
+AuthType = Dict[str, Dict[str, str]]
+
 LoginFunctionType = Callable[[str, str, str], str]
 LogoutFunctionType = Callable[[str], None]
 FallbackFunctionType = Callable[[], str]
@@ -74,6 +75,7 @@ TokenFetchFunctionType = Union[LoginFunctionType, FallbackFunctionType]
 ErrorDictType = Dict[str, List[str]]
 LinkType = Dict[str, Union[str, float]]
 QuantumStateType = List[List[Dict[str, float]]]
+NetworkConfigType = Dict[str, Union[List[LinkType], List[NodeType]]]
 
 
 class DijkstraNode(TypedDict):

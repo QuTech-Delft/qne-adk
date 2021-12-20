@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from adk.exceptions import DirectoryIsFile
-from adk.type_aliases import (FallbackFunctionType, LoginFunctionType, LogoutFunctionType,
+from adk.type_aliases import (AuthType, FallbackFunctionType, LoginFunctionType, LogoutFunctionType,
                               TokenFetchFunctionType)
 from adk.utils import read_json_file, write_json_file
 
@@ -57,7 +57,7 @@ class AuthManager:
         # fall back to default host
         self.__set_active_host(QNE_URL)
 
-    def load_token(self, host: str) -> str:
+    def load_token(self, host: str) -> Optional[str]:
         """ Try to load an earlier stored Quantum Network token from file.
 
         :param host: the Quantum Network host.
@@ -82,7 +82,7 @@ class AuthManager:
         """
         return self.__get_item_from_host(host, "token")
 
-    def __store_token(self, host: str, token: str, username: str, password: str) -> None:
+    def __store_token(self, host: str, token: str, username: Optional[str], password: Optional[str]) -> None:
         """Save the token for a host to a file. Currently allowing one login at a time.
 
         :param host: the Quantum Network host for which the token is saved.
@@ -93,7 +93,7 @@ class AuthManager:
         write_json_file(self.auth_config, accounts)
 
     def set_token(self, host: str, token: str) -> None:
-        accounts = read_json_file(self.auth_config)
+        accounts: AuthType = read_json_file(self.auth_config)
 
         if host in accounts:
             accounts[host]["token"] = token
@@ -104,7 +104,7 @@ class AuthManager:
 
         :param token: the token for which the Quantum Network host is searched for.
         """
-        accounts = read_json_file(self.auth_config)
+        accounts: AuthType = read_json_file(self.auth_config)
         for uri in accounts:
             if accounts[uri]["token"] == token:
                 return uri
@@ -118,16 +118,16 @@ class AuthManager:
 
         :param host: the Quantum Network host for which the token is deleted.
         """
-        accounts = read_json_file(self.auth_config)
+        accounts: AuthType = read_json_file(self.auth_config)
         for uri in accounts:
             if uri.lower() == host.lower():
                 del accounts[uri]
                 write_json_file(self.auth_config, accounts)
                 break
 
-    def __read_active_host(self) -> Optional[str]:
+    def __read_active_host(self) -> str:
         """Read the host from the auth configs (first entry)"""
-        accounts = read_json_file(self.auth_config)
+        accounts: AuthType = read_json_file(self.auth_config)
         account_list = list(accounts)
         return account_list[0] if len(account_list) > 0 else QNE_URL
 
@@ -140,7 +140,7 @@ class AuthManager:
         return self.__active_host
 
     def __get_item_from_host(self, host: str, item: str) -> Optional[str]:
-        accounts = read_json_file(self.auth_config)
+        accounts: AuthType = read_json_file(self.auth_config)
 
         if host in accounts:
             return accounts[host][item]

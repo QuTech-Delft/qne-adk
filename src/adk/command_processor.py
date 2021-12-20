@@ -4,7 +4,7 @@ from typing import Any, cast, Dict, List, Optional
 from adk.api.local_api import LocalApi
 from adk.api.remote_api import RemoteApi
 from adk.decorators import log_function
-from adk.exceptions import (ApplicationNotFound, DirectoryAlreadyExists, ExperimentNotRun,
+from adk.exceptions import (ApplicationNotComplete, ApplicationNotFound, DirectoryAlreadyExists, ExperimentNotRun,
                             NetworkNotAvailableForApplication, ResultDirectoryNotAvailable)
 from adk.type_aliases import ApplicationType, ExperimentType, ErrorDictType, ResultType
 from adk import utils
@@ -46,11 +46,14 @@ class CommandProcessor:
         if app_config:
             application_data = self.__local.get_application_data(application_path)
             app_result = self.__local.get_application_result(application_name)
-            application_data = self.__remote.upload_application(application_path=application_path,
-                                                                application_data=application_data,
-                                                                application_config=app_config,
-                                                                application_result=app_result)
-            self.__local.set_application_data(application_path, application_data)
+            if app_result is not None:
+                application_data = self.__remote.upload_application(application_path=application_path,
+                                                                    application_data=application_data,
+                                                                    application_config=app_config,
+                                                                    application_result=app_result)
+                self.__local.set_application_data(application_path, application_data)
+            else:
+                raise ApplicationNotComplete(application_name)
         else:
             raise ApplicationNotFound(application_name)
 
@@ -196,6 +199,7 @@ class CommandProcessor:
         Returns:
             None if remote results are not yet available, otherwise True
         """
+        results: Optional[List[ResultType]]
         local = self.__local.is_experiment_local(experiment_path=experiment_path)
         if local:
             results = self.__local.run_experiment(experiment_path)

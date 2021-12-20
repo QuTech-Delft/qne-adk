@@ -27,6 +27,13 @@ class ApplicationDoesNotExist(QneAdkException):
         super().__init__(f"Directory '{application_path}' does not appear to be a valid application directory")
 
 
+class ApplicationNotComplete(QneAdkException):
+    """Raised when application is not complete"""
+
+    def __init__(self, application_name: str) -> None:
+        super().__init__(f"Components of application '{application_name}' are missing")
+
+
 class ApplicationNotFound(QneAdkException):
     """Raised when application is not found in .qne/application.json"""
 
