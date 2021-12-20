@@ -59,7 +59,7 @@
           "type": "string"
         },
         "experiment_id": {
-          "type": "integer"
+          "type": "string"
         },
         "round_set": {
           "type": "string",

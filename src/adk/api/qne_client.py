@@ -91,6 +91,8 @@ class QneClient:
             jwt_url = urljoin(jwt_url, 'refresh/')
             payload = {'refresh': self.__refresh_token}
         else:
+            assert self.__username is not None
+            assert self.__password is not None
             payload = {
                 'username': self.__username,
                 'password': self.__password
@@ -98,6 +100,7 @@ class QneClient:
 
         response = self._client_post(jwt_url, data=payload).json()
         self.__refresh_token = response.get("refresh", self.__refresh_token)
+        assert self.__refresh_token is not None
         self.__auth_manager.set_token(self.__base_uri, self.__refresh_token)
 
         return str(response['access'])
@@ -111,13 +114,14 @@ class QneClient:
         auth_mech = TokenAuthentication(access_token, scheme="JWT")
         self._set_open_api_client(auth_mech)
 
-    def login(self, username: str, password: str, host: str) -> Optional[str]:
+    def login(self, username: str, password: str, host: str) -> str:
         self.__refresh_token = None
         self.__base_uri = host
         self.__username = username
         self.__password = password
 
         self._authenticate()
+        assert self.__refresh_token is not None
         return self.__refresh_token
 
     def logout(self, host: str) -> None:
@@ -152,6 +156,7 @@ class QneClient:
                 self._authenticate()
             else:
                 raise NotLoggedIn()
+        assert self.__client is not None
         try:
             return self.__client.request(operation_id, **params)
         except ClientError as error:
@@ -189,11 +194,11 @@ class QneClient:
         return self.__base_uri
 
     @property
-    def username(self) -> str:
+    def username(self) -> Optional[str]:
         return self.__username
 
     @property
-    def password(self) -> str:
+    def password(self) -> Optional[str]:
         return self.__password
 
     @staticmethod
@@ -277,7 +282,7 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         app_source_url = urljoin(self.base_uri, 'app-sources/')
         auth = HTTPBasicAuth(self.username, self.password)
         response = self._client_post(url=app_source_url, files=app_source_files, auth=auth)
-        return response.json()
+        return cast(AppSourceType, response.json())
 
     def app_config_application(self, application_url: str) -> AppConfigType:
         _, application_id = QneClient.parse_url(application_url)

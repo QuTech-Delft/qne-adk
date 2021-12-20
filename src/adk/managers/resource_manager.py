@@ -2,7 +2,7 @@ from pathlib import Path
 import tarfile
 from typing import Tuple
 
-from adk.type_aliases import AppConfigType, ApplicationDataType
+from adk.type_aliases import app_configNetworkType, ApplicationDataType
 
 
 class ResourceManager:
@@ -13,7 +13,7 @@ class ResourceManager:
 
     """
     def prepare_resources(self, application_data: ApplicationDataType, application_path: Path,
-                          app_config: AppConfigType) -> Tuple[str, str]:
+                          app_config: app_configNetworkType) -> Tuple[str, str]:
         """ The app-files needed for running the application are in the src directory. For each role a
         source file is expected and added to the tarball.
 
@@ -31,7 +31,7 @@ class ResourceManager:
         app_file_name = (application_data["remote"]["slug"] + ".tar.gz")
         app_file_path = app_src_path / app_file_name
         with tarfile.open(app_file_path, "w:gz") as tar:
-            for role in app_config["network"]["roles"]:
+            for role in app_config["roles"]:
                 arc_name = f'app_{role.lower()}.py'
                 file_name = app_src_path / arc_name
                 tar.add(name=file_name, arcname=arc_name, recursive=False)

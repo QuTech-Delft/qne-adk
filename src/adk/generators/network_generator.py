@@ -1,6 +1,6 @@
 from typing import Dict, List, cast
 
-from adk.type_aliases import InstructionType, NetworkType, LinkType, DijkstraNode
+from adk.type_aliases import InstructionType, NetworkConfigType, LinkType, NodeType, DijkstraNode
 
 
 class FullyConnectedNetworkGenerator:
@@ -56,23 +56,25 @@ class FullyConnectedNetworkGenerator:
                 # If alternative is better, replace fidelity / route from starting node
                 if alternative_fidelity > current_fidelity:
                     dijkstra[neighbour]["effective_fidelity"] = alternative_fidelity
-                    dijkstra[neighbour]["channels"] = dijkstra[current_node]["channels"] + \
-                                                      cast(List[str], [neighbour_link['name']])
+                    dijkstra[neighbour]["channels"] = \
+                        dijkstra[current_node]["channels"] + cast(List[str], [neighbour_link['name']])
 
             temporary_labeled = {node: properties for node, properties in dijkstra.items() if not properties['final']}
 
         return dijkstra
 
     @staticmethod
-    def _get_all_neighbours(network: NetworkType) -> Dict[str, Dict[str, LinkType]]:
+    def _get_all_neighbours(network: NetworkConfigType) -> Dict[str, Dict[str, LinkType]]:
         """Generate dictionary with nodes as key and a dictionary with neighbour node and link between them as value."""
         neighbours: Dict[str, Dict[str, LinkType]] = {}
-        for node in network['nodes']:
-            neighbours[node['name']] = {}
+        nodes: List[NodeType] = cast(List[NodeType], network['nodes'])
+        for node in nodes:
+            neighbours[cast(str, node['name'])] = {}
 
-        for link in network['links']:
-            neighbours[link['node_name1']][link['node_name2']] = link
-            neighbours[link['node_name2']][link['node_name1']] = link
+        links: List[LinkType] = cast(List[LinkType], network['links'])
+        for link in links:
+            neighbours[cast(str, link['node_name1'])][cast(str, link['node_name2'])] = link
+            neighbours[cast(str, link['node_name2'])][cast(str, link['node_name1'])] = link
         return neighbours
 
     @staticmethod
@@ -83,7 +85,7 @@ class FullyConnectedNetworkGenerator:
             return FullyConnectedNetworkGenerator.NOISE_BITFLIP
         return FullyConnectedNetworkGenerator.NOISE_NONE
 
-    def generate(self, original_network: NetworkType, role_mapping: Dict[str, str]) -> NetworkType:
+    def generate(self, original_network: NetworkConfigType, role_mapping: Dict[str, str]) -> NetworkConfigType:
         """Generate a fully connected network based on original network and role mapping.
 
         Returns:
@@ -92,7 +94,8 @@ class FullyConnectedNetworkGenerator:
         # Clear channel mapping
         self.__channel_mapping = {}
         # Filter nodes from original network present in role_mapping
-        nodes = [node for node in original_network['nodes'] if node['name'] in role_mapping.values()]
+        original_nodes = cast(List[NodeType], original_network['nodes'])
+        nodes: List[NodeType] = [node for node in original_nodes if node['name'] in role_mapping.values()]
 
         # Generate dictionary with nodes as key and a dict with neighbour and link as value
         all_neighbours = FullyConnectedNetworkGenerator._get_all_neighbours(original_network)
@@ -100,29 +103,29 @@ class FullyConnectedNetworkGenerator:
         # For all possible combinations of two nodes, find optimal path
         links: List[LinkType] = []
         for node1_index in range(len(nodes[:-1])):
-            node1 = nodes[node1_index]['name']
+            node1 = cast(str, nodes[node1_index]['name'])
 
             # Run Dijkstra algorithm for this node as starting node
             dijkstra = FullyConnectedNetworkGenerator._dijkstra(all_neighbours, node1)
 
             # Generate list of links / effective fidelity for all other nodes
             for node2_index in range(node1_index+1, len(nodes)):
-                node2 = nodes[node2_index]['name']
+                node2 = cast(str, nodes[node2_index]['name'])
                 effective_fidelity = dijkstra[node2]["effective_fidelity"]
 
                 # Only add link if there is an actual link between the two nodes
                 if effective_fidelity > 0:
                     new_link = f"{node1}-{node2}"
                     self.__channel_mapping[new_link] = dijkstra[node2]["channels"]
-
+                    original_links = cast(List[LinkType], original_network['links'])
                     links.append({
                         "name": new_link,
                         "node_name1": node1,
                         "node_name2": node2,
                         # Worst noise type of used links is taken as the noise type for effective link
                         "noise_type": FullyConnectedNetworkGenerator._get_overall_noise_type(
-                            [link['noise_type'] for link in original_network['links']
-                                       if link['name'] in dijkstra[node2]["channels"]]),
+                            [cast(str, link['noise_type']) for link in original_links
+                             if link['name'] in dijkstra[node2]["channels"]]),
                         # Effective fidelity is set to zero if it drops below 1/2
                         "fidelity": round(effective_fidelity, 4) if effective_fidelity >= 0.5 else 0
                     })
