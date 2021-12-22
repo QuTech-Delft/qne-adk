@@ -16,7 +16,7 @@ Create your application using the following command:
 
 Config
 ======
-Within the config directory, you can find the application.json, network.json, and results.json. Result.json can be left
+Within the config directory, you can find the application.json, network.json, and result.json. Result.json can be left
 as it is. Fill in application.json and network.json with the examples given below.
 
 application.json
