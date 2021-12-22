@@ -44,8 +44,8 @@ app_receiver.py
 .. literalinclude:: src_examples/app_receiver.py
   :language: Python
 
-Before proceeding to creating your application, you can validate if your application and json structure is correct by
-running:
+Before proceeding to create your experiment, you can validate to check whether your application and json structure is
+correct by running:
 
 .. code-block:: console
 
