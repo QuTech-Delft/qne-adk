@@ -44,6 +44,13 @@ app_receiver.py
 .. literalinclude:: src_examples/app_receiver.py
   :language: Python
 
+Before proceeding to creating your application, you can validate if your application and json structure is correct by
+running:
+
+.. code-block:: console
+
+    qne application validate teleport
+
 ***********
 Experiment
 ***********
@@ -67,6 +74,13 @@ example. Use the contents of this example in your experiment.json file.
 .. literalinclude:: json_examples/experiment_complete_example.json
   :language: JSON
 
+
+Before running your experiment, you can validate if the file and json structure of your experiment is correct by
+running:
+
+.. code-block:: console
+
+    qne experiment validate teleport_experiment
 
 Run your experiment
 ===================
