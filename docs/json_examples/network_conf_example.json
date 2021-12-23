@@ -1,0 +1,11 @@
+{
+  "networks": [
+    "randstad",
+    "europe",
+    "the-netherlands"
+  ],
+  "roles": [
+    "Sender",
+    "Receiver"
+  ]
+}

@@ -1,0 +1,57 @@
+[
+  {
+    "title": "Title for this application",
+    "description": "Description of this application",
+    "values": [
+      {
+        "name": "x",
+        "default_value": 0,
+        "minimum_value": 0,
+        "maximum_value": 1,
+        "unit": "",
+        "scale_value": 1.0
+      }
+    ],
+    "input_type": "number",
+    "roles": [
+      "role_name1"
+    ]
+  },
+  {
+    "title": "Title for this application",
+    "description": "Description of this application",
+    "values": [
+      {
+        "name": "x",
+        "default_value": 0,
+        "minimum_value": 0,
+        "maximum_value": 1,
+        "unit": "",
+        "scale_value": 1.0
+      }
+    ],
+    "input_type": "number",
+    "roles": [
+      "role_name2"
+    ]
+  },
+  {
+    "title": "Title for this input",
+    "description": "This input is available for multiple roles",
+    "values": [
+      {
+        "name": "y",
+        "default_value": 0,
+        "minimum_value": 0,
+        "maximum_value": 1,
+        "unit": "",
+        "scale_value": 1.0
+      }
+    ],
+    "input_type": "number",
+    "roles": [
+      "role_name1",
+      "role_name2",
+    ]
+  }
+]

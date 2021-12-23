@@ -84,7 +84,7 @@ setup(
     extras_require={
         "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort", "types-tabulate", "types-PyYAML"],
         "rtd": [
-            "sphinx",
+            "sphinx==2.0.0",
             "sphinx_rtd_theme",
             "nbsphinx",
             "sphinx-automodapi",

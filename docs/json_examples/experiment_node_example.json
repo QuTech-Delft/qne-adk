@@ -1,0 +1,97 @@
+{
+  "name": "Amsterdam",
+  "slug": "amsterdam",
+  "coordinates": {
+    "latitude": 52.3667,
+    "longitude": 4.8945
+  },
+  "node_parameters": [
+    {
+      "slug": "gate-fidelity",
+      "values": [
+        {
+          "name": "gate_fidelity",
+          "value": 1.0,
+          "scale_value": 1.0
+        }
+      ]
+    }
+  ],
+  "qubits": [
+    {
+      "qubit_id": 0,
+      "qubit_parameters": [
+        {
+          "slug": "relaxation-time",
+          "values": [
+            {
+              "name": "t1",
+              "value": 0,
+              "scale_value": 1.0
+            }
+          ]
+        },
+        {
+          "slug": "dephasing-time",
+          "values": [
+            {
+              "name": "t2",
+              "value": 0,
+              "scale_value": 1.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "qubit_id": 1,
+      "qubit_parameters": [
+        {
+          "slug": "relaxation-time",
+          "values": [
+            {
+              "name": "t1",
+              "value": 0,
+              "scale_value": 1.0
+            }
+          ]
+        },
+        {
+          "slug": "dephasing-time",
+          "values": [
+            {
+              "name": "t2",
+              "value": 0,
+              "scale_value": 1.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "qubit_id": 2,
+      "qubit_parameters": [
+        {
+          "slug": "relaxation-time",
+          "values": [
+            {
+              "name": "t1",
+              "value": 0,
+              "scale_value": 1.0
+            }
+          ]
+        },
+        {
+          "slug": "dephasing-time",
+          "values": [
+            {
+              "name": "t2",
+              "value": 0,
+              "scale_value": 1.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
