@@ -1,7 +1,7 @@
 [
   {
-    "title": "Title for this application",
-    "description": "Description of this application",
+    "title": "Title for this input",
+    "description": "Description of this input",
     "values": [
       {
         "name": "x",
@@ -18,19 +18,27 @@
     ]
   },
   {
-    "title": "Title for this application",
-    "description": "Description of this application",
+    "title": "Title for this input",
+    "description": "Description of this input",
     "values": [
       {
-        "name": "x",
-        "default_value": 0,
-        "minimum_value": 0,
-        "maximum_value": 1,
-        "unit": "",
-        "scale_value": 1.0
+        "name": "phi",
+        "default_value": 0.0,
+        "minimum_value": 0.0,
+        "maximum_value": 2.0,
+        "unit": "rad",
+        "scale_value": "pi"
+      },
+      {
+        "name": "theta",
+        "default_value": 0.0,
+        "minimum_value": 0.0,
+        "maximum_value": 1.0,
+        "unit": "rad",
+        "scale_value": "pi"
       }
     ],
-    "input_type": "number",
+    "input_type": "qubit",
     "roles": [
       "role_name2"
     ]
