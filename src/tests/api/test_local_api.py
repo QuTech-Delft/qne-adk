@@ -231,7 +231,8 @@ class AppValidate(unittest.TestCase):
         self.all_network_nodes = {'randstad': ['n1', 'n2', 'n3', 'n4', 'n5']}
         self.all_network_channels = ['n1-n2', 'n2-n3', 'n4-n3', 'n4-n5']
 
-
+# pylint: disable=R0904
+# R0904: Too many public methods
 class ApplicationValidate(AppValidate):
     def test_constructor(self):
         with patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock:
