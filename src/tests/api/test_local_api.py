@@ -66,6 +66,53 @@ class AppValidate(unittest.TestCase):
             'network': {}
         }
 
+        self.mock_application_json = [
+            {
+                "title": "Qubit state of Sender",
+                "slug": "qubit_state_sender",
+                "description": "description",
+                "values": [
+                    {
+                        "name": "phi",
+                        "default_value": 0.0,
+                        "minimum_value": -1.0,
+                        "maximum_value": 1.0,
+                        "scale_value": "pi"
+                    },
+                    {
+                        "name": "theta",
+                        "default_value": 0.0,
+                        "minimum_value": 0.0,
+                        "maximum_value": 1.0,
+                        "scale_value": 2.0
+                    }
+                ],
+                "input_type": "qubit",
+                "roles": [
+                    "Role1"
+                ]
+            },
+            {
+                "title": "Qubit state of Sender",
+                "slug": "qubit_state_sender",
+                "description": "description",
+                "values": [
+                    {
+                        "name": "x",
+                        "default_value": 0.0,
+                        "minimum_value": -1.0,
+                        "maximum_value": 1.0,
+                        "scale_value": "pi"
+                    },
+                ],
+                "input_type": "number",
+                "roles": [
+                    "Role1",
+                    "Role2"
+                ]
+            }
+        ]
+
         self.channel_info_list = [{"slug": "c1-slug", "parameters": ["param-1", "param-2"]},
                                   {"slug": "c2-slug", "parameters": ["param-1"]},
                                   {"slug": "c3-slug", "parameters": ["param-2"]}]
@@ -302,6 +349,35 @@ class ApplicationValidate(AppValidate):
                                         call(self.path / 'src' / 'app_role3.py')]
             check_python_syntax.assert_has_calls(check_python_syntax_call)
             self.assertEqual(is_valid_param_role.call_count, 2)
+
+    def test_get_role_input_mapping(self):
+        with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
+             patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Role1', 'Role2']), \
+             patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
+             patch("adk.api.local_api.utils.get_function_arguments") as get_function_arguments_mock, \
+             patch("adk.api.local_api.utils.check_python_syntax") as check_python_syntax:
+
+            read_json_file_mock.return_value = self.mock_application_json
+            check_python_syntax.return_value = (True, 'ok')
+            get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "appIncorrect.py"]
+            get_function_arguments_mock.side_effect = [['phi', 'x'], ['y']]
+
+            error_dict = self.local_api.is_application_valid(application_name=self.application,
+                                                             application_path=self.path)
+            get_role_file_names_mock.assert_called_once_with(self.path / 'config')
+            check_python_syntax_call = [call(self.path / 'src' / 'app_role1.py'),
+                                        call(self.path / 'src' / 'app_role2.py')]
+            check_python_syntax.assert_has_calls(check_python_syntax_call)
+            self.assertEqual(check_python_syntax.call_count, 3)
+            self.assertEqual(get_function_arguments_mock.call_count, 2)
+
+            self.assertIn('main() in app_role1.py is missing the theta argument', error_dict['error'])
+            self.assertIn('main() in app_role2.py is missing the x argument', error_dict['error'])
+            self.assertIn('Name of appIncorrect.py is not properly formatted', error_dict['error'])
 
     def test__is_structure_valid_all_oke(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
