@@ -1,5 +1,6 @@
 Application configuration
 =========================
+
 This section will describe what an application is and how to create and configure it. In QNE, an application functions
 as a sort of 'template' to create your experiment for. You decide how many roles you want, what type of inputs and the
 actual functionality of your application.
@@ -8,9 +9,9 @@ The creation and configuration of your application is split into three parts. Fi
 then you can follow the config and src pages to configure the contents of your application and make it ready for an
 experiment.
 
-
 Create application
 ------------------
+
 Execute the following command to create an application in your current directory:
 
 .. code-block:: console
@@ -28,7 +29,6 @@ This could be an example of what this command could look like:
 
     qne application create teleport Sender Receiver
 
-
 You can add more than two roles as far as the network allows. If your network consists of five nodes, it is not
 possible to create more than five roles. In `Network Information <network_information.html>`_ you can find the number
 of nodes a network has. Your application will only work on networks that contains enough nodes for the number of roles
@@ -40,13 +40,14 @@ After executing this command, you should have a directory structure that looks l
 
 The ``config`` directory consists of json files to configure your application. ``application.json`` serves as a kind of
 template for the inputs that the user can give to the application. The ``network.json`` contains the networks that are
-available and the role names based on the roles that are given as input. The ``result.json`` is used as a kind of template
-to display the results on the Quantum Internet Explorer website. But since QNE-ADK can only be used for running
-experiments locally for now, this file can be left as is.
+available and the role names based on the roles that are given as input. The ``result.json`` is used as a kind of
+template to display the results on the Quantum Internet Explorer website.
 
 The src directory consists of a number of python files. These are the actual application files. For each role defined
 in the application a python file is created. The file names of these application files are based on the role names you
 specified while creating the application.
+
+The file ``manifest.json`` contains meta data for the application as application name, description, author etc.
 
 To make sure that your application has all the necessary and the correct structure, you can validate it with the
 following command:
@@ -59,18 +60,19 @@ You have now created your application and are ready to prepare the contents of t
 
 Config configuration
 --------------------
-After creating an application, a config directory is created within this application directory. This config directory
-consists of the files application.json, network.json, and result.json. Each of these files is described below
 
-Application.json
+After creating an application, a config directory is created within this application directory. This config directory
+consists of the files application.json, network.json, and result.json. Each of these files is described below.
+
+application.json
 ________________
+
 The application.json file is used as a sort of 'template' for your application. It consists of inputs which will be
 defined in a list inside the application.json file. The application.json contains a default layout after creating your
 application. This layout looks like this (assuming two roles were used when creating an application):
 
 .. literalinclude:: json_examples/application_conf_layout.json
   :language: JSON
-
 
 Each role has its own input, with all roles being merged at the last input. This is the 'template' of your application
 input. Each input value has a name, ``default_value``, ``minimum_value``, ``maximum_value``, ``unit``, and your
@@ -98,7 +100,7 @@ roles are named Sender and Receiver when creating the application:
 .. literalinclude:: json_examples/application_conf_example.json
   :language: JSON
 
-Network.json
+network.json
 ____________
 
 The network.json file states what networks a user can use to run their experiment on for this application. The networks
@@ -114,16 +116,18 @@ An example of the network.json file is shown below using the same inputs as give
 .. literalinclude:: json_examples/network_conf_example.json
   :language: JSON
 
-Result.json
+result.json
 ____________
+
 The result.json file is also used as a 'template' file for displaying the results of an experiment on the frontend.
-But since the applications are only meant to run locally for now, nothing will be displayed on the frontend and there
+When the application is only meant to run locally, nothing will be displayed on the frontend and there
 is no need to modify anything in this file.
 
 Now that you learned a little more about how to edit your config files, it's time to start creating your src files
 
 Src configuration
 -----------------
+
 When an application is created, a 'src' directory is also generated within the application directory. This src directory
 contains your source files for writing the functionality of your application. These files are Python files and are named
 after the names of your roles.
@@ -143,5 +147,26 @@ directory):
 *Note: This command does not check the contents of your python files, only if the application structure is correct and
 if the JSON files contain valid JSON.*
 
-When both the config and src directories are adjusted to your liking,  and the application is validated, it's time to
-create an experiment!
+manifest.json
+_____________
+
+The file ``manifest.json`` contains meta data for the application as application name, description, author, e-mail
+address and if the application need to run multiple times to come to an result. When the application is uploaded to
+Quantum Network Explorer, this file also contains remote data to be able to link the local application to the remote
+application.
+
+The manifest.json is built up out of two parts, namely ``application`` and ``remote``.
+The ``application`` is maintained by the developer.
+The ``remote`` part of manifest.json is used by the ADK and only relevant when an application is uploaded to the
+server. This part is not to be edited or maintained by the developer.
+
+.. literalinclude:: json_examples/application_manifest_layout.json
+  :language: JSON
+
+An example of what the manifest could look like is as follows:
+
+.. literalinclude:: json_examples/application_manifest_example.json
+  :language: JSON
+
+When the manifest and both the config and src directories are adjusted to your liking, and the application is validated,
+it's time to create an experiment!

@@ -1,10 +1,16 @@
 {
   "meta": {
+    "application": {
+      "slug": "slug_of_application",
+      "app_version": "application version of remote application",
+      "multi_round": "False"
+    },
     "backend": {
       "location": "local",
       "type": "slug-of-the-backendtype"
     },
-    "number_of_rounds": "number-of-rounds",
-    "description": "text"
+    "description": "description of local_exp here",
+    "number_of_rounds": 1,
+    "name": "name of experiment"
   }
 }

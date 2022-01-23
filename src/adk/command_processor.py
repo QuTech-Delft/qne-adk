@@ -88,7 +88,7 @@ class CommandProcessor:
         application_id = self.__local.get_application_id(application_path)
         deleted_completely_remote = \
             self.__remote.delete_application(application_id) if application_id is not None else True
-        # todo we don't have to update manifest, it will be deleted now, unless we introduce a --remote flag
+        # TODO we don't have to update manifest, it will be deleted now, unless we introduce a --remote flag
         # application_data = self.__local.get_application_data(application_path)
         # if "application_id" in application_data["remote"]:
         #     del application_data["remote"]["application_id"]
