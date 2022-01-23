@@ -14,6 +14,7 @@ This section will help you step by step on how to create, configure and run an e
 *****************
 Create experiment
 *****************
+
 In the experiment, you have the option to adjust the values of the inputs of the application for which you are creating
 the experiment. To create an experiment, use the following command:
 
@@ -59,14 +60,17 @@ of and how it can be modified to make it ready for a run.
 
 Experiment.json configuration
 =============================
+
 In experiment.json you can adjust which network and which nodes/channels you use. In addition, you can adjust the values
 you entered as inputs when configuring your application. The experiment.json file is built up out of two parts, namely:
 the ``meta`` and ``asset``.
 
 Meta
 ----
-The ``meta`` attribute contains three attributes that describe the runtime configuration. This entails the backend is local
-on which the experiment is run, how many times to run, and a short description:
+
+The ``meta`` attribute contains the attributes that describe the runtime configuration. This entails the application
+for which this experiment is created, the backend on which the experiment is run,
+a short description of the experiment, how many times to run, and the name of the experiment:
 
 .. literalinclude:: json_examples/experiment_meta_layout.json
   :language: JSON
@@ -76,11 +80,9 @@ An example of what the meta could look like is as follows:
 .. literalinclude:: json_examples/experiment_meta_example.json
   :language: JSON
 
-*Note: For now, only a 'local' location, only one 'number_of_rounds' and type 'local_netsquid' as simulator are
-supported. So it is best to leave these values as they are.*
-
 Asset
 -----
+
 The asset contains the user input for the configuration of both the network and the application. The asset is built up
 out of a ``network`` and ``application`` property. The ``network`` property contains all information about the nodes and
 channels which are available for this network. The ``application`` property describes all inputs of the application,
@@ -88,6 +90,7 @@ what role(s) is/are linked to this input, and what value it stores.
 
 Network
 ^^^^^^^
+
 The network property contains a ``name``, ``slug``, and ``roles`` and is built up out of multiple ``nodes`` and
 ``channels``. Depending on what network has been chosen to run the experiment on, the values of the ``name``, ``slug``,
 ``node`` and ``channels`` have already been generated and should be left as it is. In the ``roles`` property, you can
@@ -123,6 +126,7 @@ both be paired with 'amsterdam'.*
 
 Application
 ^^^^^^^^^^^
+
 The asset also has an ``application`` property which is a list of all the inputs of your application. Each input
 consists of a ``roles`` and ``values`` dictionary. Here you can assign roles to inputs and give it a certain value. An
 example of a single input looks like this:
@@ -140,6 +144,7 @@ that all necessary files are present and that the structure of experiment.json i
 *******
 Example
 *******
+
 A complete example of what the experiment.json could look like is given below:
 
 .. literalinclude:: json_examples/experiment_complete_example.json

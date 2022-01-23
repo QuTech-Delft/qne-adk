@@ -207,7 +207,7 @@ def applications_list(
         else:
             desired_order_columns = ["name", "id", "path"]
             local_app_list = reorder_data(applications["local"], desired_order_columns)
-            typer.echo(tabulate(local_app_list, headers={"name": "application",
+            typer.echo(tabulate(local_app_list, headers={"name": "application name",
                                                          "id": "application id",
                                                          "path": "path"}))
             typer.echo(f'{len(applications["local"])} local application(s)')
@@ -278,7 +278,7 @@ def experiments_create(
     application_name: str = typer.Argument(..., help="Name of the application"),
     network_name: str = typer.Argument(..., help="Name of the network to use"),
     remote: bool = typer.Option(
-        False, "--remote", help="Run the experiment remote"
+        False, "--remote", help="Use remote application configuration"
     )
 ) -> None:
     """
@@ -393,6 +393,9 @@ def experiments_run(
 ) -> None:
     """
     Run an experiment.
+
+    When experiment_name is given ./experiment_name is taken as experiment directory. When experiment_name is not
+    given, the current directory is taken as experiment directory.
     """
     experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
     # Validate the experiment before executing the run command
@@ -421,7 +424,10 @@ def experiments_validate(
     experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment")
 ) -> None:
     """
-    Validate the experiment configuration.
+    Validate the local experiment.
+
+    When experiment_name is given ./experiment_name is taken as experiment directory. When experiment_name is not
+    given, the current directory is taken as experiment directory.
     """
     experiment_path, experiment_name = retrieve_experiment_name_and_path(experiment_name=experiment_name)
     typer.echo(f"Validate experiment '{experiment_name}'\n")
@@ -444,6 +450,9 @@ def experiments_results(
 ) -> None:
     """
     Get results for an experiment that run successfully.
+
+    When experiment_name is given ./experiment_name is taken as experiment directory. When experiment_name is not
+    given, the current directory is taken as experiment directory.
     """
     experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
     results = processor.experiments_results(all_results=all_results, experiment_path=experiment_path)
