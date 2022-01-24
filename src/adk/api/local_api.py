@@ -567,41 +567,45 @@ class LocalApi:
             error_dict: A dictionary for storing the validation errors
 
         """
-        role_input_mapping = self.__get_role_input_mapping(application_path)
         role_name = self.__get_role_name_from_role_file(role_file)
 
         if role_name:
+            role_inputs = self.__get_role_inputs(application_path, role_name)
             app_src_path = application_path / 'src'
             if (app_src_path / role_file).is_file():
                 arg_list = utils.get_function_arguments(app_src_path / role_file, function_name='main')
-                for input_list_item in role_input_mapping[role_name]:
-                    if input_list_item not in arg_list:
-                        error_dict['error'].append(f"main() in {role_file} is missing the {input_list_item} argument")
+                if arg_list:
+                    for input_list_item in role_inputs:
+                        if input_list_item not in arg_list:
+                            error_dict['error'].append(f"main() in {role_file} is missing the {input_list_item} "
+                                                       f"argument")
+                else:
+                    error_dict['error'].append(f"main() not found in file {role_file}")
         else:
             error_dict['error'].append(f"Name of {role_file} is not properly formatted")
 
-    def __get_role_input_mapping(self, application_path: Path) -> Dict[str, List[str]]:
+    def __get_role_inputs(self, application_path: Path, role: str) -> List[str]:
         """
-        Get the mapping of roles and the inputs which are defined for those roles
+        Get the list of inputs which are defined for the role in application config file
 
         Args:
             application_path: Path of where the application is located
+            role: Name of the role for which inputs are needed
 
         Returns:
-            A dictionary containing key as role names and value as the inputs available for that role
+            A List containing inputs available for the role
 
         """
         app_config_path = application_path / 'config'
-        roles = self.__get_role_names(app_config_path)
-        roles_input_mapping: Dict[str, List[str]] = {role.lower(): [] for role in roles}
         app_config_application: app_configApplicationType = utils.read_json_file(app_config_path / 'application.json')
+        role_inputs = ['app_config']
 
         for input_template in app_config_application:
-            for role_name in input_template['roles']:
+            if role in map(str.lower, input_template['roles']):
                 for value_item in input_template['values']:
-                    roles_input_mapping[role_name.lower()].append(value_item['name'])
+                    role_inputs.append(value_item['name'])
 
-        return roles_input_mapping
+        return role_inputs
 
     def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
                            path: Path, application_name: str) -> None:

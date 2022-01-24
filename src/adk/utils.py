@@ -145,7 +145,7 @@ def get_dummy_application(roles: List[Any]) -> List[Dict[str, Any]]:
 
 
 def get_py_dummy() -> str:
-    dummy_main = 'def main(app_config=None):\n    # Put your code here\n    return {}\n\n\n' \
+    dummy_main = 'def main(app_config=None, x=0, y=0):\n    # Put your code here\n    return {}\n\n\n' \
                  'if __name__ == "__main__": \n    main()\n'
 
     return dummy_main
@@ -202,7 +202,7 @@ def check_python_syntax(source_file: Path) -> Tuple[bool, str]:
     return valid, message
 
 
-def get_function_arguments(source_file: Path, function_name: str = 'main') -> List[str]:
+def get_function_arguments(source_file: Path, function_name: str) -> Optional[List[str]]:
     """
     Get the list of arguments for a function defined in source file
 
@@ -211,7 +211,7 @@ def get_function_arguments(source_file: Path, function_name: str = 'main') -> Li
         function_name: Name of the function whose parameters are needed
 
     Returns:
-        A list containing the function argument names
+        A list containing the function argument names or None when function is not found
 
     """
     param_list: List[str] = []
@@ -228,5 +228,9 @@ def get_function_arguments(source_file: Path, function_name: str = 'main') -> Li
             if node.name == function_name:
                 for item in node.args.args:
                     param_list.append(item.arg)
+                break
+    else:
+        # function not found
+        return None
 
     return param_list

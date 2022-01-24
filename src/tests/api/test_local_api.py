@@ -364,21 +364,30 @@ class ApplicationValidate(AppValidate):
 
             read_json_file_mock.return_value = self.mock_application_json
             check_python_syntax.return_value = (True, 'ok')
-            get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "appIncorrect.py"]
-            get_function_arguments_mock.side_effect = [['phi', 'x'], ['y']]
+            get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "appIncorrect.py", "app_role3.py"]
+            get_function_arguments_mock.side_effect = [['phi', 'x'], ['app_config', 'y'], None]
 
             error_dict = self.local_api.is_application_valid(application_name=self.application,
                                                              application_path=self.path)
             get_role_file_names_mock.assert_called_once_with(self.path / 'config')
             check_python_syntax_call = [call(self.path / 'src' / 'app_role1.py'),
-                                        call(self.path / 'src' / 'app_role2.py')]
+                                        call(self.path / 'src' / 'app_role2.py'),
+                                        call(self.path / 'src' / 'appIncorrect.py'),
+                                        call(self.path / 'src' / 'app_role3.py')]
             check_python_syntax.assert_has_calls(check_python_syntax_call)
-            self.assertEqual(check_python_syntax.call_count, 3)
-            self.assertEqual(get_function_arguments_mock.call_count, 2)
+            self.assertEqual(check_python_syntax.call_count, 4)
+            get_function_arguments_call = [call(self.path / 'src' / 'app_role1.py', function_name='main'),
+                                           call(self.path / 'src' / 'app_role2.py', function_name='main'),
+                                           call(self.path / 'src' / 'app_role3.py', function_name='main')]
+            self.assertEqual(get_function_arguments_mock.call_count, 3)
+            get_function_arguments_mock.assert_has_calls(get_function_arguments_call)
 
+            self.assertEqual(len(error_dict['error']), 5)
             self.assertIn('main() in app_role1.py is missing the theta argument', error_dict['error'])
             self.assertIn('main() in app_role2.py is missing the x argument', error_dict['error'])
             self.assertIn('Name of appIncorrect.py is not properly formatted', error_dict['error'])
+            self.assertIn('main() not found in file app_role3.py', error_dict['error'])
+            self.assertIn('main() in app_role1.py is missing the app_config argument', error_dict['error'])
 
     def test__is_structure_valid_all_oke(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \

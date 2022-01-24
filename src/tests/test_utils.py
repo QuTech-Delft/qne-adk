@@ -139,8 +139,7 @@ class TestUtils(unittest.TestCase):
         with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
             param_list = get_function_arguments(self.path, 'another_function')
 
-        self.assertEqual(len(param_list), 0)
-        self.assertEqual(param_list, [])
+        self.assertIsNone(param_list)
 
         invalid_python_code = 'definition main(app_config=None, q1=1, q3=3):\n    ' \
                               '# Put your code here\n    return {}\n\n\n' \
