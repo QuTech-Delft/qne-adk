@@ -351,7 +351,7 @@ class ApplicationValidate(AppValidate):
             check_python_syntax.assert_has_calls(check_python_syntax_call)
             self.assertEqual(is_valid_param_role.call_count, 2)
 
-    def test_get_role_input_mapping(self):
+    def test_is_valid_input_params_for_roles(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True), \

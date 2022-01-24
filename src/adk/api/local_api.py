@@ -415,6 +415,7 @@ class LocalApi:
         - The json files in the config directory contain valid json
         - The json files passes against schema validation
         - The python source files have valid syntax
+        - The main() in app_{role}.py has app_config as one of the parameters
         - The main() in app_{role}.py has the parameters which are listed in application config
 
         Args:
