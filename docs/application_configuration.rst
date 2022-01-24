@@ -82,6 +82,13 @@ If ``scale_value`` is anything other than 1.0, then ``unit`` will need to be of 
 performed upon the value. For example, if ``unit`` will be ‘rad' and the value is 3.14, then scaling can be something
 else than 1.0, like 0.1. The value will now be multiplied with the scaling: 3.14 * 0.1 = 0.314
 
+``input_type`` can take one of the following values:
+
+1. number
+2. qubit
+
+An example of each type of ``input_type`` and its structure can be seen in the application config layout shown above.
+
 You can also indicate which role or roles should be linked to which input by entering the role names in the "roles" list
 property of each input.
 
