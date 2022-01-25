@@ -1,8 +1,10 @@
+import ast
 import json
 import os
 from pathlib import Path
 import shutil
-from typing import Any, Dict, List, Optional, Type
+import traceback
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from adk.exceptions import JsonFileNotFound, MalformedJsonFile, InvalidPathName
 
@@ -143,7 +145,7 @@ def get_dummy_application(roles: List[Any]) -> List[Dict[str, Any]]:
 
 
 def get_py_dummy() -> str:
-    dummy_main = 'def main(app_config=None):\n    # Put your code here\n    return {}\n\n\n' \
+    dummy_main = 'def main(app_config=None, x=0, y=0):\n    # Put your code here\n    return {}\n\n\n' \
                  'if __name__ == "__main__": \n    main()\n'
 
     return dummy_main
@@ -175,3 +177,60 @@ def copy_files(source_dir: Path, destination_dir: Path, files_list: Optional[Lis
         full_file_name = os.path.join(source_dir, file_name)
         if os.path.isfile(full_file_name):
             shutil.copy(full_file_name, destination_dir)
+
+
+def check_python_syntax(source_file: Path) -> Tuple[bool, str]:
+    """
+    Check whether the given python file contains valid syntax
+
+    Args:
+        source_file: The path to the python file whose syntax is to be checked
+
+    Returns:
+        A tuple containing False & error message in case source_file does not have valid syntax,
+        (True, ok) otherwise
+    """
+    valid, message = True, "ok"
+    with open(source_file, encoding='utf-8') as f:
+        source = f.read()
+
+    try:
+        ast.parse(source)
+    except SyntaxError:
+        valid, message = False, traceback.format_exc()
+
+    return valid, message
+
+
+def get_function_arguments(source_file: Path, function_name: str) -> Optional[List[str]]:
+    """
+    Get the list of arguments for a function defined in source file
+
+    Args:
+        source_file: The path to the python file in which function is defined
+        function_name: Name of the function whose parameters are needed
+
+    Returns:
+        A list containing the function argument names or None when function is not found
+
+    """
+    param_list: List[str] = []
+    with open(source_file, encoding='utf-8') as f:
+        source = f.read()
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return param_list
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            if node.name == function_name:
+                for item in node.args.args:
+                    param_list.append(item.arg)
+                break
+    else:
+        # function not found
+        return None
+
+    return param_list

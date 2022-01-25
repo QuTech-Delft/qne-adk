@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import re
 import shutil
 from typing import Any, cast, Dict, List, Optional
 
@@ -413,6 +414,9 @@ class LocalApi:
         - The file and directory structure is correct
         - The json files in the config directory contain valid json
         - The json files passes against schema validation
+        - The python source files have valid syntax
+        - The main() in app_{role}.py has app_config as one of the parameters
+        - The main() in app_{role}.py has the parameters which are listed in application config
 
         Args:
             application_name: Name of the application
@@ -428,6 +432,7 @@ class LocalApi:
         if application_exists:
             self.__is_structure_valid(application_path, error_dict)
             self.__is_config_valid(application_path, error_dict)
+            self.__is_python_valid(application_path, error_dict)
         else:
             error_dict["error"].append(f"Application '{application_name}' does not exist")
 
@@ -491,6 +496,10 @@ class LocalApi:
 
         return application_file_names
 
+    def __get_role_name_from_role_file(self, role_file: str) -> Optional[str]:
+        result = re.search('app_(.*).py', role_file)
+        return result.group(1) if result else None
+
     def __is_structure_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
         app_config_path = application_path / 'config'
         app_src_path = application_path / 'src'
@@ -525,6 +534,79 @@ class LocalApi:
         if not (application_path / 'MANIFEST.ini').is_file():
             error_dict["warning"].append(f"{application_path} should contain the file 'MANIFEST.ini'")
 
+    def __is_python_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
+        """
+        Validate if the python code in app_{role}.py has valid syntax
+
+        Args:
+            application_path: Path of where the application is located
+            error_dict: A dictionary for storing the validation errors
+
+        """
+        app_config_path = application_path / 'config'
+        app_src_path = application_path / 'src'
+
+        role_file_names = self.__get_role_file_names(app_config_path)
+        for role_file in role_file_names:
+            if (app_src_path / role_file).is_file():
+                valid, validation_message = utils.check_python_syntax(app_src_path / role_file)
+                if not valid:
+                    error_dict["error"].append(f"The application source file {role_file} has syntax errors"
+                                               f"\n {validation_message}")
+                else:
+                    # The syntax is valid. So we can now check for the input params to the main()
+                    self.__is_valid_input_params_for_role(application_path, role_file, error_dict)
+
+    def __is_valid_input_params_for_role(self, application_path: Path, role_file: str, error_dict: ErrorDictType) \
+        -> None:
+        """
+        Validate if the inputs defined in application config are passed as parameters to main() in app_{role}.py
+
+        Args:
+            application_path: Path of where the application is located
+            role_file: Name of the file in which function is defined
+            error_dict: A dictionary for storing the validation errors
+
+        """
+        role_name = self.__get_role_name_from_role_file(role_file)
+
+        if role_name:
+            role_inputs = self.__get_role_inputs(application_path, role_name)
+            app_src_path = application_path / 'src'
+            if (app_src_path / role_file).is_file():
+                arg_list = utils.get_function_arguments(app_src_path / role_file, function_name='main')
+                if arg_list:
+                    for input_list_item in role_inputs:
+                        if input_list_item not in arg_list:
+                            error_dict['error'].append(f"main() in {role_file} is missing the {input_list_item} "
+                                                       f"argument")
+                else:
+                    error_dict['error'].append(f"main() not found in file {role_file}")
+        else:
+            error_dict['error'].append(f"Name of {role_file} is not properly formatted")
+
+    def __get_role_inputs(self, application_path: Path, role: str) -> List[str]:
+        """
+        Get the list of inputs which are defined for the role in application config file
+
+        Args:
+            application_path: Path of where the application is located
+            role: Name of the role for which inputs are needed
+
+        Returns:
+            A List containing inputs available for the role
+
+        """
+        app_config_path = application_path / 'config'
+        app_config_application: app_configApplicationType = utils.read_json_file(app_config_path / 'application.json')
+        role_inputs = ['app_config']
+
+        for input_template in app_config_application:
+            if role in map(str.lower, input_template['roles']):
+                for value_item in input_template['values']:
+                    role_inputs.append(value_item['name'])
+
+        return role_inputs
 
     def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
                            path: Path, application_name: str) -> None:

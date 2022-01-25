@@ -3,8 +3,8 @@ from unittest.mock import call, patch, mock_open
 import unittest
 
 from adk.exceptions import InvalidPathName, JsonFileNotFound, MalformedJsonFile
-from adk.utils import copy_files, get_dummy_application, get_py_dummy, read_json_file, reorder_data, write_json_file, \
-    write_file, validate_path_name
+from adk.utils import check_python_syntax, copy_files, get_dummy_application, get_function_arguments, get_py_dummy, \
+    read_json_file, reorder_data, write_json_file, write_file, validate_path_name
 
 
 class TestUtils(unittest.TestCase):
@@ -97,3 +97,56 @@ class TestUtils(unittest.TestCase):
             join_mock.assert_has_calls(join_calls)
             copy_calls = [call("file1_path", Path("dest")), call("file2_path", Path("dest"))]
             copy_mock.assert_has_calls(copy_calls)
+
+    def test_check_python_syntax(self):
+        valid_python_code = 'def main(app_config=None):\n    # Put your code here\n    return {}\n\n\n' \
+                     'if __name__ == "__main__": \n    main()\n'
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            valid, message = check_python_syntax(self.path)
+
+        self.assertTrue(valid)
+        self.assertEqual(message, 'ok')
+
+        invalid_python_code = 'definition main(app_config=None):\n    # Put your code here\n    return {}\n\n\n' \
+                     'if __name__ == "__main__": \n    main()\n'
+
+        with patch('adk.utils.open', mock_open(read_data=invalid_python_code)):
+            valid, message = check_python_syntax(self.path)
+
+        self.assertFalse(valid)
+        self.assertIn('SyntaxError: invalid syntax', message)
+
+    def test_get_function_arguments(self):
+        valid_python_code = 'def main(app_config=None, q1=1, q3=3):\n    # Put your code here\n    return {}\n\n\n' \
+                            'if __name__ == "__main__": \n    main()\n'
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            param_list = get_function_arguments(self.path, 'main')
+
+        self.assertEqual(len(param_list), 3)
+        self.assertEqual(param_list, ['app_config', 'q1', 'q3'])
+
+        valid_python_code = 'def main1():\n    # Put your code here\n    return {}\n\n\n' \
+                            'if __name__ == "__main__": \n    main1()\n'
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            param_list = get_function_arguments(self.path, 'main1')
+
+        self.assertEqual(len(param_list), 0)
+        self.assertEqual(param_list, [])
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            param_list = get_function_arguments(self.path, 'another_function')
+
+        self.assertIsNone(param_list)
+
+        invalid_python_code = 'definition main(app_config=None, q1=1, q3=3):\n    ' \
+                              '# Put your code here\n    return {}\n\n\n' \
+                              'if __name__ == "__main__": \n    main()\n'
+
+        with patch('adk.utils.open', mock_open(read_data=invalid_python_code)):
+            param_list = get_function_arguments(self.path, 'main')
+
+        self.assertEqual(len(param_list), 0)
+        self.assertEqual(param_list, [])
