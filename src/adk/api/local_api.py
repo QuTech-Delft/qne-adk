@@ -467,7 +467,7 @@ class LocalApi:
         return all_subdir_deleted and application_dir_deleted
 
     @staticmethod
-    def _validate_manifest_json(application_path: Path, error_dict: ErrorDictType) -> None:
+    def __validate_manifest_json(application_path: Path, error_dict: ErrorDictType) -> None:
         """
         This function validates if manifest.json contains valid json and if it passes schema validation.
 
@@ -507,7 +507,7 @@ class LocalApi:
         application_exists, _ = self.__config_manager.application_exists(application_name)
 
         if application_exists:
-            self._validate_manifest_json(application_path, error_dict)
+            self.__validate_manifest_json(application_path, error_dict)
             self.__is_structure_valid(application_path, error_dict)
             self.__is_config_valid(application_path, error_dict)
             self.__is_python_valid(application_path, error_dict)

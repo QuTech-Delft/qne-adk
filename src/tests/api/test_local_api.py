@@ -347,8 +347,9 @@ class ApplicationValidate(AppValidate):
             application_exists_mock.assert_called_once_with(self.application)
 
     def test_validate_application(self):
-        with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
-             patch.object(self.config_manager, "application_exists") as application_exists_mock, \
+        with patch.object(self.config_manager, "application_exists") as application_exists_mock, \
+             patch.object(LocalApi, "_LocalApi__validate_manifest_json") as validate_manifest_mock, \
+             patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_config_valid") as is_config_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_python_valid") as is_python_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid") as is_result_valid_mock, \
@@ -390,7 +391,7 @@ class ApplicationValidate(AppValidate):
             is_file_mock.side_effect = [True, True, True]
             check_python_syntax.side_effect = [(True, 'ok'), (False, 'error'), (True, 'ok')]
 
-            self.local_api.is_application_valid(application_name=self.application, application_path=self.path)
+            self.local_api.validate_application(application_name=self.application, application_path=self.path)
             get_role_file_names_mock.assert_called_once_with(self.path / 'config')
 
             check_python_syntax_call = [call(self.path / 'src' / 'app_role1.py'),
@@ -401,6 +402,7 @@ class ApplicationValidate(AppValidate):
 
     def test_is_valid_input_params_for_roles(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
+             patch.object(LocalApi, "_LocalApi__validate_manifest_json"), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
@@ -416,7 +418,7 @@ class ApplicationValidate(AppValidate):
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "appIncorrect.py", "app_role3.py"]
             get_function_arguments_mock.side_effect = [['phi', 'x'], ['app_config', 'y'], None]
 
-            error_dict = self.local_api.is_application_valid(application_name=self.application,
+            error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
             get_role_file_names_mock.assert_called_once_with(self.path / 'config')
             check_python_syntax_call = [call(self.path / 'src' / 'app_role1.py'),
@@ -540,7 +542,7 @@ class ApplicationValidate(AppValidate):
 
     def test__is_structure_valid_all_oke(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
-             patch.object(LocalApi, "_validate_manifest_json"), \
+             patch.object(LocalApi, "_LocalApi__validate_manifest_json"), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
@@ -566,7 +568,7 @@ class ApplicationValidate(AppValidate):
 
     def test__is_structure_valid_role_file_not_found(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
-             patch.object(LocalApi, "_validate_manifest_json"), \
+             patch.object(LocalApi, "_LocalApi__validate_manifest_json"), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
@@ -593,7 +595,7 @@ class ApplicationValidate(AppValidate):
 
     def test__is_structure_valid_config_dir_not_found(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
-             patch.object(LocalApi, "_validate_manifest_json"), \
+             patch.object(LocalApi, "_LocalApi__validate_manifest_json"), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
@@ -616,7 +618,7 @@ class ApplicationValidate(AppValidate):
 
     def test__is_structure_valid_src_dir_not_found_and_files_missing(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
-             patch.object(LocalApi, "_validate_manifest_json"), \
+             patch.object(LocalApi, "_LocalApi__validate_manifest_json"), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
@@ -647,7 +649,7 @@ class ApplicationValidate(AppValidate):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
-             patch.object(LocalApi, "_validate_manifest_json"), \
+             patch.object(LocalApi, "_LocalApi__validate_manifest_json"), \
              patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
