@@ -23,6 +23,8 @@ from adk.validators import validate_json_file, validate_json_schema
 
 # pylint: disable=R0904
 # Too many public methods
+# pylint: disable=C0302
+# too-many-lines
 class LocalApi:
     """
     Defines the methods used for local handling of the commands
