@@ -154,7 +154,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(param_list, [])
 
     def test_get_function_return_variables(self):
-        with open(os.path.dirname(os.path.abspath(__file__)) + '/data/dummy.py', encoding='utf-8') as f:
+        with open(os.path.join(os.path.dirname(__file__), 'data', 'dummy.py'),  encoding='utf-8') as f:
             valid_python_code = f.read()
 
         with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
