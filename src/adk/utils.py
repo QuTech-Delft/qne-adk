@@ -261,9 +261,9 @@ def get_function_return_variables(source_file: Path, function_name: str) -> Opti
                         if isinstance(item, ast.Constant):
                             print(f'appending constant {item.value} item to list')
                             variable_list.append(item.value)
-                        if isinstance(item, str):
-                            print(f'appending string {item} item to list')
-                            variable_list.append(item)
+                        if isinstance(item, ast.Str):
+                            print(f'appending string {item.s} item to list')
+                            variable_list.append(item.s)
 
                     return_values.append(variable_list)
 
