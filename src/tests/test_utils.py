@@ -161,9 +161,6 @@ class TestUtils(unittest.TestCase):
         with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
             return_list = get_function_return_variables(self.path, 'main')
 
-        print(f'code file is {dummy_file}')
-        print(f'code read from file {valid_python_code}')
-        print(f'failing test case {return_list}')
         self.assertEqual(len(return_list), 2)
 
         self.assertEqual(len(return_list[0]), 1)

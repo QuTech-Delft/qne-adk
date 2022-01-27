@@ -257,12 +257,9 @@ def get_function_return_variables(source_file: Path, function_name: str) -> Opti
                 variable_list = []
                 if isinstance(func_node.value, ast.Dict):
                     for item in func_node.value.keys:
-                        print(f'Key in ret stmt {item}')
                         if isinstance(item, ast.Constant):
-                            print(f'appending constant {item.value} item to list')
                             variable_list.append(item.value)
-                        if isinstance(item, ast.Str):
-                            print(f'appending string {item.s} item to list')
+                        elif isinstance(item, ast.Str):
                             variable_list.append(item.s)
 
                     return_values.append(variable_list)
