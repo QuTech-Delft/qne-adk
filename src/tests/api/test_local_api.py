@@ -2,7 +2,7 @@
 # Too many lines
 import unittest
 from pathlib import Path
-from unittest.mock import call, patch, MagicMock
+from unittest.mock import call, patch, MagicMock, mock_open
 
 from adk.api.local_api import LocalApi
 from adk.exceptions import (ApplicationAlreadyExists, ApplicationDoesNotExist, ExperimentDirectoryNotValid,
@@ -112,6 +112,33 @@ class AppValidate(unittest.TestCase):
                 ]
             }
         ]
+
+        self.mock_result_config = '[[{"output_type":"text","title":"results","parameters":{"content":' \
+                                  '"Here we see an overview of all measurements,outcomes,and comparisons"}}],' \
+                                  '[{"output_type":"table","title":"Alice\'s results","parameters":' \
+                                  '{"data":"$.app_alice.table","headers":["Pairindex","Measurementbasis",' \
+                                  '"SamebasisasBob","Measurementoutcome","SameoutcomeasBob"]}},' \
+                                  '{"output_type":"table","title":"Bob\'s results","parameters":' \
+                                  '{"data":"$.app_bob.table","headers":["Pairindex","Measurementbasis",' \
+                                  '"SamebasisasAlice","Measurementoutcome","SameoutcomeasAlice"]}}],' \
+                                  '[{"output_type":"text","title":"Alice\'sstatistics","parameters":' \
+                                  '{"content":"Alice measured {{$.app_alice.x_basis_count}} times in the Xbasis and' \
+                                  '{{$.app_alice.z_basis_count}}in the Zbasis."}}, {"output_type":"text",' \
+                                  '"title":"Bob\'s statistics","parameters":{"content":"Bob measured ' \
+                                  '{{$.app_bob.x_basis_count}} times in the Xbasis and {{$.app_bob.z_basis_count}} in' \
+                                  'theZbasis."}}],[{"output_type":"text","title":"Generalstatistics","parameters":' \
+                                  '{"content":"-Numberofpairsmeasuredinthesamebasis:{{$.app_alice.same_basis_count}}' \
+                                  '\n-Numberof pairs chosen to compare measurement outcomes for:' \
+                                  '{{$.app_alice.outcome_comparison_count}}\n-Number of different measurement ' \
+                                  'outcomes among the pairs chosen to compare:{{$.app_alice.diff_outcome_count}}\n-' \
+                                  'QBER:{{$.app_alice.qber}}.*QBERistheQuantumBitErrorRate.It is thefraction of ' \
+                                  'compared measurement outcomes that are not equal,eventhoughtheyresult ' \
+                                  'frommeasurementsinthesamebasis.*\n-Keyratepotential:' \
+                                  '{{$.app_alice.key_rate_potential}}.*Rateofsecurekeythat can in theorybeextracted ' \
+                                  'fromtherawkey(aftermoreclassicalpost-processing).The rate is lengthofsecurekey ' \
+                                  'dividedby lengthofrawkey .*"}}],[{"output_type":"text","title":"Alice\'s rawkey",' \
+                                  '"parameters":{"content":"{{$.app_alice.raw_key}}"}},{"output_type":"text",' \
+                                  '"title":"Bob\'srawkey","parameters":{"content":"{{$.app_bob.raw_key}}"}}]]'
 
         self.channel_info_list = [{"slug": "c1-slug", "parameters": ["param-1", "param-2"]},
                                   {"slug": "c2-slug", "parameters": ["param-1"]},
@@ -307,7 +334,8 @@ class ApplicationValidate(AppValidate):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
              patch.object(self.config_manager, "application_exists") as application_exists_mock, \
              patch.object(LocalApi, "_LocalApi__is_config_valid") as is_config_valid_mock, \
-             patch.object(LocalApi, "_LocalApi__is_python_valid") as is_python_valid_mock:
+             patch.object(LocalApi, "_LocalApi__is_python_valid") as is_python_valid_mock, \
+             patch.object(LocalApi, "_LocalApi__is_result_config_valid") as is_result_valid_mock:
 
             # If application is not unique, is_config_valid() returns an error and warning
             application_exists_mock.return_value = True, None
@@ -320,6 +348,7 @@ class ApplicationValidate(AppValidate):
             is_structure_valid_mock.assert_called_once_with(self.path, self.error_dict)
             is_config_valid_mock.assert_called_once_with(self.path, self.error_dict)
             is_python_valid_mock.assert_called_once_with(self.path, self.error_dict)
+            is_result_valid_mock.assert_called_once_with(self.path, self.error_dict)
 
             # If application is unique
             application_exists_mock.reset_mock()
@@ -333,6 +362,7 @@ class ApplicationValidate(AppValidate):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
              patch.object(LocalApi, "_LocalApi__is_valid_input_params_for_role") as is_valid_param_role, \
@@ -355,6 +385,7 @@ class ApplicationValidate(AppValidate):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_file", return_value=True), \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Role1', 'Role2']), \
@@ -389,10 +420,65 @@ class ApplicationValidate(AppValidate):
             self.assertIn('main() not found in file app_role3.py', error_dict['error'])
             self.assertIn('main() in app_role1.py is missing the app_config argument', error_dict['error'])
 
+    def test_is_result_config_valid(self):
+        with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
+             patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_python_valid"), \
+             patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
+             patch("adk.api.local_api.Path.is_file", return_value=True), \
+             patch('adk.api.local_api.open', mock_open(read_data=self.mock_result_config)), \
+             patch("adk.api.local_api.utils.get_function_return_variables") as get_function_return_mock:
+
+            get_role_file_names_mock.return_value = ["app_alice.py", "app_bob.py",]
+            get_function_return_mock.side_effect = [
+                [['r11', 'table'], ['r21', 'r22'], ['same_basis_count', 'outcome_comparison_count',
+                                                    'diff_outcome_count', 'qber', 'key_rate_potential',
+                                                    'x_basis_count']],
+                [['r11', 'table'], ['table', 'x_basis_count', 'z_basis_count', 'raw_key']]
+            ]
+
+            error_dict = self.local_api.is_application_valid(application_name=self.application,
+                                                             application_path=self.path)
+
+            self.assertEqual(len(error_dict['error']), 2)
+            self.assertIn('Variable z_basis_count is used in result.json, but not found in return '
+                          'statement of main() in file app_alice.py', error_dict['error'])
+            self.assertIn('Variable raw_key is used in result.json, but not found in return '
+                          'statement of main() in file app_alice.py', error_dict['error'])
+
+            get_function_return_mock.reset()
+            get_function_return_mock.side_effect = [
+                [['same_basis_count', 'outcome_comparison_count', 'diff_outcome_count',
+                                                  'qber', 'key_rate_potential', 'x_basis_count'],
+                  ['r11', 'table'], ['r21', 'r22']],
+                [['table', 'x_basis_count', 'z_basis_count', 'raw_key'], ['r11', 'table']]
+            ]
+            error_dict = self.local_api.is_application_valid(application_name=self.application,
+                                                             application_path=self.path)
+
+            self.assertEqual(len(error_dict['error']), 2)
+            self.assertIn('Variable z_basis_count is used in result.json, but not found in return '
+                          'statement of main() in file app_alice.py', error_dict['error'])
+            self.assertIn('Variable raw_key is used in result.json, but not found in return '
+                          'statement of main() in file app_alice.py', error_dict['error'])
+
+            get_function_return_mock.reset()
+            get_function_return_mock.side_effect = [
+                [['same_basis_count', 'outcome_comparison_count', 'diff_outcome_count', 'table',
+                  'qber', 'key_rate_potential', 'x_basis_count', 'z_basis_count', 'raw_key']],
+                [['table', 'x_basis_count', 'z_basis_count', 'raw_key']]
+            ]
+            error_dict = self.local_api.is_application_valid(application_name=self.application,
+                                                             application_path=self.path)
+
+            self.assertEqual(len(error_dict['error']), 0)
+
     def test__is_structure_valid_all_oke(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
@@ -417,6 +503,7 @@ class ApplicationValidate(AppValidate):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
@@ -442,6 +529,7 @@ class ApplicationValidate(AppValidate):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock:
@@ -463,6 +551,7 @@ class ApplicationValidate(AppValidate):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
@@ -489,6 +578,7 @@ class ApplicationValidate(AppValidate):
     def test__is_config_valid(self):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
              patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
              patch("adk.api.local_api.validate_json_file") as validate_json_file_mock, \
