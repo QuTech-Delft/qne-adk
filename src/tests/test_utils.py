@@ -163,13 +163,13 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(len(return_list), 2)
 
-        self.assertEqual(len(return_list[0]), 1)
-        self.assertListEqual(return_list[0], ['Q1'])
-
-        self.assertEqual(len(return_list[1]), 9)
-        self.assertListEqual(return_list[1], ['table', 'x_basis_count', 'z_basis_count', 'same_basis_count',
+        self.assertEqual(len(return_list[0]), 9)
+        self.assertListEqual(return_list[0], ['table', 'x_basis_count', 'z_basis_count', 'same_basis_count',
                                              'outcome_comparison_count', 'diff_outcome_count', 'qber',
                                              'key_rate_potential', 'raw_key'])
+
+        self.assertEqual(len(return_list[1]), 1)
+        self.assertListEqual(return_list[1], ['Q1'])
 
         with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
             return_list = get_function_return_variables(self.path, 'main_another')
@@ -184,3 +184,55 @@ class TestUtils(unittest.TestCase):
             return_list = get_function_return_variables(self.path, 'main')
 
         self.assertListEqual(return_list, [])
+
+        dummy_file = os.path.join(os.path.dirname(__file__), 'data', 'dummy_non_dict_return.py')
+        with open(dummy_file, encoding='utf-8') as f:
+            valid_python_code = f.read()
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main')
+
+        self.assertEqual(len(return_list), 0)
+
+        dummy_file = os.path.join(os.path.dirname(__file__), 'data', 'dummy_mixed_return.py')
+        with open(dummy_file, encoding='utf-8') as f:
+            valid_python_code = f.read()
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main')
+
+        self.assertEqual(len(return_list), 1)
+
+    def test_get_function_return_variables_recursive(self):
+        dummy_file = os.path.join(os.path.dirname(__file__), 'data', 'dummy_recursive.py')
+        with open(dummy_file,  encoding='utf-8') as f:
+            valid_python_code = f.read()
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main')
+
+        self.assertEqual(len(return_list), 2)
+
+        self.assertEqual(len(return_list[0]), 3)
+        self.assertCountEqual(return_list[0], ['square1', 'col1', 'string1'])
+
+        self.assertEqual(len(return_list[1]), 4)
+        self.assertCountEqual(return_list[1], ['square', 'col', 'number', 'string'])
+
+        dummy_file_1 = os.path.join(os.path.dirname(__file__), 'data', 'dummy_recursive_1.py')
+        with open(dummy_file_1, encoding='utf-8') as f:
+            valid_python_code = f.read()
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main')
+
+        self.assertEqual(len(return_list), 3)
+
+        self.assertEqual(len(return_list[0]), 3)
+        self.assertCountEqual(return_list[0], ['square1', 'col1', 'string1'])
+
+        self.assertEqual(len(return_list[1]), 4)
+        self.assertCountEqual(return_list[1], ['square', 'col', 'number', 'string'])
+
+        self.assertEqual(len(return_list[2]), 5)
+        self.assertCountEqual(return_list[2], ['first_return', 'square', 'col', 'number', 'string'])

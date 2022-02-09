@@ -1,4 +1,3 @@
-import copy
 import os
 from pathlib import Path
 import re
@@ -621,13 +620,13 @@ class LocalApi:
 
     def __is_result_config_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
         """
-                Validate if the variables used in result config are returned by the main() in the app_{role}.py
+        Validate if the variables used in result config are returned by the main() in the app_{role}.py
 
-                Args:
-                    application_path: Path of where the application is located
-                    error_dict: A dictionary for storing the validation errors
+        Args:
+            application_path: Path of where the application is located
+            error_dict: A dictionary for storing the validation errors
 
-                """
+        """
 
         app_config_path = application_path / 'config'
         app_src_path = application_path / 'src'
@@ -639,19 +638,17 @@ class LocalApi:
                 role_name = self.__get_role_name_from_role_file(role_file)
                 if role_name and return_list:
                     result_variables = self.__get_result_variables(application_path, role_name)
-                    undefined_result_variables = copy.deepcopy(result_variables)
+                    undefined_result_variables = set()
                     for return_item in return_list:
                         for result_var in result_variables:
-                            if result_var in return_item:
-                                try:
-                                    undefined_result_variables.remove(result_var)
-                                except ValueError:
-                                    pass
+                            if result_var not in return_item:
+                                undefined_result_variables.add(result_var)
+
 
                     if undefined_result_variables:
                         for item in undefined_result_variables:
                             error_dict['error'].append(f'Variable {item} is used in result.json, but not found in '
-                                                       f'return statement of main() in file {role_file}')
+                                                       f'return statement(s) of main() in file {role_file}')
 
     def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
                            path: Path, application_name: str) -> None:

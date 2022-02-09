@@ -1,9 +1,9 @@
 def main(app_config=None, q1=0, q2=2):
     q1 = q1 * 3
-    if q1 > q2: # pylint: disable=R1705 no-else-return
+    if q1 > q2:
         return {'Q1': q1}
-    else:
-        return {
+
+    return {
             "table": 'table',
             "x_basis_count": 'x_basis_count',
             "z_basis_count": 'z_basis_count',

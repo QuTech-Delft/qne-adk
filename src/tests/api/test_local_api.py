@@ -432,42 +432,88 @@ class ApplicationValidate(AppValidate):
 
             get_role_file_names_mock.return_value = ["app_alice.py", "app_bob.py",]
             get_function_return_mock.side_effect = [
-                [['r11', 'table'], ['r21', 'r22'], ['same_basis_count', 'outcome_comparison_count',
-                                                    'diff_outcome_count', 'qber', 'key_rate_potential',
-                                                    'x_basis_count']],
-                [['r11', 'table'], ['table', 'x_basis_count', 'z_basis_count', 'raw_key']]
+                [
+                    ['r11', 'table', 'same_basis_count', 'outcome_comparison_count', 'diff_outcome_count', 'qber'],
+                    ['r21', 'r22', 'same_basis_count', 'outcome_comparison_count', 'diff_outcome_count'],
+                    ['same_basis_count', 'outcome_comparison_count', 'diff_outcome_count', 'qber', 'key_rate_potential',
+                        'x_basis_count']
+                 ],
+                [
+                    ['r11', 'table', 'x_basis_count', 'z_basis_count', 'raw_key'],
+                    ['table', 'x_basis_count', 'z_basis_count', 'raw_key']
+                 ]
             ]
 
             error_dict = self.local_api.is_application_valid(application_name=self.application,
                                                              application_path=self.path)
 
-            self.assertEqual(len(error_dict['error']), 2)
-            self.assertIn('Variable z_basis_count is used in result.json, but not found in return '
-                          'statement of main() in file app_alice.py', error_dict['error'])
-            self.assertIn('Variable raw_key is used in result.json, but not found in return '
-                          'statement of main() in file app_alice.py', error_dict['error'])
+            missing_return_vars_alice = ['qber', 'key_rate_potential', 'x_basis_count', 'table', 'raw_key',
+                                         'z_basis_count']
+            included_return_vars_alice = ['same_basis_count', 'outcome_comparison_count', 'diff_outcome_count']
+
+            self.assertEqual(len(error_dict['error']), len(missing_return_vars_alice))
+
+            for variable_name in included_return_vars_alice:
+                self.assertNotIn(f'Variable {variable_name} is used in result.json, but not found in return '
+                              'statement(s) of main() in file app_alice.py', error_dict['error'])
 
             get_function_return_mock.reset()
             get_function_return_mock.side_effect = [
-                [['same_basis_count', 'outcome_comparison_count', 'diff_outcome_count',
-                                                  'qber', 'key_rate_potential', 'x_basis_count'],
-                  ['r11', 'table'], ['r21', 'r22']],
-                [['table', 'x_basis_count', 'z_basis_count', 'raw_key'], ['r11', 'table']]
+                [
+                    ['same_basis_count', 'outcome_comparison_count', 'diff_outcome_count', 'qber',
+                     'key_rate_potential', 'x_basis_count'],
+                    ['same_basis_count', 'r11', 'table'],
+                    ['same_basis_count', 'r21', 'r22']
+                 ],
+                [
+                    ['table', 'x_basis_count', 'z_basis_count', 'raw_key'],
+                    ['r11', 'table', 'x_basis_count']]
             ]
             error_dict = self.local_api.is_application_valid(application_name=self.application,
                                                              application_path=self.path)
 
-            self.assertEqual(len(error_dict['error']), 2)
-            self.assertIn('Variable z_basis_count is used in result.json, but not found in return '
-                          'statement of main() in file app_alice.py', error_dict['error'])
-            self.assertIn('Variable raw_key is used in result.json, but not found in return '
-                          'statement of main() in file app_alice.py', error_dict['error'])
+            missing_return_vars_alice = [ 'outcome_comparison_count', 'diff_outcome_count', 'qber',
+                                          'key_rate_potential', 'x_basis_count', 'table', 'raw_key', 'z_basis_count']
+            included_return_vars_alice = ['same_basis_count']
+
+            for variable_name in included_return_vars_alice:
+                self.assertNotIn(f'Variable {variable_name} is used in result.json, but not found in return '
+                              'statement(s) of main() in file app_alice.py', error_dict['error'])
+
+            for variable_name in missing_return_vars_alice:
+                self.assertIn(f'Variable {variable_name} is used in result.json, but not found in return '
+                              'statement(s) of main() in file app_alice.py', error_dict['error'])
+
+            missing_return_vars_bob= ['z_basis_count', 'raw_key']
+            included_return_vars_bob = ['table', 'x_basis_count']
+
+            for variable_name in included_return_vars_bob:
+                self.assertNotIn(f'Variable {variable_name} is used in result.json, but not found in return '
+                                 'statement(s) of main() in file app_bob.py', error_dict['error'])
+
+            for variable_name in missing_return_vars_bob:
+                self.assertIn(f'Variable {variable_name} is used in result.json, but not found in return '
+                              'statement(s) of main() in file app_bob.py', error_dict['error'])
+
+            self.assertEqual(len(error_dict['error']), len(missing_return_vars_alice) + len(missing_return_vars_bob))
+
 
             get_function_return_mock.reset()
             get_function_return_mock.side_effect = [
                 [['same_basis_count', 'outcome_comparison_count', 'diff_outcome_count', 'table',
                   'qber', 'key_rate_potential', 'x_basis_count', 'z_basis_count', 'raw_key']],
                 [['table', 'x_basis_count', 'z_basis_count', 'raw_key']]
+            ]
+            error_dict = self.local_api.is_application_valid(application_name=self.application,
+                                                             application_path=self.path)
+
+            self.assertEqual(len(error_dict['error']), 0)
+
+            # when return variable is something other than dict / function call, then empty list is returned
+            get_function_return_mock.reset()
+            get_function_return_mock.side_effect = [
+                [],
+                []
             ]
             error_dict = self.local_api.is_application_valid(application_name=self.application,
                                                              application_path=self.path)
