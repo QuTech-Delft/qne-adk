@@ -11,6 +11,7 @@ def main(app_config=None, q1=0, q2=2):
 
     return the_return(q1)
 
+
 def the_return(y):
     if y > 20:
         return {
@@ -25,6 +26,7 @@ def the_return(y):
             "square1": "circle",
             "string1": "hi",
         }
+
 
 if __name__ == "__main__":
     main()

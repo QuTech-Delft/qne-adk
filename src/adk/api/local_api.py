@@ -644,7 +644,6 @@ class LocalApi:
                             if result_var not in return_item:
                                 undefined_result_variables.add(result_var)
 
-
                     if undefined_result_variables:
                         for item in undefined_result_variables:
                             error_dict['error'].append(f'Variable {item} is used in result.json, but not found in '
