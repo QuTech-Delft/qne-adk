@@ -352,8 +352,7 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_config_valid") as is_config_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_python_valid") as is_python_valid_mock, \
-             patch.object(LocalApi, "_LocalApi__is_result_config_valid") as is_result_valid_mock, \
-             patch.object(LocalApi, "_validate_manifest_json") as validate_manifest_mock:
+             patch.object(LocalApi, "_LocalApi__is_result_config_valid") as is_result_valid_mock:
 
             # If application is not unique, is_config_valid() returns an error and warning
             application_exists_mock.return_value = True, None
@@ -442,6 +441,7 @@ class ApplicationValidate(AppValidate):
 
     def test_is_result_config_valid(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
+             patch.object(LocalApi, "_LocalApi__validate_manifest_json"), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_python_valid"), \
@@ -464,7 +464,7 @@ class ApplicationValidate(AppValidate):
                  ]
             ]
 
-            error_dict = self.local_api.is_application_valid(application_name=self.application,
+            error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
 
             missing_return_vars_alice = ['qber', 'key_rate_potential', 'x_basis_count', 'table', 'raw_key',
@@ -489,7 +489,7 @@ class ApplicationValidate(AppValidate):
                     ['table', 'x_basis_count', 'z_basis_count', 'raw_key'],
                     ['r11', 'table', 'x_basis_count']]
             ]
-            error_dict = self.local_api.is_application_valid(application_name=self.application,
+            error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
 
             missing_return_vars_alice = [ 'outcome_comparison_count', 'diff_outcome_count', 'qber',
@@ -524,7 +524,7 @@ class ApplicationValidate(AppValidate):
                   'qber', 'key_rate_potential', 'x_basis_count', 'z_basis_count', 'raw_key']],
                 [['table', 'x_basis_count', 'z_basis_count', 'raw_key']]
             ]
-            error_dict = self.local_api.is_application_valid(application_name=self.application,
+            error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
 
             self.assertEqual(len(error_dict['error']), 0)
@@ -535,7 +535,7 @@ class ApplicationValidate(AppValidate):
                 [],
                 []
             ]
-            error_dict = self.local_api.is_application_valid(application_name=self.application,
+            error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
 
             self.assertEqual(len(error_dict['error']), 0)
