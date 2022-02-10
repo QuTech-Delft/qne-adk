@@ -138,14 +138,14 @@ class QneClient:
 
     @staticmethod
     def _client_get(url: str, **params: ParametersType) -> Any:
-        result = requests.get(url, **params)
+        result = requests.get(url, **params)  # type: ignore
         if isinstance(result, Response):
             result.raise_for_status()
         return result
 
     @staticmethod
     def _client_post(url: str, **params: ParametersType) -> Any:
-        result = requests.post(url, **params)
+        result = requests.post(url, **params)  # type: ignore
         if isinstance(result, Response):
             result.raise_for_status()
         return result
