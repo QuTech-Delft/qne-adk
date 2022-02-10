@@ -456,7 +456,7 @@ class ApplicationValidate(AppValidate):
                     ['r11', 'table', 'same_basis_count', 'outcome_comparison_count', 'diff_outcome_count', 'qber'],
                     ['r21', 'r22', 'same_basis_count', 'outcome_comparison_count', 'diff_outcome_count'],
                     ['same_basis_count', 'outcome_comparison_count', 'diff_outcome_count', 'qber', 'key_rate_potential',
-                        'x_basis_count']
+                     'x_basis_count']
                  ],
                 [
                     ['r11', 'table', 'x_basis_count', 'z_basis_count', 'raw_key'],
@@ -475,7 +475,7 @@ class ApplicationValidate(AppValidate):
 
             for variable_name in included_return_vars_alice:
                 self.assertNotIn(f'Variable {variable_name} is used in result.json, but not found in return '
-                              'statement(s) of main() in file app_alice.py', error_dict['error'])
+                                 'statement(s) of main() in file app_alice.py', error_dict['error'])
 
             get_function_return_mock.reset()
             get_function_return_mock.side_effect = [
@@ -498,7 +498,7 @@ class ApplicationValidate(AppValidate):
 
             for variable_name in included_return_vars_alice:
                 self.assertNotIn(f'Variable {variable_name} is used in result.json, but not found in return '
-                              'statement(s) of main() in file app_alice.py', error_dict['error'])
+                                 'statement(s) of main() in file app_alice.py', error_dict['error'])
 
             for variable_name in missing_return_vars_alice:
                 self.assertIn(f'Variable {variable_name} is used in result.json, but not found in return '
