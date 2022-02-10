@@ -417,6 +417,7 @@ class LocalApi:
         - The python source files have valid syntax
         - The main() in app_{role}.py has app_config as one of the parameters
         - The main() in app_{role}.py has the parameters which are listed in application config
+        - Variables listed in result.json are returned by the main() in app_{role}.py
 
         Args:
             application_name: Name of the application
@@ -433,6 +434,7 @@ class LocalApi:
             self.__is_structure_valid(application_path, error_dict)
             self.__is_config_valid(application_path, error_dict)
             self.__is_python_valid(application_path, error_dict)
+            self.__is_result_config_valid(application_path, error_dict)
         else:
             error_dict["error"].append(f"Application '{application_name}' does not exist")
 
@@ -607,6 +609,45 @@ class LocalApi:
                     role_inputs.append(value_item['name'])
 
         return role_inputs
+
+    def __get_result_variables(self, application_path: Path, role_name: str) -> List[str]:
+
+        with open(application_path / 'config' / 'result.json', encoding='utf-8') as f:
+            result = f.read()
+
+        variable_list = re.findall(r'\$\.app_'+role_name+r'\.([\w]+)', result)
+        return variable_list
+
+    def __is_result_config_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
+        """
+        Validate if the variables used in result config are returned by the main() in the app_{role}.py
+
+        Args:
+            application_path: Path of where the application is located
+            error_dict: A dictionary for storing the validation errors
+
+        """
+
+        app_config_path = application_path / 'config'
+        app_src_path = application_path / 'src'
+
+        role_file_names = self.__get_role_file_names(app_config_path)
+        for role_file in role_file_names: # pylint: disable=R1702 too-many-nested-blocks
+            if (app_src_path / role_file).is_file():
+                return_list = utils.get_function_return_variables(app_src_path / role_file, function_name='main')
+                role_name = self.__get_role_name_from_role_file(role_file)
+                if role_name and return_list:
+                    result_variables = self.__get_result_variables(application_path, role_name)
+                    undefined_result_variables = set()
+                    for return_item in return_list:
+                        for result_var in result_variables:
+                            if result_var not in return_item:
+                                undefined_result_variables.add(result_var)
+
+                    if undefined_result_variables:
+                        for item in undefined_result_variables:
+                            error_dict['error'].append(f'Variable {item} is used in result.json, but not found in '
+                                                       f'return statement(s) of main() in file {role_file}')
 
     def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
                            path: Path, application_name: str) -> None:

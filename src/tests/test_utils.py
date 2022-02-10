@@ -1,10 +1,12 @@
+import os
 from pathlib import Path
 from unittest.mock import call, patch, mock_open
 import unittest
 
 from adk.exceptions import InvalidPathName, JsonFileNotFound, MalformedJsonFile
-from adk.utils import check_python_syntax, copy_files, get_dummy_application, get_function_arguments, get_py_dummy, \
-    read_json_file, reorder_data, write_json_file, write_file, validate_path_name
+from adk.utils import check_python_syntax, copy_files, get_dummy_application, get_function_arguments, \
+    get_function_return_variables, get_py_dummy, read_json_file, reorder_data, write_json_file, write_file, \
+    validate_path_name
 
 
 class TestUtils(unittest.TestCase):
@@ -150,3 +152,87 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(len(param_list), 0)
         self.assertEqual(param_list, [])
+
+    def test_get_function_return_variables(self):
+        dummy_file = os.path.join(os.path.dirname(__file__), 'data', 'dummy.py')
+        with open(dummy_file,  encoding='utf-8') as f:
+            valid_python_code = f.read()
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main')
+
+        self.assertEqual(len(return_list), 2)
+
+        self.assertEqual(len(return_list[0]), 9)
+        self.assertListEqual(return_list[0], ['table', 'x_basis_count', 'z_basis_count', 'same_basis_count',
+                                             'outcome_comparison_count', 'diff_outcome_count', 'qber',
+                                             'key_rate_potential', 'raw_key'])
+
+        self.assertEqual(len(return_list[1]), 1)
+        self.assertListEqual(return_list[1], ['Q1'])
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main_another')
+
+        self.assertIsNone(return_list)
+
+        invalid_python_code = 'definition main(app_config=None, q1=1, q3=3):\n    ' \
+                              '# Put your code here\n    return {}\n\n\n' \
+                              'if __name__ == "__main__": \n    main()\n'
+
+        with patch('adk.utils.open', mock_open(read_data=invalid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main')
+
+        self.assertListEqual(return_list, [])
+
+        dummy_file = os.path.join(os.path.dirname(__file__), 'data', 'dummy_non_dict_return.py')
+        with open(dummy_file, encoding='utf-8') as f:
+            valid_python_code = f.read()
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main')
+
+        self.assertEqual(len(return_list), 0)
+
+        dummy_file = os.path.join(os.path.dirname(__file__), 'data', 'dummy_mixed_return.py')
+        with open(dummy_file, encoding='utf-8') as f:
+            valid_python_code = f.read()
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main')
+
+        self.assertEqual(len(return_list), 1)
+
+    def test_get_function_return_variables_recursive(self):
+        dummy_file = os.path.join(os.path.dirname(__file__), 'data', 'dummy_recursive.py')
+        with open(dummy_file,  encoding='utf-8') as f:
+            valid_python_code = f.read()
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main')
+
+        self.assertEqual(len(return_list), 2)
+
+        self.assertEqual(len(return_list[0]), 3)
+        self.assertCountEqual(return_list[0], ['square1', 'col1', 'string1'])
+
+        self.assertEqual(len(return_list[1]), 4)
+        self.assertCountEqual(return_list[1], ['square', 'col', 'number', 'string'])
+
+        dummy_file_1 = os.path.join(os.path.dirname(__file__), 'data', 'dummy_recursive_1.py')
+        with open(dummy_file_1, encoding='utf-8') as f:
+            valid_python_code = f.read()
+
+        with patch('adk.utils.open', mock_open(read_data=valid_python_code)):
+            return_list = get_function_return_variables(self.path, 'main')
+
+        self.assertEqual(len(return_list), 3)
+
+        self.assertEqual(len(return_list[0]), 3)
+        self.assertCountEqual(return_list[0], ['square1', 'col1', 'string1'])
+
+        self.assertEqual(len(return_list[1]), 4)
+        self.assertCountEqual(return_list[1], ['square', 'col', 'number', 'string'])
+
+        self.assertEqual(len(return_list[2]), 5)
+        self.assertCountEqual(return_list[2], ['first_return', 'square', 'col', 'number', 'string'])

@@ -234,3 +234,62 @@ def get_function_arguments(source_file: Path, function_name: str) -> Optional[Li
         return None
 
     return param_list
+
+
+def get_function_return_variables(source_file: Path, function_name: str) -> Optional[List[List[str]]]:
+    """
+    Get the variables returned by a function defined in source file
+    The function function_name can have multiple return statements. Only those return statements which have return value
+    as dictionary literal or another function call are considered for extracting the return variables. Other return
+    statements are ignored.
+
+    Args:
+        source_file: The path to the python file in which function is defined
+        function_name: Name of the function whose return variables are needed
+
+    Returns:
+        A list of list containing the return variable names for each return statement in the function,
+        or None when function is not found
+
+    """
+
+    def _get_return_statements(fnode: ast.FunctionDef) -> List[List[str]]:
+        return_values: List[List[str]] = []
+        for func_node in ast.walk(fnode):
+            if isinstance(func_node, ast.Return) and func_node.value is not None:
+                variable_list = []
+                if isinstance(func_node.value, ast.Call):
+                    if isinstance(func_node.value.func, ast.Name):
+                        return_list = get_function_return_variables(source_file, func_node.value.func.id)
+                        if return_list:
+                            return_values.extend(return_list)
+                elif isinstance(func_node.value, ast.Dict):
+                    for item in func_node.value.keys:
+                        if isinstance(item, ast.Constant):
+                            variable_list.append(item.value)
+                        elif isinstance(item, ast.Str):
+                            variable_list.append(item.s)
+
+                    return_values.append(variable_list)
+
+        return return_values
+
+    return_stmts: List[List[str]] = []
+    with open(source_file, encoding='utf-8') as f:
+        source = f.read()
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return return_stmts
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            if node.name == function_name:
+                return_stmts = _get_return_statements(node)
+                break
+    else:
+        # function not found
+        return None
+
+    return return_stmts
