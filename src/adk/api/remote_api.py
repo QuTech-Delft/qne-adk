@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Any, cast, Dict, List, Optional, Tuple, Union
 import time
@@ -19,6 +20,8 @@ from adk.type_aliases import (AppConfigType, app_configNetworkType, AppResultTyp
                               RoundSetType, round_resultType, cumulative_resultType, instructionsType, ChannelType,
                               parametersType, coordinatesType, listValuesType)
 from adk.settings import BASE_DIR
+from adk.openapi_client import Configuration, ApiClient, ApiException
+from adk.openapi_client.api import applications_api
 
 
 # The status of the qne_job can be 'NEW', 'RUNNING', 'COMPLETE', 'FAILED'
@@ -98,6 +101,15 @@ class RemoteApi:
         """
         return self.__base_uri
 
+    def __get_api_config(self):
+        active_host = self.auth_manager.get_active_host()
+        configuration = Configuration(host=active_host)
+
+        token = self.auth_manager.load_token(active_host)
+        configuration.api_key['api_key'] = token
+        configuration.api_key_prefix['api_key'] = 'JWT'
+        return configuration
+
     def list_applications(self) -> List[ApplicationType]:
         """
         Get the list of applications (public and enabled) from the api-router
@@ -105,7 +117,17 @@ class RemoteApi:
         Returns:
              the list of applications
         """
-        return self.__qne_client.list_applications()
+        configuration = self.__get_api_config()
+
+        with ApiClient(configuration) as api_client:
+            api_instance = applications_api.ApplicationsApi(api_client)
+
+            try:
+                api_response = api_instance.list_applications()
+                data = json.loads(str(api_response.data.decode('utf-8')))
+                return data
+            except ApiException as e:
+                print("Exception when calling list_applications remote: %s\n" % e)
 
     def delete_application(self, application_id: Optional[str]) -> bool:
         """
@@ -127,6 +149,19 @@ class RemoteApi:
             # application deleted successfully
             return True
         return False
+
+    def __create_application_call(self, application: ApplicationType) -> ApplicationType:
+        configuration = self.__get_api_config()
+        with ApiClient(configuration) as api_client:
+            # Create an instance of the API class
+            api_instance = applications_api.ApplicationsApi(api_client)
+
+            try:
+                api_response = api_instance.create_application(application)
+                data = json.loads(str(api_response.data.decode('utf-8')))
+                return data
+            except ApiException as e:
+                print("Exception when calling create_applications remote: %s\n" % e)
 
     def upload_application(self,  # pylint: disable=R0914
                            application_path: Path,
@@ -166,23 +201,25 @@ class RemoteApi:
                                               }
 
                 application_to_create = self.__create_application(application_data)
-                application = self.__qne_client.create_application(application_to_create)
+                application = self.__create_application_call(application_to_create)
+                # application = self.__qne_client.create_application(application_to_create)
                 application_data["remote"]["application"] = application["url"]
                 application_data["remote"]["application_id"] = application["id"]
                 application_data["remote"]["slug"] = application["slug"]
-                app_version_to_create = self.__create_app_version(application)
-                app_version = self.__qne_client.create_app_version(app_version_to_create)
-                application_data["remote"]["app_version"]["app_version"] = app_version["url"]
-                app_config_to_create = self.__create_app_config(application_data, application_config, app_version)
-                app_config = self.__qne_client.create_app_config(app_config_to_create)
-                application_data["remote"]["app_version"]["app_config"] = app_config["url"]
-                app_result_to_create = self.__create_app_result(application_result, app_version)
-                app_result = self.__qne_client.create_app_result(app_result_to_create)
-                application_data["remote"]["app_version"]["app_result"] = app_result["url"]
-                app_source_to_create = self.__create_app_source(application_data, app_version,
-                                                                application_config, application_path)
-                app_source = self.__qne_client.create_app_source(app_source_to_create)
-                application_data["remote"]["app_version"]["app_source"] = app_source["url"]
+
+                # app_version_to_create = self.__create_app_version(application)
+                # app_version = self.__qne_client.create_app_version(app_version_to_create)
+                # application_data["remote"]["app_version"]["app_version"] = app_version["url"]
+                # app_config_to_create = self.__create_app_config(application_data, application_config, app_version)
+                # app_config = self.__qne_client.create_app_config(app_config_to_create)
+                # application_data["remote"]["app_version"]["app_config"] = app_config["url"]
+                # app_result_to_create = self.__create_app_result(application_result, app_version)
+                # app_result = self.__qne_client.create_app_result(app_result_to_create)
+                # application_data["remote"]["app_version"]["app_result"] = app_result["url"]
+                # app_source_to_create = self.__create_app_source(application_data, app_version,
+                #                                                 application_config, application_path)
+                # app_source = self.__qne_client.create_app_source(app_source_to_create)
+                # application_data["remote"]["app_version"]["app_source"] = app_source["url"]
             except Exception as e:
                 if application is not None and "id" in application:
                     # delete app

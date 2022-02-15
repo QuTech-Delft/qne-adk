@@ -84,7 +84,7 @@ setup(
     license="MIT",
     packages=find_packages(where="src", exclude=["*tests*"]),
     install_requires=["typer[all]", "netqasm", "pydantic", "tabulate", "jsonschema", "pyyaml", "typing-extensions",
-                      apistar, "typesystem==0.2.4", "pyjwt"],
+                      apistar, "typesystem==0.2.4", "pyjwt", "python-dateutil"],
     extras_require={
         "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort", "types-tabulate", "types-requests",
                 "types-PyYAML"],
