@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import re
 from typing import Any, cast, Dict, List, Optional, Tuple
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import jwt
 import requests
@@ -21,6 +21,28 @@ from adk.type_aliases import (ActionsType, ParametersType, TemplateType, NodeTyp
                               NetworkListType, UserType, BackendTypeType, TokenType, AppSourceFilesType)
 
 
+class ApiStarClient(Client):
+    """ Fix from https://github.com/encode/apistar/issues/657 """
+    def __init__(self, *args, base_url=None, **kwargs):
+        # Let apistar do its parsing
+        super().__init__(*args, **kwargs)
+
+        # Strip scheme, hostname and absolute path from all link URLs
+        for link_info in self.document.walk_links():
+            original_url = urlsplit(link_info.link.url)
+            new_url = ('', '', *original_url[2:])
+            link_info.link.url = urlunsplit(new_url).lstrip('/')
+
+        if base_url:
+            # Ensure the base URL ends with a slash to prevent issues:
+            # urljoin('http://a/b', 'c') → http://a/c
+            # urljoin('http://a/b/', 'c') → http://a/b/c
+            if not base_url.endswith('/'):
+                base_url += '/'
+
+            self.document.url = base_url
+
+
 class QneClient:
     """Client to connect to the api-router.
 
@@ -38,9 +60,9 @@ class QneClient:
         self.__refresh_token: Optional[str] = self.__auth_manager.load_token(self.__base_uri)
 
         self.__headers: Dict[str, str] = {}
-        self.__openapi_client_class = Client
+        self.__openapi_client_class = ApiStarClient
         self.__auth_class = TokenAuthentication
-        self.__client: Optional[Client] = None
+        self.__client: Optional[ApiStarClient] = None
 
     def _set_open_api_client(self, auth: Optional[AuthBase] = None) -> None:
         """Sets or updates the open api client mainly because of access tokens changing.
@@ -59,7 +81,8 @@ class QneClient:
         else:
             schema_url = urljoin(self.__base_uri, 'schema/')
             schema = self._client_get(schema_url, headers=self.__headers).json()
-            self.__client = self.__openapi_client_class(schema=schema,
+            self.__client = self.__openapi_client_class(base_url=self.__base_uri,
+                                                        schema=schema,
                                                         encoders=encoders,
                                                         headers=self.__headers,
                                                         auth=auth)
