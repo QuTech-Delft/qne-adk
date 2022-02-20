@@ -353,7 +353,6 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__is_config_valid") as is_config_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_python_valid") as is_python_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid") as is_result_valid_mock, \
-             patch.object(LocalApi, "_validate_manifest_json") as validate_manifest_mock, \
              patch.object(LocalApi, "_LocalApi__is_python_valid") as is_python_valid_mock:
 
             # If application is not unique, is_config_valid() returns an error and warning
@@ -443,6 +442,7 @@ class ApplicationValidate(AppValidate):
 
     def test_is_result_config_valid(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
+             patch.object(LocalApi, "_LocalApi__validate_manifest_json"), \
              patch.object(LocalApi, "_LocalApi__is_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_python_valid"), \
@@ -457,7 +457,7 @@ class ApplicationValidate(AppValidate):
                     ['r11', 'table', 'same_basis_count', 'outcome_comparison_count', 'diff_outcome_count', 'qber'],
                     ['r21', 'r22', 'same_basis_count', 'outcome_comparison_count', 'diff_outcome_count'],
                     ['same_basis_count', 'outcome_comparison_count', 'diff_outcome_count', 'qber', 'key_rate_potential',
-                        'x_basis_count']
+                     'x_basis_count']
                  ],
                 [
                     ['r11', 'table', 'x_basis_count', 'z_basis_count', 'raw_key'],
@@ -476,7 +476,7 @@ class ApplicationValidate(AppValidate):
 
             for variable_name in included_return_vars_alice:
                 self.assertNotIn(f'Variable {variable_name} is used in result.json, but not found in return '
-                              'statement(s) of main() in file app_alice.py', error_dict['error'])
+                                 f'statement(s) of main() in file app_alice.py', error_dict['error'])
 
             get_function_return_mock.reset()
             get_function_return_mock.side_effect = [
@@ -493,28 +493,28 @@ class ApplicationValidate(AppValidate):
             error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
 
-            missing_return_vars_alice = [ 'outcome_comparison_count', 'diff_outcome_count', 'qber',
-                                          'key_rate_potential', 'x_basis_count', 'table', 'raw_key', 'z_basis_count']
+            missing_return_vars_alice = ['outcome_comparison_count', 'diff_outcome_count', 'qber',
+                                         'key_rate_potential', 'x_basis_count', 'table', 'raw_key', 'z_basis_count']
             included_return_vars_alice = ['same_basis_count']
 
             for variable_name in included_return_vars_alice:
                 self.assertNotIn(f'Variable {variable_name} is used in result.json, but not found in return '
-                              'statement(s) of main() in file app_alice.py', error_dict['error'])
+                                 f'statement(s) of main() in file app_alice.py', error_dict['error'])
 
             for variable_name in missing_return_vars_alice:
                 self.assertIn(f'Variable {variable_name} is used in result.json, but not found in return '
-                              'statement(s) of main() in file app_alice.py', error_dict['error'])
+                              f'statement(s) of main() in file app_alice.py', error_dict['error'])
 
             missing_return_vars_bob= ['z_basis_count', 'raw_key']
             included_return_vars_bob = ['table', 'x_basis_count']
 
             for variable_name in included_return_vars_bob:
                 self.assertNotIn(f'Variable {variable_name} is used in result.json, but not found in return '
-                                 'statement(s) of main() in file app_bob.py', error_dict['error'])
+                                 f'statement(s) of main() in file app_bob.py', error_dict['error'])
 
             for variable_name in missing_return_vars_bob:
                 self.assertIn(f'Variable {variable_name} is used in result.json, but not found in return '
-                              'statement(s) of main() in file app_bob.py', error_dict['error'])
+                              f'statement(s) of main() in file app_bob.py', error_dict['error'])
 
             self.assertEqual(len(error_dict['error']), len(missing_return_vars_alice) + len(missing_return_vars_bob))
 
@@ -650,7 +650,6 @@ class ApplicationValidate(AppValidate):
         with patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_python_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
-             patch.object(LocalApi, "_validate_manifest_json"), \
              patch.object(LocalApi, "_LocalApi__validate_manifest_json"), \
              patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
