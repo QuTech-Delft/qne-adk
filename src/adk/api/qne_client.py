@@ -21,9 +21,9 @@ from adk.type_aliases import (ActionsType, ParametersType, TemplateType, NodeTyp
                               NetworkListType, UserType, BackendTypeType, TokenType, AppSourceFilesType)
 
 
-class ApiStarClient(Client):
+class ApiStarClient(Client):  # type: ignore
     """ Fix from https://github.com/encode/apistar/issues/657 """
-    def __init__(self, *args, base_url=None, **kwargs):
+    def __init__(self, *args: Optional[Any], base_url: Optional[str] = None, **kwargs: Optional[Any]) -> None:
         # Let apistar do its parsing
         super().__init__(*args, **kwargs)
 
@@ -161,14 +161,14 @@ class QneClient:
 
     @staticmethod
     def _client_get(url: str, **params: ParametersType) -> Any:
-        result = requests.get(url, **params)
+        result = requests.get(url, **params)  # type: ignore
         if isinstance(result, Response):
             result.raise_for_status()
         return result
 
     @staticmethod
     def _client_post(url: str, **params: ParametersType) -> Any:
-        result = requests.post(url, **params)
+        result = requests.post(url, **params)  # type: ignore
         if isinstance(result, Response):
             result.raise_for_status()
         return result
