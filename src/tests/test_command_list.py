@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 from adk.exceptions import ApplicationNotFound, ExperimentDirectoryNotValid
 from adk.command_list import app, applications_app, experiments_app, retrieve_application_name_and_path, \
                              retrieve_experiment_name_and_path
+from adk.api.remote_api import RemoteApi
 from adk.command_processor import CommandProcessor
 from adk.managers.config_manager import ConfigManager
 
@@ -27,24 +28,30 @@ class TestCommandList(unittest.TestCase):
         self.app_dict_8 = {'remote': [{'name': 'foo'}, {'name': 'bar'}]}
 
     def test_login(self):
-        with patch.object(CommandProcessor, "login") as login_mock:
-            login_output = self.runner.invoke(app, ['login', 'test_host'], input="test_username\ntest_password")
-            self.assertIn('Command is not yet implemented', login_output.stdout)
-            login_mock.reset_mock()
-            login_output = self.runner.invoke(app, ['login'], input="test_username\ntest_password")
-            self.assertIn('Command is not yet implemented', login_output.stdout)
-            login_mock.reset_mock()
-            login_output = self.runner.invoke(app, ['login'], input=" \n ")
-            self.assertIn('Command is not yet implemented', login_output.stdout)
+        with patch.object(CommandProcessor, "login") as login_mock, \
+             patch.object(RemoteApi, 'get_active_host') as get_active_host_mock:
+
+            get_active_host_mock.return_value = 'test_host'
+            login_output = self.runner.invoke(app, ['login', '--username=test_username',
+                                                    '--password=test_password', 'test_host'])
+            login_mock.assert_called_once_with(host='test_host', username='test_username', password='test_password')
+            self.assertIn("Log in to 'test_host' as user 'test_username' succeeded", login_output.stdout)
 
     def test_logout(self):
         with patch.object(CommandProcessor, "logout") as logout_mock:
+            host = 'test_host'
+            logout_mock.return_value = True
+            logout_output = self.runner.invoke(app, ['logout', host])
+            self.assertIn(f"Logging out from '{host}' succeeded", logout_output.stdout)
+
+            logout_mock.return_value = True
             logout_output = self.runner.invoke(app, ['logout'])
-            self.assertIn('Command is not yet implemented', logout_output.stdout)
+            self.assertIn("Logging out from active host succeeded", logout_output.stdout)
 
             logout_mock.reset_mock()
-            logout_output = self.runner.invoke(app, ['logout', 'qutech.com'])
-            self.assertIn('Command is not yet implemented', logout_output.stdout)
+            logout_mock.return_value = False
+            logout_output = self.runner.invoke(app, ['logout', host])
+            self.assertIn('Not logged in to a host', logout_output.stdout)
 
     def test_applications_create_succes(self):
         with patch("adk.command_list.Path.cwd", return_value=self.path) as mock_cwd, \
@@ -303,18 +310,30 @@ class TestCommandList(unittest.TestCase):
     def test_retrieve_experiment_name_and_path(self):
         with patch("adk.command_list.Path.cwd") as cwd_mock, \
              patch("adk.command_list.validate_path_name") as validate_path_name_mock, \
+             patch("adk.command_list.Path.is_file") as is_file_mock, \
              patch("adk.command_list.Path.is_dir") as is_dir_mock:
 
             # if experiment name is not None
             cwd_mock.return_value = self.path
-            retrieve_experiment_name_and_path(self.experiment_name)
+            is_dir_mock.return_value = True
+            is_file_mock.return_value = True
+            path, name = retrieve_experiment_name_and_path(self.experiment_name)
             validate_path_name_mock.assert_called_once_with("Experiment", self.experiment_name)
+            self.assertEqual(path, self.path / self.experiment_name)
+            self.assertEqual(name, self.experiment_name)
             is_dir_mock.assert_called_once()
+            is_file_mock.assert_called_once()
 
             # if experiment name is None
             is_dir_mock.reset_mock()
-            retrieve_experiment_name_and_path(None)
+            is_file_mock.reset_mock()
+            is_dir_mock.return_value = True
+            is_file_mock.return_value = True
+            path, name = retrieve_experiment_name_and_path(None)
+            self.assertEqual(path, self.path)
+            self.assertEqual(name, 'dummy')
             is_dir_mock.assert_called_once()
+            is_file_mock.assert_called_once()
 
             # raise ExperimentDirectoryNotValid
             is_dir_mock.reset_mock()
@@ -420,7 +439,8 @@ class TestCommandList(unittest.TestCase):
             exp_results_mock.assert_called_once_with(all_results=True, experiment_path=self.path)
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_results_output.exit_code, 0)
-            self.assertIn("Results are stored at location 'dummy/results/processed.json'", exp_results_output.stdout)
+            self.assertIn(f"Results are stored at location '{self.path / 'results' / 'processed.json'}'",
+                          exp_results_output.stdout)
 
     def test_applications_list(self):
         with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
@@ -430,27 +450,27 @@ class TestCommandList(unittest.TestCase):
             result_both = self.runner.invoke(applications_app, ['list'])
             self.assertEqual(result_both.exit_code, 0)
             self.assertIn('There are no local applications available', result_both.stdout)
-            self.assertNotIn('There are no remote applications available', result_both.stdout)
+            self.assertIn('There are no remote applications available', result_both.stdout)
 
             result_both = self.runner.invoke(applications_app, ['list'])
             self.assertEqual(result_both.exit_code, 0)
             self.assertIn('There are no local applications available', result_both.stdout)
-            self.assertNotIn('2 remote application(s)', result_both.stdout)
-            self.assertNotIn('foo', result_both.stdout)
-            self.assertNotIn('bar', result_both.stdout)
+            self.assertIn('2 remote application(s)', result_both.stdout)
+            self.assertIn('foo', result_both.stdout)
+            self.assertIn('bar', result_both.stdout)
 
             result_both = self.runner.invoke(applications_app, ['list'])
             self.assertEqual(result_both.exit_code, 0)
             self.assertIn('1 local application(s)', result_both.stdout)
             self.assertIn('foo', result_both.stdout)
-            self.assertNotIn('There are no remote applications available', result_both.stdout)
+            self.assertIn('There are no remote applications available', result_both.stdout)
 
             result_both = self.runner.invoke(applications_app, ['list'])
             self.assertEqual(result_both.exit_code, 0)
             self.assertIn('1 local application(s)', result_both.stdout)
-            self.assertNotIn('1 remote application(s)', result_both.stdout)
+            self.assertIn('1 remote application(s)', result_both.stdout)
             self.assertIn('foo', result_both.stdout)
-            self.assertNotIn('bar', result_both.stdout)
+            self.assertIn('bar', result_both.stdout)
 
     def test_applications_list_local(self):
         with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
@@ -473,13 +493,13 @@ class TestCommandList(unittest.TestCase):
             list_applications_mock.side_effect = [self.app_dict_7, self.app_dict_8]
 
             result_remote = self.runner.invoke(applications_app, ['list', '--remote'])
-            self.assertEqual(result_remote.exit_code, 2)
-            self.assertNotIn('There are no remote applications available', result_remote.stdout)
+            self.assertEqual(result_remote.exit_code, 0)
+            self.assertIn('There are no remote applications available', result_remote.stdout)
             self.assertNotIn('local', result_remote.stdout)
 
             result_remote = self.runner.invoke(applications_app, ['list', '--remote'])
-            self.assertEqual(result_remote.exit_code, 2)
-            self.assertNotIn('2 remote application(s)', result_remote.stdout)
-            self.assertNotIn('foo', result_remote.stdout)
-            self.assertNotIn('bar', result_remote.stdout)
+            self.assertEqual(result_remote.exit_code, 0)
+            self.assertIn('2 remote application(s)', result_remote.stdout)
+            self.assertIn('foo', result_remote.stdout)
+            self.assertIn('bar', result_remote.stdout)
             self.assertNotIn('local', result_remote.stdout)

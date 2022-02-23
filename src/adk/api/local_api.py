@@ -6,53 +6,49 @@ from typing import Any, cast, Dict, List, Optional
 
 from adk import utils
 from adk.exceptions import (ApplicationAlreadyExists, ApplicationDoesNotExist, DirectoryAlreadyExists,
-                            ExperimentDirectoryNotValid, JsonFileNotFound, MalformedJsonFile, NetworkNotFound,
-                            NoNetworkAvailable, PackageNotComplete)
+                            ExperimentDirectoryNotValid, ExperimentValueError, JsonFileNotFound, MalformedJsonFile,
+                            NetworkNotFound, NoNetworkAvailable, PackageNotComplete, SchemaError)
 from adk.managers.config_manager import ConfigManager
 from adk.managers.roundset_manager import RoundSetManager
 from adk.generators.network_generator import FullyConnectedNetworkGenerator
 from adk.parsers.output_converter import OutputConverter
 from adk.settings import BASE_DIR
-from adk.type_aliases import (AppConfigType, ApplicationType, app_configNetworkType,
+from adk.type_aliases import (AppConfigType, AppResultType, ApplicationType, ApplicationDataType, app_configNetworkType,
                               app_configApplicationType, AssetType, assetApplicationType, assetNetworkType,
-                              ExperimentType, ErrorDictType, GenericNetworkData, ResultType, RoundSetType,
-                              ChannelData, NetworkData, NodeData, TemplateData, AssetNodeListType,
-                              AssetChannelListType)
+                              ErrorDictType, ExperimentDataType, ResultType,
+                              RoundSetType, ChannelData, MetaType, NetworkData, NodeData, TemplateData,
+                              AssetNodeListType, AssetChannelListType)
 from adk.validators import validate_json_file, validate_json_schema
 
 
+# pylint: disable=R0904
+# Too many public methods
+# pylint: disable=C0302
+# too-many-lines
 class LocalApi:
+    """
+    Defines the methods used for local handling of the commands
+    """
     def __init__(self, config_manager: ConfigManager) -> None:
         self.__config_manager = config_manager
         self.__read_network_data()
 
     def __read_network_data(self) -> None:
         """
-            Initialize the data for 'networks', 'channels', 'nodes', 'templates'
+        Initialize the data for 'networks', 'channels', 'nodes', 'templates'
         """
-        self.__networks_data: NetworkData = self.__read_generic_data("networks")
-        self.__channels_data: ChannelData = self.__read_generic_data("channels")
-        self.__nodes_data: NodeData = self.__read_generic_data("nodes")
-        self.__templates_data: TemplateData = self.__read_generic_data("templates")
-
-    def __read_generic_data(self, entity_name: str) -> GenericNetworkData:
-        """
-            Reads the json file specified by the parameter 'entity_name'.
-            entity_name can be 'networks', 'channels', 'nodes', 'templates'
-
-            Params:
-                entity_name: The type of the data to read
-
-            Returns:
-                Data read from the json file
-        """
-        file_name = Path(BASE_DIR) / f'networks/{entity_name}.json'
+        base_path = Path(BASE_DIR) / 'networks'
+        file_name = base_path / 'networks.json'
         try:
-            generic_data: GenericNetworkData = utils.read_json_file(file_name)
+            self.__networks_data: NetworkData = utils.read_json_file(file_name)
+            file_name = base_path / 'channels.json'
+            self.__channels_data: ChannelData = utils.read_json_file(file_name)
+            file_name = base_path / 'nodes.json'
+            self.__nodes_data: NodeData = utils.read_json_file(file_name)
+            file_name = base_path / 'templates.json'
+            self.__templates_data: TemplateData = utils.read_json_file(file_name)
         except JsonFileNotFound:
             raise PackageNotComplete(str(file_name)) from None
-
-        return generic_data
 
     def _get_network_info(self, identifier_value: str, identifier_type: str = "slug") -> Optional[Dict[str, Any]]:
         """
@@ -183,6 +179,15 @@ class LocalApi:
         """
         return {template["slug"]: template for template in self.__templates_data["templates"]}
 
+    def _get_networks(self) -> List[Dict[str, Any]]:
+        """
+        Get all the networks
+
+        Returns:
+            A dictionary containing key as network slug and value as network information
+        """
+        return [self.__networks_data["networks"][network] for network in self.__networks_data["networks"]]
+
     def _get_network_nodes(self) -> Dict[str, List[str]]:
         """
         Loops trough all the networks in networks/networks.json and gets all the nodes within this network.
@@ -210,6 +215,49 @@ class LocalApi:
 
         return network_nodes
 
+    def get_application_id(self, application_path: Path) -> Optional[str]:
+        """
+        Get the application id from manifest.json
+
+        Args:
+            application_path: The location of the application
+
+        Returns:
+            Application id or None
+        """
+        application_data = self.get_application_data(application_path)
+        if "application_id" in application_data["remote"]:
+            return str(application_data["remote"]["application_id"])
+        return None
+
+    @staticmethod
+    def set_application_data(application_path: Path, application_data: ApplicationDataType) -> None:
+        """
+        Write the application data to manifest.json
+
+        Args:
+            application_path: The location of the application
+            application_data: New or updated application data
+
+        """
+        manifest_json_file = application_path / 'manifest.json'
+        utils.write_json_file(manifest_json_file, application_data)
+
+    @staticmethod
+    def get_application_data(application_path: Path) -> ApplicationDataType:
+        """
+        Get the application data from manifest.json
+
+        Args:
+            application_path: The location of the application
+
+        Returns:
+            A dictionary containing the application data
+        """
+        manifest_json_file = application_path / 'manifest.json'
+        application_data = utils.read_json_file(manifest_json_file)
+        return cast(ApplicationDataType, application_data)
+
     def create_application(self, application_name: str, roles: List[str], application_path: Path) -> None:
         """
         Creates the application by checking if the application name does not exist and calling
@@ -229,14 +277,12 @@ class LocalApi:
 
         self.__create_application_structure(application_name, roles, application_path)
 
-    def init_application(self, path: Path) -> None:
+    def init_application(self, application_path: Path) -> None:
         pass
 
-    def __create_application_structure(
-        self, application_name: str, roles: List[str], application_path: Path
-    ) -> None:
+    def __create_application_structure(self, application_name: str, roles: List[str], application_path: Path) -> None:
         """
-        Creates the application directory structure. Each application will consist of a MANIFEST.INI and two
+        Creates the application directory structure. Each application will consist of a manifest.json and two
         directories: application and config. In the directory application, the files network.json, application.json and
         result.json will be generated. In the directory config, python files will be generated according to the value of
         the list roles.
@@ -288,10 +334,18 @@ class LocalApi:
         utils.write_json_file(app_config_path / 'application.json', data)
 
         # Result.json configuration
-        utils.write_json_file(app_config_path / 'result.json', [])
+        utils.write_json_file(app_config_path / 'result.json', {"round_result_view": [],
+                                                                "cumulative_result_view": [],
+                                                                "final_result_view": []
+                                                                })
 
-        # Manifest.ini configuration
-        utils.write_file(application_path / 'MANIFEST.ini', '')
+        # Manifest.json configuration
+        utils.write_json_file(application_path / 'manifest.json', {"application": {"name": f"{application_name}",
+                                                                                   "description": "add description",
+                                                                                   "author": "add your name",
+                                                                                   "email": "add@your.email",
+                                                                                   "multi_round": False},
+                                                                   "remote": {}})
 
         self.__config_manager.add_application(application_name=application_name, application_path=application_path)
 
@@ -306,7 +360,12 @@ class LocalApi:
         return local_applications
 
     def _delete_src(self, application_path: Path) -> bool:
-        """Config directory contains configuration files"""
+        """
+        Delete src directory containing source files
+
+        Args:
+            application_path: the path where the application is stored
+        """
         src_dir_deleted = False
         application_src_path = application_path / 'src'
         # read the network config for the app file names in src
@@ -332,7 +391,12 @@ class LocalApi:
         return src_dir_deleted
 
     def _delete_config(self, application_path: Path) -> bool:
-        """Config directory contains configuration files"""
+        """
+        Delete config directory containing configuration files
+
+        Args:
+            application_path: the path where the application is stored
+        """
         config_dir_deleted = False
         application_config_path = application_path / 'config'
         config_files_list = self.__get_config_file_names()
@@ -352,9 +416,6 @@ class LocalApi:
     def delete_application(self, application_name: Optional[str], application_path: Path) -> bool:
         """
         Deletes the application files.
-        When application name is None the current directory is taken as application path
-        When application name is given ./application is taken as application path. When this path is invalid we try
-        to get the application path from the configuration.
         The application files and subdirectories are deleted. Only when the current directory is the
         application directory the current directory cannot be deleted, leaving a trace of the application.
         Only files that belong to an application are deleted. When a directory is not empty it is not deleted.
@@ -362,7 +423,7 @@ class LocalApi:
         Args:
             application_name: Optional. The application directory deleted will be ./application_name, the
             current directory or the application path registered in application config for application_name
-            path: The location of the application
+            application_path: The location of the application
 
         Returns:
             True if the complete application (including directory application_name) was deleted, otherwise false
@@ -387,10 +448,10 @@ class LocalApi:
             if application_config_path.is_dir():
                 all_subdir_deleted = self._delete_config(application_path) and all_subdir_deleted
 
-            # Delete manifest.ini
-            manifest_ini = application_path / 'MANIFEST.ini'
-            if manifest_ini.is_file():
-                manifest_ini.unlink()
+            # Delete manifest.json
+            manifest_json = application_path / 'manifest.json'
+            if manifest_json.is_file():
+                manifest_json.unlink()
 
             # only when we called application delete from the parent directory and all subdirs were removed try to
             # remove application dir
@@ -407,7 +468,24 @@ class LocalApi:
         self.__config_manager.delete_application(application_name_from_config)
         return all_subdir_deleted and application_dir_deleted
 
-    def is_application_valid(self, application_name: str, application_path: Path) -> ErrorDictType:
+    @staticmethod
+    def __validate_manifest_json(application_path: Path, error_dict: ErrorDictType) -> None:
+        """
+        This function validates if manifest.json contains valid json and if it passes schema validation.
+
+        Args:
+            application_path: The location of the application
+            error_dict: Dictionary containing error and warning messages of the validations that failed
+        """
+        manifest_json_file = application_path / 'manifest.json'
+
+        # Validate manifest.json (does it exist and is valid json according to the schema)
+        manifest_schema = Path(os.path.join(BASE_DIR, 'schema', 'applications', 'manifest.json', ''))
+        valid, message = validate_json_schema(manifest_json_file, manifest_schema)
+        if not valid:
+            error_dict["error"].append(message)
+
+    def validate_application(self, application_name: str, application_path: Path) -> ErrorDictType:
         """
         Function that checks if:
         - The application is valid by validating if it exists in .qne/application.json
@@ -427,10 +505,11 @@ class LocalApi:
             Returns empty list when all validations passes
             Returns dict containing error messages of the validations that failed
         """
-        error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
+        error_dict: ErrorDictType = utils.get_empty_errordict()
         application_exists, _ = self.__config_manager.application_exists(application_name)
 
         if application_exists:
+            self.__validate_manifest_json(application_path, error_dict)
             self.__is_structure_valid(application_path, error_dict)
             self.__is_config_valid(application_path, error_dict)
             self.__is_python_valid(application_path, error_dict)
@@ -439,6 +518,29 @@ class LocalApi:
             error_dict["error"].append(f"Application '{application_name}' does not exist")
 
         return error_dict
+
+    def get_application_result(self, application_name: str) -> Optional[AppResultType]:
+        """
+        Get the result containing round_result_view, cumulative_result_view and final_result_view
+        for the application
+
+        Args:
+            application_name: Name of the application for which to get the result structures
+
+        Returns:
+            A dictionary containing application result structures
+        """
+        app_details = self.__config_manager.get_application(application_name)
+
+        if app_details and "path" in app_details:
+            app_config_path = Path(app_details["path"]) / 'config'
+            result_json_path = app_config_path / 'result.json'
+
+            app_result: AppResultType = utils.read_json_file(result_json_path)
+
+            return app_result
+
+        return None
 
     def get_application_config(self, application_name: str) -> Optional[AppConfigType]:
         """
@@ -462,7 +564,7 @@ class LocalApi:
             app_config_network: app_configNetworkType = utils.read_json_file(network_json_path)
 
             app_config = {"application": app_config_application, "network": app_config_network}
-            return app_config
+            return cast(AppConfigType, app_config)
 
         return None
 
@@ -471,28 +573,35 @@ class LocalApi:
         app_schema_path = Path(BASE_DIR) / 'schema/applications'
         app_config_path = application_path / 'config'
 
-        for file in self.__get_config_file_names():
-            if (app_config_path / file).is_file():
-                schema_valid, ve = validate_json_schema(app_config_path / file, app_schema_path / file)
+        for config_file in self.__get_config_file_names():
+            if (app_config_path / config_file).is_file():
+                schema_valid, ve = validate_json_schema(app_config_path / config_file, app_schema_path / config_file)
                 if not schema_valid:
                     error_dict["error"].append(ve)
 
-    def __get_config_file_names(self) -> List[str]:
+    @staticmethod
+    def __get_config_file_names() -> List[str]:
         return ['application.json', 'network.json', 'result.json']
 
-    def __get_simulator_file_names(self) -> List[str]:
+    @staticmethod
+    def __get_simulator_file_names() -> List[str]:
         return ['roles.yaml', 'network.yaml']
 
-    def __get_role_names(self, app_config_path: Path) -> List[str]:
-        # Get the roles used in this application/experiment from config/network.json
+    @staticmethod
+    def __get_role_names(app_config_path: Path) -> List[str]:
+        """
+        Get the roles used in this application/experiment from config/network.json
+        """
         config_network_data = utils.read_json_file(app_config_path / 'network.json')
         config_application_roles: List[str] = config_network_data["roles"] if "roles" in config_network_data else []
 
         return config_application_roles
 
     def __get_role_file_names(self, app_config_path: Path) -> List[str]:
-        # Add app_ and .py to each role in config/network.json so that it matches the application python files
-        # Note that these file names are lower case, role names can be upper case
+        """
+        Add app_ and .py to each role in config/network.json so that it matches the application python files
+        Note that these file names are lower case, role names can be upper case
+        """
         config_application_roles = self.__get_role_names(app_config_path)
         application_file_names = ['app_' + role.lower() + '.py' for role in config_application_roles]
 
@@ -532,9 +641,9 @@ class LocalApi:
         else:
             error_dict["error"].append(f"{application_path} should contain a 'src' directory")
 
-        # Validate that the MANIFEST.ini exists
-        if not (application_path / 'MANIFEST.ini').is_file():
-            error_dict["warning"].append(f"{application_path} should contain the file 'MANIFEST.ini'")
+        # Validate that the manifest.json exists
+        if not (application_path / 'manifest.json').is_file():
+            error_dict["warning"].append(f"{application_path} should contain the file 'manifest.json'")
 
     def __is_python_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
         """
@@ -649,8 +758,8 @@ class LocalApi:
                             error_dict['error'].append(f'Variable {item} is used in result.json, but not found in '
                                                        f'return statement(s) of main() in file {role_file}')
 
-    def experiments_create(self, experiment_name: str, app_config: AppConfigType, network_name: str,
-                           path: Path, application_name: str) -> None:
+    def experiments_create(self, experiment_name: str, application_name: str, network_name: str, local: bool,
+                           path: Path, app_config: AppConfigType) -> None:
         """
         Create all the necessary resources for experiment creation
          - 1. Get the network data for the specified network_name
@@ -659,18 +768,19 @@ class LocalApi:
 
         Args:
             experiment_name: Name of the experiment
-            app_config: A dictionary containing application configuration information
-            network_name: Name of the network to use
-            path: Location where the experiment directory is to be created
             application_name: Name of the application for which to create experiment
+            network_name: Name of the network to use
+            local: Are we going to run this experiment local (or remote)
+            path: Location where the experiment directory is to be created
+            app_config: A dictionary containing application configuration information
 
         """
         network_data: assetNetworkType = self.get_network_data(network_name=network_name)
         asset_network: assetNetworkType = self.create_asset_network(network_data=network_data,
                                                                     app_config=app_config)
 
-        self.create_experiment(experiment_name=experiment_name, app_config=app_config, asset_network=asset_network,
-                               path=path, application_name=application_name)
+        self.__create_experiment(experiment_name=experiment_name, application_name=application_name,
+                                 local=local, path=path, app_config=app_config, asset_network=asset_network)
 
     def get_network_data(self, network_name: str) -> assetNetworkType:
         """
@@ -680,7 +790,6 @@ class LocalApi:
         Returns:
             The complete network information with channels & nodes
         """
-
         channels_list = []
         nodes_list = []
 
@@ -711,36 +820,41 @@ class LocalApi:
 
         raise NetworkNotFound(network_name)
 
-    def create_experiment(
-        self, experiment_name: str, app_config: AppConfigType, asset_network: assetNetworkType, path: Path,
-            application_name: str) -> None:
+    def __create_experiment(self, experiment_name: str, application_name: str, local: bool, path: Path,
+                            app_config: AppConfigType, asset_network: assetNetworkType) -> None:
         """
         Create experiment.json with meta and asset information
 
         Args:
             experiment_name: Name of the directory where experiment.json will be created
-            app_config: A dictionary containing application configuration information
-            asset_network: Filled Network parameters with default values
-            path: Location where experiment directory needs to be created
             application_name: Name of the application for which to create the experiment
-
+            local: Are we going to run this experiment local (or remote)
+            app_config: A dictionary containing application configuration information
+            path: Location where experiment directory needs to be created
+            asset_network: Filled Network parameters with default values
         """
-
         experiment_path = path / experiment_name
         experiment_path.mkdir(parents=True)
 
-        experiment_input_path = experiment_path / 'input'
-        experiment_input_path.mkdir(parents=True)
-        self.__copy_input_files_from_application(application_name, experiment_input_path)
+        if local:
+            experiment_input_path = experiment_path / 'input'
+            experiment_input_path.mkdir(parents=True)
+            self.__copy_input_files_from_application(application_name, experiment_input_path)
 
         experiment_json_file = experiment_path / 'experiment.json'
         experiment_meta = {
-            "backend": {
-                "location": "local",
-                "type": "local_netsquid"
+            "application": {
+                "slug": application_name,
+                "app_version": "" if local else app_config["app_version"],
+                "multi_round": "False" if local else app_config["multi_round"]
             },
+            "backend": {
+                "location": "local" if local else "remote",
+                "type": "local_netsquid" if local else "remote_netsquid"
+            },
+            "description": f"description of {experiment_name} here",
             "number_of_rounds": 1,
-            "description": f"{experiment_name}: experiment description"
+            "name": experiment_name
         }
         asset_application = self.__create_asset_application(app_config)
         asset = {"network": asset_network, "application": asset_application}
@@ -748,7 +862,8 @@ class LocalApi:
         experiment_data = {"meta": experiment_meta, "asset": asset}
         utils.write_json_file(experiment_json_file, experiment_data)
 
-    def __create_asset_application(self, app_config: AppConfigType) -> assetApplicationType:
+    @staticmethod
+    def __create_asset_application(app_config: AppConfigType) -> assetApplicationType:
         """
         Prepare the asset by filling the application input parameters with default values
         Args:
@@ -758,7 +873,7 @@ class LocalApi:
         """
         input_list = []
         if "application" in app_config:
-            for input_param in app_config["application"]:
+            for input_param in cast(app_configApplicationType, app_config["application"]):
                 item = {
                     "roles": input_param["roles"],
                     "values": []
@@ -779,8 +894,9 @@ class LocalApi:
                                       node_list: AssetNodeListType) -> None:
         network_data["roles"] = {}
         if "network" in app_config:
-            if "roles" in app_config["network"]:
-                for index, role in enumerate(app_config["network"]["roles"]):
+            app_config_network: app_configNetworkType = cast(app_configNetworkType, app_config["network"])
+            if "roles" in app_config_network:
+                for index, role in enumerate(app_config_network["roles"]):
                     network_data["roles"][role] = node_list[index]["slug"]
 
     def __fill_asset_channel_information(self, channel_list: AssetChannelListType,
@@ -846,7 +962,8 @@ class LocalApi:
 
         return network_data
 
-    def __get_filled_template_parameter(self, param: str, templates: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    @staticmethod
+    def __get_filled_template_parameter(param: str, templates: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
         Prepare the template parameter by filling it with default values
 
@@ -903,12 +1020,28 @@ class LocalApi:
         network_slug = self._get_network_slug(network_name)
         if network_slug:
             if "network" in app_config:
-                if "networks" in app_config["network"]:
-                    if network_slug in app_config["network"]["networks"]:
+                app_config_network: app_configNetworkType = cast(app_configNetworkType, app_config["network"])
+                if "networks" in app_config_network:
+                    if network_slug in app_config_network["networks"]:
                         return True
 
         return False
 
+    @staticmethod
+    def is_valid_experiment_path(experiment_path: Path) -> bool:
+        """
+        Check if experiment.json exists and we're dealing with an experiment directory
+        Args:
+            experiment_path: path of experiment
+
+        Returns True when path exists and experiment.json is found
+        """
+        experiment_json_file = experiment_path / 'experiment.json'
+        if experiment_path.is_dir() and experiment_json_file.is_file():
+            return True
+        return False
+
+    # TODO make a separate class to handle experiment.json" getters and setters
     def is_experiment_local(self, experiment_path: Path) -> bool:
         """
         Check if the experiment at the 'path' is remote or local
@@ -917,28 +1050,165 @@ class LocalApi:
             experiment_path: The location of the experiment
 
         Returns:
-            bool: True if the experiment at given path is local, False otherwise
+            bool: True if the experiment at given path is local, False when remote
+
+        Raises:
+            ExperimentValueError when not remote or local
         """
-        experiment_data = utils.read_json_file(experiment_path / 'experiment.json')
+        experiment_json_file = experiment_path / 'experiment.json'
+        experiment_data = self.get_experiment_data(experiment_path)
         if experiment_data["meta"]["backend"]["location"].strip().lower() == "local":
             return True
+
+        if experiment_data["meta"]["backend"]["location"].strip().lower() != "remote":
+            raise ExperimentValueError(f"Experiment backend location should be 'local' or 'remote' in "
+                                       f"'{experiment_json_file}'")
         return False
 
-    def get_experiment_rounds(self, path: Path) -> int:
+    def get_experiment_id(self, experiment_path: Path) -> Optional[str]:
+        if not self.is_experiment_local(experiment_path):
+            experiment_data = self.get_experiment_data(experiment_path)
+            if "experiment_id" in experiment_data["meta"]:
+                return str(experiment_data["meta"]["experiment_id"])
+        return None
+
+    def get_experiment_application(self, experiment_path: Path) -> str:
+        """
+        Get the application name (slug) for this experiment
+
+        Args:
+            experiment_path: The location of the experiment
+
+        Returns:
+            str: application slug
+        """
+        experiment_data = self.get_experiment_data(experiment_path)
+        return cast(str, experiment_data["meta"]["application"]["slug"])
+
+    def get_experiment_name(self, experiment_path: Path) -> str:
+        """
+        Get the name of experiment
+
+        Args:
+            experiment_path: The location of the experiment
+
+        Returns:
+            str: experiment name
+        """
+        experiment_data = self.get_experiment_data(experiment_path)
+        return cast(str, experiment_data["meta"]["name"])
+
+    def get_experiment_rounds(self, experiment_path: Path) -> int:
         """
         Get the number of rounds in an experiment
 
         Args:
-            path: The location of the experiment
+            experiment_path: The location of the experiment
 
         Returns:
             int: Value of the number of rounds
         """
-        experiment_data = utils.read_json_file(path / 'experiment.json')
+        experiment_data = self.get_experiment_data(experiment_path)
         return cast(int, experiment_data["meta"]["number_of_rounds"])
 
+    def get_experiment_asset(self, experiment_path: Path) -> AssetType:
+        """
+            Get the asset from experiment.json
+
+            Args:
+                experiment_path: The location of the experiment
+
+            Returns:
+                A dictionary containing the asset information
+        """
+        experiment_data = self.get_experiment_data(experiment_path)
+        return cast(AssetType, experiment_data["asset"])
+
+    def get_experiment_meta(self, experiment_path: Path) -> MetaType:
+        """
+        Get the meta data for this experiment
+
+        Args:
+            experiment_path: The location of the experiment
+
+        Returns:
+            MetaType: meta-structure
+        """
+        experiment_data = self.get_experiment_data(experiment_path)
+        return experiment_data["meta"]
+
+    def get_experiment_round_set(self, experiment_path: Path) -> Optional[str]:
+        """
+        Get the round set url from experiment.json (stored for remote experiments)
+
+        Args:
+            experiment_path: The location of the experiment
+
+        Returns:
+            The round set from the experiment.json
+        """
+        if not self.is_experiment_local(experiment_path):
+            experiment_data = self.get_experiment_data(experiment_path)
+            return cast(str, experiment_data["meta"]["round_set"])
+        return None
+
+    @staticmethod
+    def get_experiment_data(experiment_path: Path) -> ExperimentDataType:
+        """
+        Get the data (meta and asset) from experiment.json
+
+        Args:
+            experiment_path: The location of the experiment
+
+        Returns:
+            A dictionary containing the data information
+        """
+        experiment_json_file = experiment_path / 'experiment.json'
+        # Check if experiment.json exists and we're dealing with an experiment directory
+        if experiment_path.is_dir() and experiment_json_file.is_file():
+            # Validate experiment.json (does it exist and is valid json according to the schema)
+            experiment_schema = Path(os.path.join(BASE_DIR, 'schema', 'experiments', 'experiment.json', ''))
+            valid, message = validate_json_schema(experiment_json_file, experiment_schema)
+            if valid:
+                experiment_data = utils.read_json_file(experiment_json_file)
+                return cast(ExperimentDataType, experiment_data)
+
+            raise SchemaError(message)
+
+        raise ExperimentDirectoryNotValid(str(experiment_path))
+
+    @staticmethod
+    def set_experiment_id(experiment_id: str, experiment_path: Path) -> None:
+        """
+        Store the experiment id to experiment.json (stored for remote experiments)
+
+        Args:
+            experiment_id: the remote experiment id
+            experiment_path: The location of the experiment
+        """
+        experiment_json_file = experiment_path / 'experiment.json'
+        experiment_data = utils.read_json_file(experiment_json_file)
+        experiment_data["meta"]["experiment_id"] = experiment_id
+        utils.write_json_file(experiment_json_file, experiment_data)
+
+    @staticmethod
+    def set_experiment_round_set(round_set_url: str, experiment_path: Path) -> None:
+        """
+        Store the round set url to experiment.json (stored for remote experiments)
+
+        Args:
+            round_set_url: the round set url
+            experiment_path: The location of the experiment
+        """
+        experiment_json_file = experiment_path / 'experiment.json'
+        experiment_data = utils.read_json_file(experiment_json_file)
+        experiment_data["meta"]["round_set"] = round_set_url
+        utils.write_json_file(experiment_json_file, experiment_data)
+
     def _delete_input(self, experiment_input_path: Path) -> bool:
-        """Input directory contains inputs from the application and input created for the simulator"""
+        """
+        Input directory contains inputs from the application and input created for the simulator
+        """
         input_dir_deleted = False
         # Delete the config files
         config_files_list = self.__get_config_file_names()
@@ -981,14 +1251,18 @@ class LocalApi:
 
     @staticmethod
     def _delete_raw_output(raw_output_path: Path) -> bool:
-        """Raw output is generated by the simulator. We can safely delete the raw outputs directory"""
+        """
+        Raw output is generated by the simulator. We can safely delete the raw outputs directory
+        """
         shutil.rmtree(raw_output_path)
 
         return True
 
     @staticmethod
     def _delete_results(result_path: Path) -> bool:
-        """Results directory contains processed.json"""
+        """
+        Results directory contains processed.json
+        """
         result_dir_deleted = False
         processed_result_json_file = result_path / 'processed.json'
         if processed_result_json_file.is_file():
@@ -1026,9 +1300,9 @@ class LocalApi:
         experiment_dir_deleted = False
         all_subdir_deleted = True
 
-        experiment_json = experiment_path / 'experiment.json'
+        experiment_json_file = experiment_path / 'experiment.json'
         # Check if experiment.json exists and we're dealing with an experiment directory
-        if experiment_path.is_dir() and experiment_json.is_file():
+        if experiment_path.is_dir() and experiment_json_file.is_file():
             experiment_input_path = experiment_path / 'input'
             if experiment_input_path.is_dir():
                 all_subdir_deleted = self._delete_input(experiment_input_path) and all_subdir_deleted
@@ -1042,7 +1316,7 @@ class LocalApi:
                 all_subdir_deleted = self._delete_results(experiment_results_path) and all_subdir_deleted
 
             # Delete experiment.json
-            experiment_json.unlink()
+            experiment_json_file.unlink()
 
             # only when we called experiment delete from the parent directory and all the subdirectories were
             # removed try to remove experiment dir
@@ -1057,7 +1331,7 @@ class LocalApi:
 
         return all_subdir_deleted and experiment_dir_deleted
 
-    def run_experiment(self, experiment_path: Path) -> ResultType:
+    def run_experiment(self, experiment_path: Path) -> List[ResultType]:
         """
         An experiment is run on the backend. For this the round set manager is setup and called to process the asset
 
@@ -1065,39 +1339,25 @@ class LocalApi:
             experiment_path: The location of the experiment
 
         Returns:
-            A dictionary containing the results of the run
+            A list containing the results of the run
         """
         local_round_set: RoundSetType = {"url": "local"}
-        round_set_manager = RoundSetManager(round_set=local_round_set, asset=self._get_asset(experiment_path),
+        round_set_manager = RoundSetManager(round_set=local_round_set, asset=self.get_experiment_asset(experiment_path),
                                             experiment_path=experiment_path)
-        result = round_set_manager.process()
-        return result
+        results = round_set_manager.process()
+        return results
 
-    def _get_asset(self, path: Path) -> AssetType:
-        """
-            Get the asset from experiment.json
-
-            Args:
-                path: The location of the experiment
-
-            Returns:
-                A dictionary containing the asset information
-        """
-        experiment_data = utils.read_json_file(path / "experiment.json")
-        return cast(AssetType, experiment_data["asset"])
-
-    def get_experiment(self, name: str) -> ExperimentType:
-        pass
-
-    def get_results(self, path: Path) -> ResultType:
+    def get_results(self, experiment_path: Path) -> List[ResultType]:
+        # TODO: is this method used?
         output_converter = OutputConverter(
             round_set={"url": "local"},
-            log_dir=str(path / 'raw_output'),
+            log_dir=str(experiment_path / 'raw_output'),
             output_dir='LAST',
             instruction_converter=FullyConnectedNetworkGenerator()
         )
 
-        return output_converter.convert(round_number=1)
+        result = output_converter.convert(round_number=1)
+        return [result]
 
     def validate_experiment(self, experiment_path: Path) -> ErrorDictType:
         """
@@ -1115,11 +1375,12 @@ class LocalApi:
         Returns:
             Dictionary containing lists of error, warning and info messages of the validations that failed
         """
-        local = True
-        error_dict: ErrorDictType = {"error": [], "warning": [], "info": []}
+        local = self.is_experiment_local(experiment_path=experiment_path)
+        error_dict: ErrorDictType = utils.get_empty_errordict()
 
         self._validate_experiment_json(experiment_path=experiment_path, error_dict=error_dict)
-        self._validate_experiment_input(experiment_path=experiment_path, local=local, error_dict=error_dict)
+        if local:
+            self._validate_experiment_input(experiment_path=experiment_path, error_dict=error_dict)
 
         return error_dict
 
@@ -1131,32 +1392,32 @@ class LocalApi:
             experiment_path: The location of the experiment
             error_dict: Dictionary containing error and warning messages of the validations that failed
         """
-        experiment_file_path = experiment_path / 'experiment.json'
+        experiment_json_file = experiment_path / 'experiment.json'
 
         # Validate experiment.json (does it exist and is valid json according to the schema)
-
         experiment_schema = Path(os.path.join(BASE_DIR, 'schema', 'experiments', 'experiment.json', ''))
-        valid, message = validate_json_schema(experiment_file_path, experiment_schema)
+        valid, message = validate_json_schema(experiment_json_file, experiment_schema)
         if not valid:
             error_dict["error"].append(message)
         else:
             # Check if experiment is local or remote
-            experiment_data = utils.read_json_file(experiment_file_path)
+            experiment_data = self.get_experiment_data(experiment_path)
             # location is required field in schema
-            if not experiment_data["meta"]["backend"]["location"] == "local":
-                error_dict["warning"].append(f"In file '{experiment_file_path}': only 'local' is supported for "
-                                             f"property 'location'")
+            location = experiment_data["meta"]["backend"]["location"].strip().lower()
+            if location not in ["local", "remote"]:
+                error_dict["warning"].append(f"In file '{experiment_json_file}': only 'local' or 'remote' is supported "
+                                             f"for property 'location'")
             # slug is now also a required field
             experiment_network_slug = experiment_data["asset"]["network"]["slug"]
             # Check if the chosen network exists
             if self._get_network_info(experiment_network_slug) is not None:
                 # Validate experiment nodes
-                self._validate_experiment_nodes(experiment_file_path, experiment_data, error_dict)
+                self._validate_experiment_nodes(experiment_json_file, experiment_data, error_dict)
                 # Validate experiment channels
-                self._validate_experiment_channels(experiment_file_path, experiment_data, error_dict)
+                self._validate_experiment_channels(experiment_json_file, experiment_data, error_dict)
             else:
                 error_dict["warning"].append(
-                    f"In file '{experiment_file_path}': network '{experiment_network_slug}' "
+                    f"In file '{experiment_json_file}': network '{experiment_network_slug}' "
                     f"does not exist")
 
             self._validate_experiment_application(experiment_path, experiment_data, error_dict)
@@ -1183,21 +1444,20 @@ class LocalApi:
             else:
                 error_dict["error"].append(f"'{experiment_input_path}' should contain the file '{file}'")
 
-    def _validate_experiment_input(self, experiment_path: Path, local: bool, error_dict: ErrorDictType) -> None:
+    def _validate_experiment_input(self, experiment_path: Path, error_dict: ErrorDictType) -> None:
+
         """
         Validates if the experiment file structures input directory containing a:
-        - (local only) network.json, application.json, result.json, app_role1.py, app_role2.py, ...
+        - network.json, application.json, result.json, app_role1.py, app_role2.py, ...
 
         Args:
             experiment_path: The location of the experiment
-            local: If the experiment is a local or not
             error_dict: Dictionary containing error and warning messages of the validations that failed
         """
         experiment_input_path = experiment_path / 'input'
 
         if experiment_input_path.is_dir():
-            if local:
-                self.__check_all_experiment_input_files_exist(experiment_input_path, error_dict)
+            self.__check_all_experiment_input_files_exist(experiment_input_path, error_dict)
         else:
             error_dict["error"].append(f"Required directory not found: '{experiment_input_path}'")
 
@@ -1241,7 +1501,6 @@ class LocalApi:
             experiment_data: contents of the experiment.json file
             error_dict: Dictionary containing error and warning messages of the validations that failed
         """
-
         # Check if the amount of channels are valid for this network
         experiment_network_slug = experiment_data["asset"]["network"]["slug"]
         experiment_channels = experiment_data["asset"]["network"]["channels"]
@@ -1261,7 +1520,8 @@ class LocalApi:
         else:
             error_dict["error"].append(f"No channels found for network '{experiment_network_slug}'")
 
-    def _validate_experiment_application(self, experiment_path: Path, experiment_data: Dict[str, Any],
+    @staticmethod
+    def _validate_experiment_application(experiment_path: Path, experiment_data: Dict[str, Any],
                                          error_dict: ErrorDictType) -> None:
         """
         Validate the ['application'] key defined in the asset of experiment.json. Check if the roles match the roles
@@ -1291,3 +1551,12 @@ class LocalApi:
             except MalformedJsonFile:
                 # The file 'network.json' will be checked against the schema in validate_experiment_input
                 pass
+
+    def list_networks(self) -> List[Dict[str, Any]]:
+        """
+        List the local networks.
+
+        Returns:
+            A list of networks
+        """
+        return self._get_networks()

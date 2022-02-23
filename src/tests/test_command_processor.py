@@ -2,8 +2,6 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 import unittest
 
-from adk.api.local_api import LocalApi
-from adk.api.remote_api import RemoteApi
 from adk.command_processor import CommandProcessor
 from adk.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication
 
@@ -12,13 +10,14 @@ class TestCommandProcessor(unittest.TestCase):
 
     def setUp(self):
         self.config_manager = MagicMock(config_dir=Path('dummy'))
-        self.local_api = LocalApi(config_manager=self.config_manager)
-        self.remote_api = RemoteApi(config_manager=self.config_manager)
+        self.local_api = MagicMock(config_manager=self.config_manager)
+        self.remote_api = MagicMock(config_manager=self.config_manager)
         self.processor = CommandProcessor(local_api=self.local_api, remote_api=self.remote_api)
         self.host = 'qutech.com'
         self.username = 'test_username'
         self.password = 'test_password'
         self.application = 'test_application'
+        self.experiment = 'test_experiment'
         self.roles = ['role1', 'role2']
         self.path = Path('path/to/application')
         self.remote_List = ['r1', 'r2']
@@ -26,78 +25,163 @@ class TestCommandProcessor(unittest.TestCase):
         self.error_dict = {"error": [], "warning": [], "info": []}
 
     def test_login(self):
-        with patch.object(RemoteApi, "login") as remote_login_mock:
-            self.processor.login(host=self.host, username=self.username, password=self.password)
-            remote_login_mock.assert_called_once_with(username=self.username, password=self.password, host=self.host)
+        self.processor.login(host=self.host, username=self.username, password=self.password)
+        self.remote_api.login.assert_called_once_with(username=self.username, password=self.password, host=self.host)
 
     def test_logout(self):
-        with patch.object(RemoteApi, "logout") as remote_logout_mock:
-            self.processor.logout(host=self.host)
-            remote_logout_mock.assert_called_once_with(host=self.host)
+        self.processor.logout(host=self.host)
+        self.remote_api.logout.assert_called_once_with(host=self.host)
 
     def test_applications_create(self):
-        with patch.object(LocalApi, "create_application") as create_application_mock:
-            self.processor.applications_create(application_name=self.application, roles=self.roles,
-                                               application_path=self.path)
-            create_application_mock.assert_called_once_with(self.application, self.roles, self.path)
+        self.processor.applications_create(application_name=self.application, roles=self.roles,
+                                           application_path=self.path)
+        self.local_api.create_application.assert_called_once_with(self.application, self.roles, self.path)
 
-    def test_applications_validate(self):
-        with patch.object(LocalApi, "is_application_valid") as is_application_valid_mock:
-            self.processor.applications_validate(self.application, self.path)
-            is_application_valid_mock.assert_called_once_with(self.application, self.path)
+    def test_applications_init(self):
+        self.processor.applications_init(application_path=self.path)
+        self.local_api.init_application.assert_called_once_with(self.path)
+
+    def test_applications_upload_succeeds(self):
+        self.local_api.get_application_config.return_value = "app_config"
+        self.local_api.get_application_data.return_value = "application_data"
+        self.local_api.get_application_result.return_value = "app_result"
+        self.remote_api.upload_application.return_value = "application_data_result"
+
+        return_value = self.processor.applications_upload(application_name=self.application, application_path=self.path)
+        self.local_api.get_application_config.assert_called_once_with(self.application)
+        self.local_api.get_application_data.assert_called_once_with(self.path)
+        self.local_api.get_application_result.assert_called_once_with(self.application)
+        self.remote_api.upload_application.assert_called_once_with(application_path=self.path,
+                                                                   application_data="application_data",
+                                                                   application_config="app_config",
+                                                                   application_result="app_result")
+        self.local_api.set_application_data.assert_called_once_with(self.path,
+                                                                    "application_data_result")
+        self.assertTrue(return_value)
+
+    def test_applications_list(self):
+        self.remote_api.list_applications.return_value = self.remote_List
+        self.local_api.list_applications.return_value = self.local_list
+        applications = self.processor.applications_list(remote=True, local=True)
+
+        self.local_api.list_applications.assert_called_once()
+        self.remote_api.list_applications.assert_called_once()
+
+        self.assertIn('local', applications)
+        self.assertIn('remote', applications)
+        self.assertEqual(len(applications), 2)
+        self.assertEqual(len(applications['local']), 3)
+        self.assertEqual(len(applications['remote']), 2)
+
+    def test_applications_list_local(self):
+        self.local_api.list_applications.return_value = self.local_list
+        applications = self.processor.applications_list(remote=False, local=True)
+
+        self.local_api.list_applications.assert_called_once()
+        self.remote_api.list_applications.assert_not_called()
+
+        self.assertIn('local', applications)
+        self.assertNotIn('remote', applications)
+        self.assertEqual(len(applications), 1)
+        self.assertEqual(len(applications['local']), 3)
+
+    def test_applications_list_remote(self):
+        self.remote_api.list_applications.return_value = self.remote_List
+        applications = self.processor.applications_list(remote=True, local=False)
+
+        self.local_api.list_applications.assert_not_called()
+        self.remote_api.list_applications.assert_called_once()
+
+        self.assertIn('remote', applications)
+        self.assertNotIn('local', applications)
+        self.assertEqual(len(applications), 1)
+        self.assertEqual(len(applications['remote']), 2)
 
     def test_application_delete(self):
-        with patch.object(LocalApi, "delete_application") as local_delete_application_mock, \
-             patch.object(RemoteApi, "delete_application") as remote_delete_application_mock:
+        self.remote_api.delete_application.return_value = True
+        self.local_api.delete_application.return_value = True
 
-            local_delete_application_mock.return_value = True
-            remote_delete_application_mock.return_value = True
-            return_value = self.processor.applications_delete(None, application_path=Path('dummy'))
-            local_delete_application_mock.assert_called_once()
-            remote_delete_application_mock.assert_called_once()
-            self.assertTrue(return_value)
+        self.local_api.get_application_id.return_value = "18"
+        return_value = self.processor.applications_delete(None, application_path=Path('dummy'))
 
-            local_delete_application_mock.reset_mock()
-            remote_delete_application_mock.reset_mock()
-            local_delete_application_mock.return_value = False
-            remote_delete_application_mock.return_value = False
-            return_value = self.processor.applications_delete(None, application_path=Path('dummy'))
-            local_delete_application_mock.assert_called_once()
-            remote_delete_application_mock.assert_called_once()
-            self.assertFalse(return_value)
+        self.local_api.delete_application.assert_called_once()
+        self.remote_api.delete_application.assert_called_once()
+        self.assertTrue(return_value)
+
+        self.local_api.delete_application.reset_mock()
+        self.remote_api.delete_application.reset_mock()
+        self.remote_api.delete_application.return_value = False
+        self.local_api.delete_application.return_value = False
+        return_value = self.processor.applications_delete(None, application_path=Path('dummy'))
+        self.local_api.delete_application.assert_called_once()
+        self.remote_api.delete_application.assert_called_once()
+        self.assertFalse(return_value)
+
+        self.local_api.delete_application.reset_mock()
+        self.remote_api.delete_application.reset_mock()
+        self.local_api.get_application_id.return_value = None
+        self.remote_api.delete_application.return_value = False
+        self.local_api.delete_application.return_value = False
+        return_value = self.processor.applications_delete(None, application_path=Path('dummy'))
+        self.local_api.delete_application.assert_called_once()
+        self.remote_api.delete_application.assert_not_called()
+        self.assertFalse(return_value)
+
+    def test_applications_publish(self):
+        self.processor.applications_publish(self.application)
+        self.remote_api.publish_application.assert_called_once_with(self.application)
+
+    def test_applications_validate(self):
+        self.remote_api.validate_application.return_value = False
+        self.local_api.validate_application.return_value = True
+        local = True
+        result = self.processor.applications_validate(self.application, self.path, local)
+        self.assertTrue(result)
+        self.local_api.validate_application.assert_called_once_with(self.application, self.path)
+        self.remote_api.validate_application.assert_not_called()
+
+        self.local_api.validate_application.reset_mock()
+        self.remote_api.validate_application.reset_mock()
+        self.remote_api.validate_application.return_value = True
+        self.local_api.validate_application.return_value = False
+        local = False
+        result = self.processor.applications_validate(self.application, self.path, local)
+        self.assertTrue(result)
+        self.local_api.validate_application.assert_not_called()
+        self.remote_api.validate_application.assert_called_once_with(self.application)
 
     def test_experiments_create_local(self):
-        with patch.object(LocalApi, "experiments_create") as create_exp_mock, \
-             patch.object(LocalApi, "get_application_config") as get_config_mock, \
-             patch.object(LocalApi, "is_network_available") as check_network_mock, \
-             patch("adk.command_processor.Path.exists") as mock_path_exists:
-            get_config_mock.return_value = {'foo': 'bar'}
-            check_network_mock.return_value = True
+        with patch("adk.command_processor.Path.exists") as mock_path_exists:
+            self.local_api.get_application_config.return_value = {'foo': 'bar'}
+            self.local_api.is_network_available.return_value = True
             mock_path_exists.return_value = False
             self.processor.experiments_create(experiment_name='test_exp', application_name='app_name',
                                               network_name='network_1', local=True, path=Path('test'))
 
-            get_config_mock.assert_called_once_with('app_name')
-            check_network_mock.assert_called_once_with('network_1', {'foo': 'bar'})
-            create_exp_mock.assert_called_once_with(experiment_name='test_exp', app_config={'foo': 'bar'},
-                                                    network_name='network_1', path=Path('test'),
-                                                    application_name='app_name')
+            self.local_api.get_application_config.assert_called_once_with('app_name')
+            self.local_api.is_network_available.assert_called_once_with('network_1', {'foo': 'bar'})
+            self.local_api.experiments_create.assert_called_once_with(experiment_name='test_exp',
+                                                                      application_name='app_name',
+                                                                      network_name='network_1',
+                                                                      local=True,
+                                                                      path=Path('test'),
+                                                                      app_config={'foo': 'bar'})
 
-            create_exp_mock.reset_mock()
-            get_config_mock.reset_mock()
-            get_config_mock.return_value = {'foo': 'bar'}
-            check_network_mock.reset_mock()
-            check_network_mock.return_value = False
+            self.local_api.experiments_create.reset_mock()
+            self.local_api.get_application_config.reset_mock()
+            self.local_api.get_application_config.return_value = {'foo': 'bar'}
+            self.local_api.is_network_available.reset_mock()
+            self.local_api.is_network_available.return_value = False
 
             with self.assertRaises(NetworkNotAvailableForApplication):
                 self.processor.experiments_create(experiment_name='test_exp', application_name='app_name',
                                                   network_name='network_1', local=True, path=Path('test'))
-                get_config_mock.assert_called_once_with('app_name')
-                check_network_mock.assert_called_once_with('network_1', {'foo': 'bar'})
-                create_exp_mock.assert_not_called()
+                self.local_api.get_application_config.assert_called_once_with('app_name')
+                self.local_api.is_network_available.assert_called_once_with('network_1', {'foo': 'bar'})
+                self.local_api.experiments_create.assert_not_called()
 
-            get_config_mock.reset_mock()
-            get_config_mock.return_value = None
+            self.local_api.get_application_config.reset_mock()
+            self.local_api.get_application_config.return_value = None
             self.assertRaises(ApplicationNotFound, self.processor.experiments_create, 'test_exp',
                               'app_name', 'network_1', True, Path('test'))
 
@@ -105,51 +189,68 @@ class TestCommandProcessor(unittest.TestCase):
             self.assertRaises(DirectoryAlreadyExists, self.processor.experiments_create, 'test_exp',
                               'app_name', 'network_1', True, Path('test'))
 
-    def test_experiments_delete(self):
-        with patch.object(LocalApi, "delete_experiment") as local_delete_experiment_mock, \
-             patch.object(RemoteApi, "delete_experiment") as remote_delete_experiment_mock:
+    def test_experiments_delete_local(self):
+        self.local_api.delete_experiment.return_value = True
+        self.remote_api.delete_experiment.return_value = True
+        self.local_api.is_experiment_local.return_value = True
+        return_value = self.processor.experiments_delete(experiment_name=self.experiment, experiment_path=self.path)
+        self.local_api.delete_experiment.assert_called_once()
+        self.remote_api.delete_experiment.assert_not_called()
+        self.assertTrue(return_value)
 
-            local_delete_experiment_mock.return_value = True
-            remote_delete_experiment_mock.return_value = True
-            return_value = self.processor.experiments_delete(None, experiment_path=Path('dummy'))
-            local_delete_experiment_mock.assert_called_once()
-            remote_delete_experiment_mock.assert_called_once()
-            self.assertTrue(return_value)
+        self.local_api.delete_experiment.reset_mock()
+        self.remote_api.delete_experiment.reset_mock()
+        self.local_api.is_experiment_local.return_value = True
+        self.local_api.delete_experiment.return_value = False
+        self.remote_api.delete_experiment.return_value = False
+        return_value = self.processor.experiments_delete(experiment_name=self.experiment, experiment_path=self.path)
+        self.local_api.delete_experiment.assert_called_once()
+        self.remote_api.delete_experiment.assert_not_called()
+        self.assertFalse(return_value)
 
-            local_delete_experiment_mock.reset_mock()
-            remote_delete_experiment_mock.reset_mock()
-            local_delete_experiment_mock.return_value = False
-            remote_delete_experiment_mock.return_value = False
-            return_value = self.processor.experiments_delete(None, experiment_path=Path('dummy'))
-            local_delete_experiment_mock.assert_called_once()
-            remote_delete_experiment_mock.assert_called_once()
-            self.assertFalse(return_value)
+    def test_experiments_delete_remote(self):
+        self.local_api.is_experiment_local.return_value = False
+        self.local_api.get_experiment_id.return_value = "13"
+        self.local_api.delete_experiment.return_value = True
+        self.remote_api.delete_experiment.return_value = True
+        return_value = self.processor.experiments_delete(experiment_name=self.experiment, experiment_path=self.path)
+        self.local_api.delete_experiment.assert_called_once()
+        self.remote_api.delete_experiment.assert_called_once()
+        self.assertTrue(return_value)
+
+        self.local_api.delete_experiment.reset_mock()
+        self.remote_api.delete_experiment.reset_mock()
+        self.local_api.is_experiment_local.return_value = False
+        self.local_api.get_experiment_id.return_value = "13"
+        self.local_api.delete_experiment.return_value = False
+        self.remote_api.delete_experiment.return_value = False
+        return_value = self.processor.experiments_delete(experiment_name=self.experiment, experiment_path=self.path)
+        self.local_api.delete_experiment.assert_called_once()
+        self.remote_api.delete_experiment.assert_called_once()
+        self.assertFalse(return_value)
 
     def test_experiments_validate(self):
-        with patch.object(LocalApi, "validate_experiment") as validate_exp_mock:
-            validate_exp_mock.return_value = self.error_dict
-            self.assertEqual(self.processor.experiments_validate(experiment_path=self.path), self.error_dict)
-            validate_exp_mock.assert_called_once_with(self.path)
+        self.local_api.validate_experiment.return_value = self.error_dict
+        self.assertEqual(self.processor.experiments_validate(experiment_path=self.path), self.error_dict)
+        self.local_api.validate_experiment.assert_called_once_with(self.path)
 
     def test_experiments_run(self):
-        with patch.object(LocalApi, "is_experiment_local") as is_exp_local_mock, \
-             patch('adk.command_processor.Path.mkdir'), \
-             patch("adk.command_processor.utils.write_json_file"), \
-             patch.object(LocalApi, "run_experiment") as run_exp_mock:
+        with patch('adk.command_processor.Path.mkdir'), \
+             patch("adk.command_processor.utils.write_json_file"):
 
-            is_exp_local_mock.return_value = True
-            run_exp_mock.return_value = ['foo']
-            self.processor.experiments_run(Path('dummy'), True)
+            self.local_api.is_experiment_local.return_value = True
+            self.local_api.run_experiment.return_value = ['foo']
+            self.processor.experiments_run(self.path, True)
 
-            is_exp_local_mock.assert_called_once_with(Path('dummy'))
-            run_exp_mock.assert_called_once_with(Path('dummy'))
+            self.local_api.is_experiment_local.assert_called_once_with(experiment_path=self.path)
+            self.local_api.run_experiment.assert_called_once_with(self.path)
 
-            is_exp_local_mock.reset_mock()
-            run_exp_mock.reset_mock()
-            run_exp_mock.return_value = None
-            self.processor.experiments_run(Path('dummy'), True)
-            is_exp_local_mock.assert_called_once_with(Path('dummy'))
-            run_exp_mock.assert_called_once_with(Path('dummy'))
+            self.local_api.is_experiment_local.reset_mock()
+            self.local_api.run_experiment.reset_mock()
+            self.local_api.run_experiment.return_value = None
+            self.processor.experiments_run(self.path, True)
+            self.local_api.is_experiment_local.assert_called_once_with(experiment_path=self.path)
+            self.local_api.run_experiment.assert_called_once_with(self.path)
 
     def test_experiments_result(self):
         with patch("adk.command_processor.Path.exists") as exists_mock, \
@@ -164,49 +265,26 @@ class TestCommandProcessor(unittest.TestCase):
             exists_mock.return_value = False
             self.assertRaises(Exception, self.processor.experiments_results, True, False, Path('dummy'))
 
-    def test_applications_list(self):
-        with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
-             patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
+    def test_networks_list_local(self):
+        self.local_api.list_networks.return_value = self.local_list
+        networks = self.processor.networks_list(remote=False, local=True)
 
-            remote_list_applications_mock.return_value = self.remote_List
-            local_list_applications_mock.return_value = self.local_list
-            applications = self.processor.applications_list(remote=True, local=True)
+        self.local_api.list_networks.assert_called_once()
+        self.remote_api.list_networks.assert_not_called()
 
-            local_list_applications_mock.assert_called_once()
-            remote_list_applications_mock.assert_called_once()
+        self.assertIn('local', networks)
+        self.assertNotIn('remote', networks)
+        self.assertEqual(len(networks), 1)
+        self.assertEqual(len(networks['local']), 3)
 
-            self.assertIn('local', applications)
-            self.assertIn('remote', applications)
-            self.assertEqual(len(applications), 2)
-            self.assertEqual(len(applications['local']), 3)
-            self.assertEqual(len(applications['remote']), 2)
+    def test_networks_list_remote(self):
+        self.remote_api.list_networks.return_value = self.remote_List
+        networks = self.processor.networks_list(remote=True, local=False)
 
-    def test_applications_list_local(self):
-        with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
-             patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
+        self.local_api.list_networks.assert_not_called()
+        self.remote_api.list_networks.assert_called_once()
 
-            local_list_applications_mock.return_value = self.local_list
-            applications = self.processor.applications_list(remote=False, local=True)
-
-            local_list_applications_mock.assert_called_once()
-            remote_list_applications_mock.assert_not_called()
-
-            self.assertIn('local', applications)
-            self.assertNotIn('remote', applications)
-            self.assertEqual(len(applications), 1)
-            self.assertEqual(len(applications['local']), 3)
-
-    def test_applications_list_remote(self):
-        with patch.object(LocalApi, "list_applications") as local_list_applications_mock, \
-             patch.object(RemoteApi, "list_applications") as remote_list_applications_mock:
-
-            remote_list_applications_mock.return_value = self.remote_List
-            applications = self.processor.applications_list(remote=True, local=False)
-
-            remote_list_applications_mock.assert_called_once()
-            local_list_applications_mock.assert_not_called()
-
-            self.assertIn('remote', applications)
-            self.assertNotIn('local', applications)
-            self.assertEqual(len(applications), 1)
-            self.assertEqual(len(applications['remote']), 2)
+        self.assertIn('remote', networks)
+        self.assertNotIn('local', networks)
+        self.assertEqual(len(networks), 1)
+        self.assertEqual(len(networks['remote']), 2)

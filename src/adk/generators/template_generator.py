@@ -1,11 +1,12 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
+from typing import Any, cast, Dict, Optional, List
 
 import yaml
 
 from adk.generators.network_generator import FullyConnectedNetworkGenerator
-from adk.type_aliases import TemplatesType
+from adk.type_aliases import TemplateType, listValuesType
+
 
 class BaseTemplate(ABC):
     """Base template for creating necessary config files for NetSquid.
@@ -41,7 +42,7 @@ class BaseTemplate(ABC):
             yaml.dump(self._config, config_file)
 
     @staticmethod
-    def _unpack_template(templates: TemplatesType, param_key: str, role: Optional[str] = None) -> Dict[str, Any]:
+    def _unpack_template(templates: TemplateType, param_key: str, role: Optional[str] = None) -> Dict[str, Any]:
         """Method to unpack a list of templates.
 
         By design, templates are contained in a list. Every template has a values list that contains all
@@ -58,7 +59,7 @@ class BaseTemplate(ABC):
         """
         return {
             content['name']: content['value']
-            for template in templates[param_key]
+            for template in cast(listValuesType, templates[param_key])
             for content in template['values']
             if role is None or role in template['roles']
         }
@@ -90,7 +91,7 @@ class NetworkTemplate(BaseTemplate):
         parameter list.
 
         Args:
-              network: The network object that represents the actual network.
+            kwargs: contains network, the network object that represents the actual network.
         """
         network = kwargs['network']
 

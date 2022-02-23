@@ -5,6 +5,13 @@ class QneAdkException(Exception):
     """Base exception for Qne Adk exceptions"""
 
 
+class ApiClientError(QneAdkException):
+    """Raised on error from api client"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(f"{message}")
+
+
 class ApplicationAlreadyExists(QneAdkException):
     """Raised when application name is not unique and already exists in .qne/application.json"""
 
@@ -20,11 +27,25 @@ class ApplicationDoesNotExist(QneAdkException):
         super().__init__(f"Directory '{application_path}' does not appear to be a valid application directory")
 
 
+class ApplicationNotComplete(QneAdkException):
+    """Raised when application is not complete"""
+
+    def __init__(self, application_name: str) -> None:
+        super().__init__(f"Components of application '{application_name}' are missing")
+
+
 class ApplicationNotFound(QneAdkException):
     """Raised when application is not found in .qne/application.json"""
 
     def __init__(self, application_name: str) -> None:
-        super().__init__(f"Application '{application_name}' was not found.")
+        super().__init__(f"Application '{application_name}' was not found")
+
+
+class AuthenticationError(QneAdkException):
+    """Raised when authentication failed"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(f"Authentication failed: {message}")
 
 
 class CommandNotImplemented(QneAdkException):
@@ -32,6 +53,13 @@ class CommandNotImplemented(QneAdkException):
 
     def __init__(self) -> None:
         super().__init__("Command is not yet implemented")
+
+
+class ConnectApiError(QneAdkException):
+    """Raised when could not connect to api"""
+
+    def __init__(self, base_uri: str) -> None:
+        super().__init__(f'Could not connect to {base_uri}')
 
 
 class DirectoryIsFile(QneAdkException):
@@ -62,6 +90,27 @@ class ExperimentDirectoryNotValid(QneAdkException):
         super().__init__(f"Directory '{experiment_path}' does not appear to be a valid experiment directory")
 
 
+class ExperimentFailed(QneAdkException):
+    """Raised when an experiment failed running on the backend"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(f"{message}")
+
+
+class ExperimentNotRun(QneAdkException):
+    """Raised when experiment was not run but results were fetched"""
+
+    def __init__(self, experiment_path: str) -> None:
+        super().__init__(f"Experiment in directory '{experiment_path}' did not run via command 'experiment run'")
+
+
+class ExperimentValueError(QneAdkException):
+    """Raised when a value in the experiment is not valid"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(f"{message}")
+
+
 class InvalidPathName(QneAdkException):
     """Raised when one of the following characters are used in an input name ['/', '\', '*', ':', '?', '"', '<', '>',
     '|']"""
@@ -69,6 +118,18 @@ class InvalidPathName(QneAdkException):
     def __init__(self, obj: str) -> None:
         super().__init__(f"{obj} name can't contain any of the following characters: ['/', '\\', '*',"
                          f" ':', '?', '\"', '<', '>', '|']")
+
+
+class JobTimeoutError(QneAdkException):
+    """Waiting for job results time out"""
+    def __init__(self, message: str) -> None:
+        super().__init__(f"{message}")
+
+
+class JsonFileNotFound(QneAdkException):
+    """Json file not found that was expected"""
+    def __init__(self, file_name: str) -> None:
+        super().__init__(f"File '{file_name}' not found")
 
 
 class MalformedJsonFile(QneAdkException):
@@ -106,10 +167,11 @@ class NotEnoughRoles(QneAdkException):
         super().__init__("The number of roles must be higher than one")
 
 
-class JsonFileNotFound(QneAdkException):
-    """Json file not found that was expected"""
-    def __init__(self, file_name: str) -> None:
-        super().__init__(f"File '{file_name}' not found")
+class NotLoggedIn(QneAdkException):
+    """Raised when remote host api is called without being logged in"""
+
+    def __init__(self) -> None:
+        super().__init__("Cannot connect to remote. Not logged in")
 
 
 class PackageNotComplete(QneAdkException):
@@ -120,6 +182,13 @@ class PackageNotComplete(QneAdkException):
                          f'this package. Please reinstall the package')
 
 
+class ResultDirectoryNotAvailable(QneAdkException):
+    """Raised when the result directory is not present"""
+
+    def __init__(self, path: str) -> None:
+        super().__init__(f"Result directory is not available at location: '{path}'")
+
+
 class RolesNotUnique(QneAdkException):
     """Raised when given roles are not unique. The test is case insensitive so 'Sender' and 'sender' are the same"""
 
@@ -127,8 +196,8 @@ class RolesNotUnique(QneAdkException):
         super().__init__("The role names must be unique")
 
 
-class ResultDirectoryNotAvailable(QneAdkException):
-    """Raised when the result directory is not present"""
+class SchemaError(QneAdkException):
+    """Raised when error during schema validation"""
 
-    def __init__(self, path: str) -> None:
-        super().__init__(f"Result directory is not available at location: '{path}'")
+    def __init__(self, message: str) -> None:
+        super().__init__(f"{message}")

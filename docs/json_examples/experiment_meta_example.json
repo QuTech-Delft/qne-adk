@@ -1,10 +1,16 @@
 {
   "meta": {
+    "application": {
+      "slug": "state_teleportation",
+      "app_version": "",
+      "multi_round": "False"
+    },
     "backend": {
       "location": "local",
       "type": "local_netsquid"
     },
+    "description": "teleport experiment description",
     "number_of_rounds": 1,
-    "description": "teleport: experiment description"
+    "name": "teleport_experiment"
   }
 }

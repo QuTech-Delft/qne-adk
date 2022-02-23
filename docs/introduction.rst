@@ -2,8 +2,7 @@ Introduction
 ============
 
 The QNE-ADK is a Quantum Network Explorer - Application Development Kit that allows you to create your own applications
-and experiments and run them on a simulator. As of now, the ADK can only run experiments locally. Remote interaction
-with the Quantum Network Explorer will be added in later updates.
+and experiments and run them on a simulator.
 
 With the ADK you can create your own application using the ``qne application create`` command (see Commands below).
 An application directory is generated for you with all the necessary files for you to configure and prepare for an
@@ -99,8 +98,8 @@ application create
     qne application create [OPTIONS] APPLICATION_NAME ROLES...
 
 Create a new application in your current directory containing all the files that are needed to write your application.
-The application directory name will be based on the value given to `application`. Two child directories `src` and
-`config` will be created, along with the default files.
+The application directory name will be based on the value given to `application`.
+Two subdirectories `src` and `config` will be created, along with the default files.
 
     Arguments:
       APPLICATION_NAME  Name of the application [required]
@@ -120,12 +119,15 @@ application delete
 
     qne application delete [OPTIONS] [APPLICATION_NAME]
 
-Used to delete an application. Will delete the entire application directory structure.
-Delete application files from application directory. Currently only local.
-When APPLICATION_NAME is given ./application_name is taken as application
-directory, when this directory is not valid the application directory is
-fetched from the application configuration. When application_name is not
-given, the current directory is taken as application directory.
+Delete the files of an application. Will try to delete the application directory
+structure but keeps the files that are not part of the application.
+For deleting remote parts of the application, the user must be logged in.
+
+When application_name is given ./application_name is taken as application
+directory, when this directory does not contain an application the
+application directory is fetched from the application configuration. When
+application_name is not given, the current directory is taken as
+application directory.
 
     Arguments:
       [APPLICATION_NAME]  Name of the application
@@ -136,6 +138,26 @@ given, the current directory is taken as application directory.
     Example:
       qne application delete application_name
 
+application validate
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne application validate [OPTIONS]
+
+Validate the application created locally.
+
+When application_name is given ./application_name is taken as application
+directory, when this directory does not contain an application the
+application directory is fetched from the application configuration. When
+application_name is not given, the current directory is taken as
+application directory.
+
+    Options:
+      --help  Show this message and exit.
+
+    Example:
+      qne application validate
 
 application list
 ^^^^^^^^^^^^^^^^
@@ -144,30 +166,41 @@ application list
 
     qne application list [OPTIONS]
 
-Show a list of all existing applications and the path to where they are stored.
+Show a list of all applications and relevant information for each of them.
+For listing remote applications, the user must be logged in.
 
     Options:
-      --local  List local applications  [default: False].
+      --remote  List remote applications  [default: False]
+      --local   List local applications  [default: False].
       --help   Show this message and exit.
 
     Example:
-      qne application list
+      qne application list --remote
 
-application validate
-^^^^^^^^^^^^^^^^^^^^
+application upload
+^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
-    qne application validate [OPTIONS]
+    qne application upload [OPTIONS] [APPLICATION_NAME]
 
-This command can be used to validate the files that are in the application directory. It checks for a correct file
-structure, if all files and directories needed exist and if the json files are in correct format.
+Create or update a remote application.
+For creating or updating remote applications, the user must be logged in.
+
+When application_name is given ./application_name is taken as application
+directory, when this directory does not contain an application the
+application directory is fetched from the application configuration. When
+application_name is not given, the current directory is taken as
+application directory.
+
+    Arguments:
+      [APPLICATION_NAME]  Name of the application
 
     Options:
-      --help  Show this message and exit.
+      --help   Show this message and exit.
 
     Example:
-      qne application validate
+      qne application upload application_name
 
 experiment create
 ^^^^^^^^^^^^^^^^^
@@ -177,6 +210,7 @@ experiment create
     qne experiment create [OPTIONS] EXPERIMENT_NAME APPLICATION_NAME NETWORK_NAME
 
 Create a new experiment, based on an application name and a chosen network.
+When the experiment is created for a remote application the user must be logged in.
 
     Arguments:
       EXPERIMENT_NAME   Name of the experiment.  [required]
@@ -186,26 +220,11 @@ Create a new experiment, based on an application name and a chosen network.
       NETWORK_NAME      Name of the network to be used. [required]
 
     Options:
-      --local  Run the application locally  [default: True]
+      --remote  Use remote application configuration [default: False]
       --help   Show this message and exit.
 
     Example:
       qne experiment create experiment_name application_name europe
-
-experiment validate
-^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: console
-
-    qne experiment validate [OPTIONS]
-
-Validates whether the experiment file structure is complete and if the json content is valid.
-
-    Options:
-      --help  Show this message and exit.
-
-    Example:
-      qne experiment validate
 
 experiment delete
 ^^^^^^^^^^^^^^^^^
@@ -216,8 +235,38 @@ experiment delete
 
 Delete experiment files.
 
-When experiment_name is given ./experiment_name is taken as experiment
-path, otherwise current directory.
+Local: When deleting an experiment locally, argument EXPERIMENT_NAME_OR_ID
+is the local experiment name, which is the subdirectory containing the
+experiment files. When the argument is empty the current directory is
+taken as experiment directory. The local experiment files are deleted,
+when the experiment was created with '--remote' and the experiment was run
+remotely, the remote experiment is also deleted.
+
+Remote: the argument EXPERIMENT_NAME_OR_ID is the remote experiment id to
+delete. No local files are deleted.
+
+    Arguments:
+      [EXPERIMENT_NAME_OR_ID]  Name of the experiment or remote id
+
+    Options:
+      --remote  Delete a remote experiment  [default: False]
+      --help  Show this message and exit.
+
+    Example:
+      qne experiment delete experiment_name
+
+experiment validate
+^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne experiment validate [OPTIONS] [EXPERIMENT_NAME]
+
+Validate the local experiment.
+
+When experiment_name is given ./experiment_name is taken as experiment directory.
+When experiment_name is not given, the current directory is taken as experiment
+directory.
 
     Arguments:
       [EXPERIMENT_NAME]  Name of the experiment
@@ -226,32 +275,62 @@ path, otherwise current directory.
       --help  Show this message and exit.
 
     Example:
-      qne experiment delete experiment_name
+      qne experiment validate experiment_name
+
+experiment list
+^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne experiment list [OPTIONS]
+
+List remote experiments.
+For listing remote experiments, the user must be logged in.
+
+    Options:
+      --help   Show this message and exit.
+
+    Example:
+      qne experiment list
 
 experiment run
 ^^^^^^^^^^^^^^
 
 .. code-block:: console
 
-    qne experiment run [OPTIONS]
+    qne experiment run [OPTIONS] [EXPERIMENT_NAME]
 
 This command will parse all experiment files and run them on the NetSquid simulator.
+
+When experiment_name is given ./experiment_name is taken as experiment directory.
+When experiment_name is not given, the current directory is taken as experiment
+directory.
+
+    Arguments:
+      [EXPERIMENT_NAME]  Name of the experiment
 
     Options:
       --block  Wait for the result to be returned.  [default: False]
       --help   Show this message and exit.
 
     Example:
-      qne experiment run
+      qne experiment run --block experiment_name
 
 experiment results
 ^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
-    qne experiment results [OPTIONS]
+    qne experiment results [OPTIONS] [EXPERIMENT_NAME]
 
-Get the results for an experiment that has been run.
+Get results for an experiment that run successfully.
+
+When experiment_name is given ./experiment_name is taken as experiment directory.
+When experiment_name is not given, the current directory is taken as experiment
+directory.
+
+    Arguments:
+      [EXPERIMENT_NAME]  Name of the experiment
 
     Options:
       --all   Get all results for this experiment.  [default: False]
@@ -260,7 +339,79 @@ Get the results for an experiment that has been run.
       --help  Show this message and exit.
 
     Example:
-      qne experiment results
+      qne experiment results experiment_name
+
+login
+^^^^^
+
+.. code-block:: console
+
+    qne login [OPTIONS] [HOST]
+
+Log in to a Quantum Network Explorer.
+
+    Arguments:
+      [HOST]  Name of the host to log in to
+
+    Options:
+      --username  TEXT Username of the remote user  [required]
+      --password  TEXT Password of the remote user  [required]
+      --help  Show this message and exit.
+
+    Example:
+      qne login --username=my_user_name --password=my_password https://api.quantum-network.com
+
+logout
+^^^^^^
+
+.. code-block:: console
+
+    qne logout [OPTIONS] [HOST]
+
+Log out from Quantum Network Explorer.
+
+    Arguments:
+      [HOST]  Name of the host to log out from
+
+    Options:
+      --help  Show this message and exit.
+
+    Example:
+      qne logout https://api.quantum-network.com
+
+network list
+^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne network list [OPTIONS]
+
+List available networks. For listing remote networks, the user must be logged in.
+
+    Options:
+      --remote  List remote networks  [default: False]
+      --local   List local networks  [default: True]
+      --help  Show this message and exit.
+
+    Example:
+      qne network list --remote
+
+network update
+^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne network update [OPTIONS]
+
+Get remote networks and update local network files.
+For updating local networks, the user must be logged in.
+
+    Options:
+      --overwrite  Overwrite local networks  [default: False]
+      --help  Show this message and exit.
+
+    Example:
+      qne network update --overwrite
 
 More documentation
 ------------------
