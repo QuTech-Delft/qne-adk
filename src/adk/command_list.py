@@ -177,9 +177,9 @@ def applications_upload(
         uploaded_success = processor.applications_upload(application_name=application_name,
                                                          application_path=application_path)
         if uploaded_success:
-            typer.echo("Application uploaded successfully")
+            typer.echo(f"Application '{application_name}' uploaded successfully")
         else:
-            typer.echo("Application not uploaded")
+            typer.echo(f"Application '{application_name}' not uploaded")
 
 
 @applications_app.command("list")

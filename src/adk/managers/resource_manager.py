@@ -36,3 +36,16 @@ class ResourceManager:
                 file_name = app_src_path / arc_name
                 tar.add(name=file_name, arcname=arc_name, recursive=False)
         return str(app_file_path), app_file_name
+
+    def delete_resources(self, application_data: ApplicationDataType, application_path: Path) -> None:
+        """ The tar-ball is deleted from the src-directory
+
+        Args:
+            application_data: application data from manifest.json
+            application_path: path to application files (local)
+        """
+        app_src_path = application_path / 'src'
+        app_file_name = (application_data["remote"]["slug"] + ".tar.gz")
+        app_file_path = app_src_path / app_file_name
+        if app_file_path.is_file():
+            app_file_path.unlink()
