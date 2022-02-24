@@ -188,6 +188,25 @@ class LocalApi:
         """
         return [self.__networks_data["networks"][network] for network in self.__networks_data["networks"]]
 
+    def  _get_template_params_max_min_range(self) -> Dict[str, Dict[str, Dict[str, Any]]]:
+        """
+        Get the maximum and minimum value for all the template parameters
+
+        Returns:
+            A dictionary containing key as template slug and value as the dictionary containing:
+            { name of the sub-parameter : { maximum_value: 1, minimum_value: 0 } }
+        """
+        max_min_dict: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        for template in self.__templates_data["templates"]:
+            max_min_dict[template["slug"]] = {}
+            for value in template["values"]:
+                max_min_dict[template["slug"]][value["name"]] = {
+                    "maximum_value": value["maximum_value"],
+                    "minimum_value": value["minimum_value"],
+                }
+
+        return max_min_dict
+
     def _get_network_nodes(self) -> Dict[str, List[str]]:
         """
         Loops trough all the networks in networks/networks.json and gets all the nodes within this network.
@@ -1415,6 +1434,8 @@ class LocalApi:
                 self._validate_experiment_nodes(experiment_json_file, experiment_data, error_dict)
                 # Validate experiment channels
                 self._validate_experiment_channels(experiment_json_file, experiment_data, error_dict)
+                # Validate experiment roles
+                self._validate_experiment_roles(experiment_path, experiment_data, error_dict)
             else:
                 error_dict["warning"].append(
                     f"In file '{experiment_json_file}': network '{experiment_network_slug}' "
@@ -1465,7 +1486,8 @@ class LocalApi:
                                    ErrorDictType) -> None:
         """
         Validate if the amount of nodes (defined in the experiment.json file) are valid for 'network_slug' and if
-        all the nodes exist and belong to this network.
+        all the nodes exist and belong to this network. Validate if the paramters for node and qubits are valid and
+        within range of minimum and maximum values
 
         Args:
             experiment_file_path: The location of the experiment.json file
@@ -1489,12 +1511,28 @@ class LocalApi:
             if node["slug"] not in network_nodes:
                 error_dict["error"].append(f"In file '{experiment_file_path}': node '{node['slug']}' does not exist "
                                            f"or does not belong to the network '{experiment_network_slug}'")
+            else:
+                #check if node params are valid and their value is within range
+                self._validate_template_parameters(entity='node', entity_slug=node["slug"],
+                                                   entity_params=node["node_parameters"],
+                                                   experiment_file_path=experiment_file_path,
+                                                   error_dict=error_dict)
+
+                #check if qubit params are valid and their value is within range
+                for qubit in node["qubits"]:
+                    self._validate_template_parameters(entity="node " + node["slug"] + ' qubit',
+                                                       entity_slug=qubit["qubit_id"],
+                                                       entity_params=qubit["qubit_parameters"],
+                                                       experiment_file_path=experiment_file_path,
+                                                       error_dict=error_dict)
 
     def _validate_experiment_channels(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
                                       ErrorDictType) -> None:
         """
         Validate if the amount of channels (defined in the experiment.json file) are valid for 'network_slug' and if
-        all the channels exist and belong to this network.
+        all the channels exist and belong to this network. Validate if the node1 and node properties for tyhe channel
+        are valid node names. Validate if the parameters & their values are valid and within the range of maximum and
+        minimum as defined for each parameter
 
         Args:
             experiment_file_path: The location of the experiment.json file
@@ -1517,8 +1555,104 @@ class LocalApi:
                     error_dict["error"].append(f"In file '{experiment_file_path}': channel '{channel['slug']}' does "
                                                f"not exist or is not a valid channel for "
                                                f"network '{experiment_network_slug}'")
+                else:
+                    # check node1 and node2 are valid nodes for the selected network
+                    expected_channel_info = self._get_channel_info(channel["slug"])
+
+                    for node in ["node1", "node2"]:
+                        if  expected_channel_info and channel[node] != expected_channel_info[node]:
+                            error_dict["error"].append(
+                                f"In file '{experiment_file_path}': Value '{channel[node]}' of Node '{node}' in channel"
+                                f" '{channel['slug']}' does not exist or is not a valid node for the channel")
+                    # check parameters in channel are valid and their value is within max and min range
+                    self._validate_template_parameters(entity='channel', entity_slug=channel["slug"],
+                                                       entity_params=channel["parameters"],
+                                                       experiment_file_path=experiment_file_path,
+                                                       error_dict=error_dict)
         else:
             error_dict["error"].append(f"No channels found for network '{experiment_network_slug}'")
+
+    def _validate_template_parameters(self, entity: str, entity_slug: str, entity_params: List[Dict[str, Any]],
+                                      experiment_file_path: Path, error_dict: ErrorDictType) -> None:
+        """
+        Validate the template parameters by checking:
+         - if the type of value is valid (integer or float)
+         - the value is within the range specified by the max and min value for the parameter
+
+        Args:
+            entity: The entity to which parameters belong to
+            entity_slug: The slug to identify the entity
+            entity_params: A dictionary containing the parameters to be validated
+            experiment_file_path: The location of the experiment.json file
+            error_dict: Dictionary containing error and warning messages of the validations that failed
+        """
+        param_templates = self._get_templates()
+        param_max_min_dict = self._get_template_params_max_min_range()
+
+        for param in entity_params: # pylint: disable=R1702 too-many-nested-blocks
+            if param["slug"] in param_templates:
+                for value in param["values"]:
+                    if value["name"] in param_max_min_dict[param["slug"]]:
+                        min_val = param_max_min_dict[param["slug"]][value['name']]['minimum_value']
+                        max_val = param_max_min_dict[param["slug"]][value['name']]['maximum_value']
+                        val = value["value"]
+                        if isinstance(val, (int, float)):
+                            if val < min_val or val > max_val:
+                                error_dict["error"].append(
+                                    f"In file '{experiment_file_path}': Value '{val}' of param"
+                                    f" '{param['slug']}' -> '{value['name']}' in {entity} '{entity_slug}'"
+                                    f" is not within the allowed range of minimum ({min_val}) and maximum ({max_val})")
+                        else:
+                            error_dict["error"].append(
+                                f"In file '{experiment_file_path}': Value '{val}' of param"
+                                f" '{param['slug']}' -> '{value['name']}' in {entity} '{entity_slug}'"
+                                f" is not of the required type (integer or float)")
+
+                    else:
+                        error_dict["error"].append(
+                            f"In file '{experiment_file_path}': '{value['name']}' is not valid for param"
+                            f" '{param['slug']}' in {entity} '{entity_slug}'")
+            else:
+                error_dict["error"].append(
+                    f"In file '{experiment_file_path}': Parameter '{param['slug']}' in {entity}"
+                    f" '{entity_slug}' does not exist")
+
+    def _validate_experiment_roles(self, experiment_path: Path, experiment_data: Dict[str, Any], error_dict:
+                                      ErrorDictType) -> None:
+        """
+        Validate if the roles information available in the network -> roles section contains:
+            - valid name for roles
+            - valid name for assigned nodes
+            - No duplicate nodes
+
+        Args:
+            experiment_path: The location of the experiment directory
+            experiment_data: contents of the experiment.json file
+            error_dict: Dictionary containing error and warning messages of the validations that failed
+        """
+        experiment_roles = experiment_data["asset"]["network"]["roles"]
+        application_roles = self.__get_role_names(experiment_path / 'input')
+
+        experiment_network_slug = experiment_data["asset"]["network"]["slug"]
+        all_network_nodes = self._get_network_nodes()
+        network_nodes = all_network_nodes[experiment_network_slug]
+
+        nodes_used = list(experiment_roles.values())
+        duplicate_nodes = []
+
+        for role, node in experiment_roles.items():
+            if role not in application_roles:
+                error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': Role '{role}' is not"
+                    f" valid for the application")
+            if node not in network_nodes:
+                error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': Node '{node}' used for"
+                    f" role '{role}' is not valid for the application")
+            if nodes_used.count(node) > 1:
+                duplicate_nodes.append(node)
+
+        for item in set(duplicate_nodes):
+            error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': Node '{item}' is used for"
+                                       f" multiple roles")
 
     @staticmethod
     def _validate_experiment_application(experiment_path: Path, experiment_data: Dict[str, Any],

@@ -245,6 +245,36 @@ class AppValidate(unittest.TestCase):
                 }
             ]
         }
+        self.dummy_qubit = [{
+                "qubit_id": 0,
+                "qubit_parameters": [
+                    {
+                        "slug": "relaxation-time",
+                        "values": [
+                            {
+                                "name": "t1",
+                                "value": 0,
+                                "scale_value": 1.0
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+
+        self.dummy_channel_params = [
+                {
+                  "slug": "elementary-link-fidelity",
+                  "values": [
+                    {
+                      "name": "fidelity",
+                      "value": 12344.0,
+                      "scale_value": 1.0
+                    }
+                  ]
+                }
+        ]
+
         self.mock_experiment_data = {
             "meta": {
                 "application": {
@@ -264,8 +294,20 @@ class AppValidate(unittest.TestCase):
                  "network": {
                      "name": "Randstad",
                      "slug": "randstad",
-                     "nodes": [{"slug": "n1"}, {"slug": "n2"}, {"slug": "n3"}, {"slug": "n4"}, {"slug": "n5"}],
-                     "channels": [{"slug": "n1-n2"}, {"slug": "n2-n3"}, {"slug": "n4-n3"}, {"slug": "n4-n5"}]
+                     "nodes": [{"slug": "n1", "node_parameters": None, "qubits": self.dummy_qubit},
+                               {"slug": "n2", "node_parameters": None, "qubits": self.dummy_qubit},
+                               {"slug": "n3", "node_parameters": None, "qubits": self.dummy_qubit},
+                               {"slug": "n4", "node_parameters": None, "qubits": self.dummy_qubit},
+                               {"slug": "n5", "node_parameters": None, "qubits": self.dummy_qubit}],
+                     "channels": [{"slug": "n1-n2", "parameters": self.dummy_channel_params,
+                                   "node1": "n1", "node2": "n2"},
+                                  {"slug": "n2-n3", "parameters": self.dummy_channel_params,
+                                   "node1": "n2", "node2": "n3"},
+                                  {"slug": "n4-n3", "parameters": self.dummy_channel_params,
+                                   "node1": "n4", "node2": "n3"},
+                                  {"slug": "n4-n5", "parameters": self.dummy_channel_params,
+                                   "node1": "n4", "node2": "n5"}],
+                     "roles": {"role1": "n1", "role2": "n2"}
                  }
             }
         }
@@ -1138,6 +1180,7 @@ class ExperimentValidate(AppValidate):
              patch.object(LocalApi, "is_experiment_local", return_value=True), \
              patch.object(LocalApi, "_validate_experiment_nodes") as validate_experiment_nodes_mock, \
              patch.object(LocalApi, "_validate_experiment_channels") as validate_experiment_channels_mock, \
+             patch.object(LocalApi, "_validate_experiment_roles") as validate_experiment_roles_mock, \
              patch.object(LocalApi, "_validate_experiment_application") as validate_experiment_application_mock:
 
             path_join_mock.return_value = self.path
@@ -1155,6 +1198,8 @@ class ExperimentValidate(AppValidate):
                                                                    self.error_dict)
             validate_experiment_channels_mock.assert_called_once_with(self.experiment_file_path,
                                                                       self.mock_experiment_data, self.error_dict)
+            validate_experiment_roles_mock.assert_called_once_with(self.path, self.mock_experiment_data,
+                                                                   self.error_dict)
             validate_experiment_application_mock.assert_called_once_with(self.path, self.mock_experiment_data,
                                                                          self.error_dict)
 
@@ -1183,6 +1228,7 @@ class ExperimentValidate(AppValidate):
              patch.object(LocalApi, "_get_network_info") as get_network_info_mock, \
              patch.object(LocalApi, "_validate_experiment_nodes"), \
              patch.object(LocalApi, "_validate_experiment_channels"), \
+             patch.object(LocalApi, "_validate_experiment_roles"), \
              patch.object(LocalApi, "_validate_experiment_application"):
 
             experiment_data = {
@@ -1350,6 +1396,8 @@ class ExperimentValidate(AppValidate):
              patch.object(LocalApi, "get_experiment_data") as get_experiment_data_mock, \
              patch.object(LocalApi, "_get_network_info"), \
              patch.object(LocalApi, "_validate_experiment_channels"), \
+             patch.object(LocalApi, "_validate_experiment_roles"), \
+             patch.object(LocalApi, "_validate_template_parameters"), \
              patch.object(LocalApi, "_validate_experiment_application"), \
              patch.object(LocalApi, "_get_network_nodes") as get_network_nodes_mock:
 
@@ -1366,8 +1414,12 @@ class ExperimentValidate(AppValidate):
                     "network": {
                         "name": "Randstad",
                         "slug": "randstad",
-                        "nodes": [{"slug": "n1"}, {"slug": "n2"}, {"slug": "n3"}, {"slug": "n4"}, {"slug": "n5"},
-                                  {"slug": "n6"}],
+                        "nodes": [{"slug": "n1", "node_parameters": None, "qubits": self.dummy_qubit},
+                                  {"slug": "n2", "node_parameters": None, "qubits": self.dummy_qubit},
+                                  {"slug": "n3", "node_parameters": None, "qubits": self.dummy_qubit},
+                                  {"slug": "n4", "node_parameters": None, "qubits": self.dummy_qubit},
+                                  {"slug": "n5", "node_parameters": None, "qubits": self.dummy_qubit},
+                                  {"slug": "n6", "node_parameters": None, "qubits": self.dummy_qubit}],
                     }
                 }
             }
@@ -1410,7 +1462,10 @@ class ExperimentValidate(AppValidate):
              patch.object(LocalApi, "get_experiment_data") as get_experiment_data_mock, \
              patch.object(LocalApi, "_get_network_info"), \
              patch.object(LocalApi, "_validate_experiment_nodes"), \
+             patch.object(LocalApi, "_validate_experiment_roles"), \
              patch.object(LocalApi, "_validate_experiment_application"), \
+             patch.object(LocalApi, "_validate_template_parameters"), \
+             patch.object(LocalApi, "_get_channel_info") as get_channel_info_mock, \
              patch.object(LocalApi, "_get_channels_for_network") as get_channels_for_network_mock:
 
             experiment_data_too_many_channels = {
@@ -1426,8 +1481,11 @@ class ExperimentValidate(AppValidate):
                     "network": {
                         "name": "Randstad",
                         "slug": "randstad",
-                        "channels": [{"slug": "n1-n2"}, {"slug": "n2-n3"}, {"slug": "n4-n3"}, {"slug": "n4-n5"},
-                                     {"slug": "n5-n6"}]
+                        "channels": [{"slug": "n1-n2", "parameters": None, "node1": "n1", "node2": "n2"},
+                                     {"slug": "n2-n3", "parameters": None, "node1": "n2", "node2": "n3"},
+                                     {"slug": "n4-n3", "parameters": None, "node1": "n4", "node2": "n3"},
+                                     {"slug": "n4-n5", "parameters": None, "node1": "n4", "node2": "n5"},
+                                     {"slug": "n5-n6", "parameters": None, "node1": "n5", "node2": "n6"}]
                     }
                 }
             }
@@ -1437,6 +1495,11 @@ class ExperimentValidate(AppValidate):
             validate_json_schema_mock.return_value = True, None
             get_experiment_data_mock.return_value = self.mock_experiment_data
             get_channels_for_network_mock.return_value = self.all_network_channels
+            channel_info_list = [{"slug": "n1-n2", "node1": "n1", "node2": "n2"},
+                                 {"slug": "n2-n3", "node1": "n2", "node2": "n3"},
+                                 {"slug": "n4-n3", "node1": "n4", "node2": "n3"},
+                                 {"slug": "n4-n5", "node1": "n4", "node2": "n5"}]
+            get_channel_info_mock.side_effect = channel_info_list
             self.local_api.validate_experiment(self.path)
             get_channels_for_network_mock.assert_called_once_with(network_slug='randstad')
             validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path,
@@ -1459,6 +1522,14 @@ class ExperimentValidate(AppValidate):
             validate_experiment_input_mock.reset_mock()
             get_channels_for_network_mock.return_value = self.all_network_channels
             get_experiment_data_mock.return_value = experiment_data_too_many_channels
+            read_json_file_mock.return_value = experiment_data_too_many_channels
+            get_channel_info_mock.reset_mock()
+            channel_info_list = [{"slug": "n1-n2", "node1": "n1", "node2": "n2"},
+                                 {"slug": "n2-n3", "node1": "n2", "node2": "n3"},
+                                 {"slug": "n4-n3", "node1": "n4", "node2": "n3"},
+                                 {"slug": "n4-n5", "node1": "n4", "node2": "n5"},
+                                 {"slug": "n5-n6", "node1": "n5", "node2": "n6"}]
+            get_channel_info_mock.side_effect = channel_info_list
             self.local_api.validate_experiment(self.path)
             get_channels_for_network_mock.assert_called_once_with(network_slug='randstad')
             validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path,
@@ -1474,6 +1545,194 @@ class ExperimentValidate(AppValidate):
             validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path,
                                                                    error_dict=error_dict)
 
+            get_channel_info_mock.reset_mock()
+            channel_info_list = [{"slug": "n1-n2", "node1": "n1", "node2": "n2"}]
+            get_channel_info_mock.side_effect = channel_info_list
+            get_channels_for_network_mock.reset_mock()
+            read_json_file_mock.reset_mock()
+            validate_experiment_input_mock.reset_mock()
+            get_channels_for_network_mock.return_value = self.all_network_channels
+            experiment_data_incorrect_channel_nodes = {
+                "meta": {
+                    "backend": {
+                        "location": "local",
+                        "type": "local_netsquid"
+                    },
+                    "number_of_rounds": 1,
+                    "description": "exptest3: experiment description"
+                },
+                "asset": {
+                    "network": {
+                        "name": "Randstad",
+                        "slug": "randstad",
+                        "channels": [{"slug": "n1-n2", "node1": "n", "node2": "n", "parameters": None}]
+                    }
+                }
+            }
+            read_json_file_mock.return_value = experiment_data_incorrect_channel_nodes
+            error_1 = "In file 'path/to/application/experiment.json': Value 'n' of Node 'node1' in channel 'n1-n2' " \
+                      "does not exist or is not a valid node for the channel"
+            error_2 = "In file 'path/to/application/experiment.json': Value 'n' of Node 'node2' in channel 'n1-n2' " \
+                      "does not exist or is not a valid node for the channel"
+            error_dict = {'error': [error_1, error_2], 'warning': [], 'info': []}
+            self.local_api.validate_experiment(self.path)
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
+                                                                   error_dict=error_dict)
+
+    def test_validate_experiment_roles(self):
+        with patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
+             patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
+             patch("adk.api.local_api.os.path.join") as path_join_mock, \
+             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch.object(LocalApi, "_get_network_info"), \
+             patch.object(LocalApi, "_validate_experiment_nodes"), \
+             patch.object(LocalApi, "_validate_experiment_channels"), \
+             patch.object(LocalApi, "_validate_experiment_application"), \
+             patch.object(LocalApi, "_validate_template_parameters"), \
+             patch.object(LocalApi, "_get_channel_info"), \
+             patch.object(LocalApi, "_LocalApi__get_role_names") as get_roles_mock, \
+             patch.object(LocalApi, "_get_network_nodes") as get_nodes_mock, \
+             patch.object(LocalApi, "_get_channels_for_network"):
+
+            path_join_mock.return_value = self.path
+            validate_experiment_input_mock.return_value = self.error_dict
+            validate_json_schema_mock.return_value = True, None
+            read_json_file_mock.return_value = self.mock_experiment_data
+            get_roles_mock.return_value = ['role1', 'role2']
+            get_nodes_mock.return_value = {"randstad": ["n1", "n2", "n3"]}
+            self.local_api.validate_experiment(self.path)
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
+                                                                   error_dict=self.error_dict)
+
+            validate_experiment_input_mock.reset_mock()
+            get_roles_mock.reset_mock()
+            get_roles_mock.return_value = ['role1', 'role6']
+            get_nodes_mock.reset_mock()
+            get_nodes_mock.return_value = {"randstad": ["n0"]}
+            read_json_file_mock.reset_mock()
+            mock_exp_data_for_roles = self.mock_experiment_data
+            mock_exp_data_for_roles["asset"]["network"]["roles"] = {"role1": "n1", "role2": "n1"}
+            read_json_file_mock.return_value = mock_exp_data_for_roles
+            error_1 = "In file 'path/to/application/experiment.json': Node 'n1' used for role 'role1' is not valid " \
+                      "for the application"
+            error_2 = "In file 'path/to/application/experiment.json': Role 'role2' is not valid for the application"
+            error_3 = "In file 'path/to/application/experiment.json': Node 'n1' used for role 'role2' is not valid " \
+                      "for the application"
+            error_4 = "In file 'path/to/application/experiment.json': Node 'n1' is used for multiple roles"
+            error_dict = {'error': [error_1, error_2, error_3, error_4], 'warning': [], 'info': []}
+            self.local_api.validate_experiment(self.path)
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
+                                                                   error_dict=error_dict)
+
+    def test_validate_template_parameters(self): # pylint: disable=R0914 too-many-locals
+        with patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
+             patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
+             patch("adk.api.local_api.os.path.join") as path_join_mock, \
+             patch("adk.api.local_api.validate_json_schema") as validate_json_schema_mock, \
+             patch.object(LocalApi, "_get_network_info"), \
+             patch.object(LocalApi, "_validate_experiment_nodes"), \
+             patch.object(LocalApi, "_validate_experiment_roles"), \
+             patch.object(LocalApi, "_validate_experiment_application"), \
+             patch.object(LocalApi, "_get_channel_info") as get_channel_info_mock, \
+             patch.object(LocalApi, "_get_template_params_max_min_range") as get_templates_range_mock, \
+             patch.object(LocalApi, "_get_channels_for_network") as get_channels_for_network_mock:
+
+            path_join_mock.return_value = self.path
+            validate_experiment_input_mock.return_value = self.error_dict
+            validate_json_schema_mock.return_value = True, None
+            dummy_channel_params_1 = [
+                {
+                    "slug": "elementary-link-fidelity",
+                    "values": [
+                        {
+                            "name": "fidelity",
+                            "value": 12344.0,
+                            "scale_value": 1.0
+                        }
+                    ]
+                },
+                {
+                    "slug": "relaxation-time",
+                    "values": [
+                        {
+                            "name": "t1",
+                            "value": "string_value",
+                            "scale_value": 1.0
+                        }
+                    ]
+                }
+            ]
+            dummy_channel_params_2 = [
+                {
+                    "slug": "unknown_param",
+                    "values": [
+                        {
+                            "name": "x",
+                            "value": 1.0,
+                            "scale_value": 1.0
+                        }
+                    ]
+                },
+                {
+                    "slug": "relaxation-time",
+                    "values": [
+                        {
+                            "name": "incorrect_name",
+                            "value": 1.0,
+                            "scale_value": 1.0
+                        }
+                    ]
+                }
+            ]
+            mock_exp_data = self.mock_experiment_data
+            mock_exp_data["asset"]["network"]["channels"] = [
+                {"slug": "n1-n2", "parameters": dummy_channel_params_1,
+              "node1": "n1", "node2": "n2"},
+                {"slug": "n2-n3", "parameters": dummy_channel_params_2,
+              "node1": "n2", "node2": "n3"},
+            ]
+            read_json_file_mock.return_value = mock_exp_data
+            get_channels_for_network_mock.return_value = self.all_network_channels
+
+            channel_info_list = [{"slug": "n1-n2", "node1": "n1", "node2": "n2",
+                                  "parameters": dummy_channel_params_1,
+                                  },
+                                 {"slug": "n2-n3", "node1": "n2", "node2": "n3",
+                                  "parameters": dummy_channel_params_2,
+                                  },
+                                 ]
+            get_channel_info_mock.side_effect = channel_info_list
+
+            get_templates_range_mock.return_value = {
+                'elementary-link-fidelity': {
+                    'fidelity': {'maximum_value': 1.0, 'minimum_value': 0.5}
+                },
+                'gate-fidelity': {
+                    'gate_fidelity': {'maximum_value': 1.0, 'minimum_value': 0.5}
+                },
+                'relaxation-time': {
+                    't1': {'maximum_value': 1000, 'minimum_value': 0}
+                },
+                'dephasing-time': {
+                    't2': {'maximum_value': 1000, 'minimum_value': 0}
+                }
+            }
+            error_1 = "In file 'path/to/application/experiment.json': Value '12344.0' of param " \
+                      "'elementary-link-fidelity' -> 'fidelity' in channel 'n1-n2' is not within the allowed range " \
+                      "of minimum (0.5) and maximum (1.0)"
+            error_2 = "In file 'path/to/application/experiment.json': Value 'string_value' of param " \
+                      "'relaxation-time' -> 't1' in channel 'n1-n2' is not of the required type (integer or float)"
+            error_3 = "In file 'path/to/application/experiment.json': Parameter 'unknown_param' in channel 'n2-n3' " \
+                      "does not exist"
+            error_4 = "In file 'path/to/application/experiment.json': 'incorrect_name' is not valid for param " \
+                      "'relaxation-time' in channel 'n2-n3'"
+            error_dict = {'error': [error_1, error_2, error_3, error_4], 'warning': [], 'info': []}
+            self.local_api.validate_experiment(self.path)
+            get_channels_for_network_mock.assert_called_once_with(network_slug='randstad')
+            validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, local=True,
+                                                                   error_dict=error_dict)
+
+
     def test_validate_experiment_application(self):
         with patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
              patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
@@ -1484,6 +1743,7 @@ class ExperimentValidate(AppValidate):
              patch.object(LocalApi, "_get_network_info"), \
              patch.object(LocalApi, "_validate_experiment_nodes"), \
              patch.object(LocalApi, "_validate_experiment_channels"), \
+             patch.object(LocalApi, "_validate_experiment_roles"), \
              patch("adk.api.local_api.Path.is_file") as is_file_mock:
 
             experiment_data = {
