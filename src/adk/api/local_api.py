@@ -1486,7 +1486,7 @@ class LocalApi:
                                    ErrorDictType) -> None:
         """
         Validate if the amount of nodes (defined in the experiment.json file) are valid for 'network_slug' and if
-        all the nodes exist and belong to this network. Validate if the paramters for node and qubits are valid and
+        all the nodes exist and belong to this network. Validate if the parameters for node and qubits are valid and
         within range of minimum and maximum values
 
         Args:
@@ -1512,16 +1512,16 @@ class LocalApi:
                 error_dict["error"].append(f"In file '{experiment_file_path}': node '{node['slug']}' does not exist "
                                            f"or does not belong to the network '{experiment_network_slug}'")
             else:
-                #check if node params are valid and their value is within range
-                self._validate_template_parameters(entity='node', entity_slug=node["slug"],
+                # check if node params are valid and their value is within range
+                self._validate_template_parameters(entity="node", entity_slug=node["slug"],
                                                    entity_params=node["node_parameters"],
                                                    experiment_file_path=experiment_file_path,
                                                    error_dict=error_dict)
 
-                #check if qubit params are valid and their value is within range
+                # check if qubit params are valid and their value is within range
                 for qubit in node["qubits"]:
-                    self._validate_template_parameters(entity="node " + node["slug"] + ' qubit',
-                                                       entity_slug=qubit["qubit_id"],
+                    self._validate_template_parameters(entity="node " + node["slug"] + " qubit",
+                                                       entity_slug=str(qubit["qubit_id"]),
                                                        entity_params=qubit["qubit_parameters"],
                                                        experiment_file_path=experiment_file_path,
                                                        error_dict=error_dict)
@@ -1530,7 +1530,7 @@ class LocalApi:
                                       ErrorDictType) -> None:
         """
         Validate if the amount of channels (defined in the experiment.json file) are valid for 'network_slug' and if
-        all the channels exist and belong to this network. Validate if the node1 and node properties for tyhe channel
+        all the channels exist and belong to this network. Validate if the node1 and node2 properties for the channel
         are valid node names. Validate if the parameters & their values are valid and within the range of maximum and
         minimum as defined for each parameter
 
@@ -1560,12 +1560,12 @@ class LocalApi:
                     expected_channel_info = self._get_channel_info(channel["slug"])
 
                     for node in ["node1", "node2"]:
-                        if  expected_channel_info and channel[node] != expected_channel_info[node]:
+                        if expected_channel_info and channel[node] != expected_channel_info[node]:
                             error_dict["error"].append(
                                 f"In file '{experiment_file_path}': Value '{channel[node]}' of Node '{node}' in channel"
                                 f" '{channel['slug']}' does not exist or is not a valid node for the channel")
                     # check parameters in channel are valid and their value is within max and min range
-                    self._validate_template_parameters(entity='channel', entity_slug=channel["slug"],
+                    self._validate_template_parameters(entity="channel", entity_slug=channel["slug"],
                                                        entity_params=channel["parameters"],
                                                        experiment_file_path=experiment_file_path,
                                                        error_dict=error_dict)
