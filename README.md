@@ -33,6 +33,26 @@ Now everything should be setup and ready in order to create your own application
 ## Commands
 The QNE-ADK uses various commands to create and run your applications and experiments. All of the commands are listed below:
 
+<!--- QNE APPLICATION LIST --->
+<details closed>
+<summary><b>qne application list</b></summary>
+Show a list of all applications and relevant information for each of them.
+For listing remote applications, the user must be logged in.
+<br></br>
+
+```
+qne application list [OPTIONS]
+
+Options:
+  --remote  List remote applications  [default: False]
+  --local   List local applications  [default: False].
+  --help    Show this message and exit.
+
+Example:
+  qne application list --remote
+```
+</details>
+
 <!--- QNE APPLICATION CREATE --->
 <details closed>
 <summary><b>qne application create</b></summary>
@@ -110,26 +130,6 @@ Example:
 ```
 </details>
 
-<!--- QNE APPLICATION LIST --->
-<details closed>
-<summary><b>qne application list</b></summary>
-Show a list of all applications and relevant information for each of them.
-For listing remote applications, the user must be logged in.
-<br></br>
-
-```
-qne application list [OPTIONS]
-
-Options:
-  --remote  List remote applications  [default: False]
-  --local   List local applications  [default: False].
-  --help    Show this message and exit.
-
-Example:
-  qne application list --remote
-```
-</details>
-
 <!--- QNE APPLICATION UPLOAD --->
 <details closed>
 <summary><b>qne application upload</b></summary>
@@ -154,6 +154,54 @@ Options:
 
 Example:
   qne application upload application_name
+```
+</details>
+
+<!--- QNE APPLICATION PUBLISH --->
+<details closed>
+<summary><b>qne application publish</b></summary>
+Request the application to be published online.
+For publishing a new version of a remote application, the author of the application
+must have run at least one successful experiment on the remote backend for the new
+version of the application.
+For publishing a new version of remote applications, the user must be logged in.
+<br></br>
+
+```
+qne application publish [OPTIONS] [APPLICATION_NAME]
+
+  When application_name is given ./application_name is taken as application
+  directory, when this directory does not contain an application the
+  application directory is fetched from the application configuration. When
+  application_name is not given, the current directory is taken as
+  application directory.
+
+Arguments:
+  [APPLICATION_NAME]  Name of the application
+
+Options:
+  --help  Show this message and exit.
+
+Example:
+  qne application publish application_name
+```
+</details>
+
+<!--- QNE EXPERIMENT LIST --->
+<details closed>
+<summary><b>qne experiment list</b></summary>
+List remote experiments.
+For listing remote experiments, the user must be logged in.
+<br></br>
+
+```
+qne experiment list [OPTIONS]
+
+Options:
+  --help   Show this message and exit.
+
+Example:
+  qne experiment list
 ```
 </details>
 
@@ -233,24 +281,6 @@ Options:
 
 Example:
   qne experiment validate experiment_name
-```
-</details>
-
-<!--- QNE EXPERIMENT LIST --->
-<details closed>
-<summary><b>qne experiment list</b></summary>
-List remote experiments.
-For listing remote experiments, the user must be logged in.
-<br></br>
-
-```
-qne experiment list [OPTIONS]
-
-Options:
-  --help   Show this message and exit.
-
-Example:
-  qne experiment list
 ```
 </details>
 

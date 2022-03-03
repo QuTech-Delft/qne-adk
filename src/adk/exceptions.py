@@ -12,6 +12,13 @@ class ApiClientError(QneAdkException):
         super().__init__(f"{message}")
 
 
+class AppConfigNotFound(QneAdkException):
+    """Raised when app_config is not found for application name or invalid (all remote app_versions are disabled)"""
+
+    def __init__(self, application_name: str) -> None:
+        super().__init__(f"Application configuration for application '{application_name}' was not found or invalid")
+
+
 class ApplicationAlreadyExists(QneAdkException):
     """Raised when application name is not unique and already exists in .qne/application.json"""
 

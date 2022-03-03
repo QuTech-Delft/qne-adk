@@ -297,6 +297,7 @@ class LocalApi:
         self.__create_application_structure(application_name, roles, application_path)
 
     def init_application(self, application_path: Path) -> None:
+        """ TODO """
         pass
 
     def __create_application_structure(self, application_name: str, roles: List[str], application_path: Path) -> None:
@@ -626,7 +627,8 @@ class LocalApi:
 
         return application_file_names
 
-    def __get_role_name_from_role_file(self, role_file: str) -> Optional[str]:
+    @staticmethod
+    def __get_role_name_from_role_file(role_file: str) -> Optional[str]:
         result = re.search('app_(.*).py', role_file)
         return result.group(1) if result else None
 
@@ -688,7 +690,7 @@ class LocalApi:
                     self.__is_valid_input_params_for_role(application_path, role_file, error_dict)
 
     def __is_valid_input_params_for_role(self, application_path: Path, role_file: str, error_dict: ErrorDictType) \
-        -> None:
+            -> None:
         """
         Validate if the inputs defined in application config are passed as parameters to main() in app_{role}.py
 
@@ -715,7 +717,8 @@ class LocalApi:
         else:
             error_dict['error'].append(f"Name of {role_file} is not properly formatted")
 
-    def __get_role_inputs(self, application_path: Path, role: str) -> List[str]:
+    @staticmethod
+    def __get_role_inputs(application_path: Path, role: str) -> List[str]:
         """
         Get the list of inputs which are defined for the role in application config file
 
@@ -738,7 +741,8 @@ class LocalApi:
 
         return role_inputs
 
-    def __get_result_variables(self, application_path: Path, role_name: str) -> List[str]:
+    @staticmethod
+    def __get_result_variables(application_path: Path, role_name: str) -> List[str]:
 
         with open(application_path / 'config' / 'result.json', encoding='utf-8') as f:
             result = f.read()
@@ -760,7 +764,7 @@ class LocalApi:
         app_src_path = application_path / 'src'
 
         role_file_names = self.__get_role_file_names(app_config_path)
-        for role_file in role_file_names: # pylint: disable=R1702 too-many-nested-blocks
+        for role_file in role_file_names:  # pylint: disable=R1702 too-many-nested-blocks
             if (app_src_path / role_file).is_file():
                 return_list = utils.get_function_return_variables(app_src_path / role_file, function_name='main')
                 role_name = self.__get_role_name_from_role_file(role_file)
@@ -865,7 +869,7 @@ class LocalApi:
             "application": {
                 "slug": application_name,
                 "app_version": "" if local else app_config["app_version"],
-                "multi_round": "False" if local else app_config["multi_round"]
+                "multi_round": False if local else app_config["multi_round"]
             },
             "backend": {
                 "location": "local" if local else "remote",
@@ -909,7 +913,8 @@ class LocalApi:
 
         return input_list
 
-    def __fill_asset_role_information(self, network_data: assetNetworkType, app_config: AppConfigType,
+    @staticmethod
+    def __fill_asset_role_information(network_data: assetNetworkType, app_config: AppConfigType,
                                       node_list: AssetNodeListType) -> None:
         network_data["roles"] = {}
         if "network" in app_config:
@@ -1085,6 +1090,15 @@ class LocalApi:
         return False
 
     def get_experiment_id(self, experiment_path: Path) -> Optional[str]:
+        """
+        Get the experiment id for this experiment (from meta data)
+
+        Args:
+            experiment_path: The location of the experiment
+
+        Returns:
+            experiment id
+        """
         if not self.is_experiment_local(experiment_path):
             experiment_data = self.get_experiment_data(experiment_path)
             if "experiment_id" in experiment_data["meta"]:
@@ -1366,7 +1380,16 @@ class LocalApi:
         results = round_set_manager.process()
         return results
 
-    def get_results(self, experiment_path: Path) -> List[ResultType]:
+    @staticmethod
+    def get_results(experiment_path: Path) -> List[ResultType]:
+        """ Get the result from the output directory
+
+        Args:
+            experiment_path: The location of the experiment
+
+        Returns:
+            List of results (currently only from round_number 1)
+        """
         # TODO: is this method used?
         output_converter = OutputConverter(
             round_set={"url": "local"},
@@ -1680,8 +1703,8 @@ class LocalApi:
                     if not set(experiment_roles).issubset(application_roles):
                         error_dict["warning"].append(f"In file '{experiment_path / 'experiment.json'}': not all "
                                                      f"experiment roles {experiment_roles} are defined as application "
-                                                     f"roles {application_roles}' in "
-                                                     f"{experiment_input_path / 'network.json'}'")
+                                                     f"roles {application_roles} in "
+                                                     f"'{experiment_input_path / 'network.json'}'")
             except MalformedJsonFile:
                 # The file 'network.json' will be checked against the schema in validate_experiment_input
                 pass

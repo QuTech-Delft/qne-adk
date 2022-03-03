@@ -4,36 +4,76 @@ from typing import Any, cast, Dict, List, Optional
 from adk.api.local_api import LocalApi
 from adk.api.remote_api import RemoteApi
 from adk.decorators import log_function
-from adk.exceptions import (ApplicationNotComplete, ApplicationNotFound, DirectoryAlreadyExists, ExperimentNotRun,
-                            NetworkNotAvailableForApplication, ResultDirectoryNotAvailable)
+from adk.exceptions import (AppConfigNotFound, ApplicationNotComplete, ApplicationNotFound, DirectoryAlreadyExists,
+                            ExperimentNotRun, NetworkNotAvailableForApplication, ResultDirectoryNotAvailable)
 from adk.type_aliases import ApplicationType, ExperimentType, ErrorDictType, ResultType
 from adk import utils
 
 
 class CommandProcessor:
+    """
+    Class for redirecting the commands to the local or remote api.
+
+    Args:
+        remote_api: the api for handling remote commands
+        local_api: the api for handling local commands
+
+    """
     def __init__(self, remote_api: RemoteApi, local_api: LocalApi):
         self.__remote = remote_api
         self.__local = local_api
 
     @log_function
     def login(self, host: str, username: str, password: str) -> None:
+        """
+        Redirects login to remote api.
+
+        Args:
+            host: host to log on to
+            username: the user
+            password: the password
+
+        """
         self.__remote.login(username=username, password=password, host=host)
 
     @log_function
     def logout(self, host: Optional[str]) -> bool:
+        """
+        Redirects logout to remote api.
+
+        Args:
+            host: host to log out from
+        """
         return self.__remote.logout(host=host)
 
     def applications_create(self, application_name: str, roles: List[str], application_path: Path) -> None:
+        """
+        Redirects application create to local api.
+
+        Args:
+            application_name: application name
+            roles: the roles used for this application
+            application_path: location of application files
+
+        """
         self.__local.create_application(application_name, roles, application_path)
 
     @log_function
     def applications_init(self, application_path: Path) -> None:
+        """
+        Redirects application int to local api.
+
+        Args:
+            application_path: location of application files
+
+        """
         self.__local.init_application(application_path)
 
     @log_function
     def applications_upload(self, application_name: str, application_path: Path) -> bool:
         """
-        Upload the application to the remote server
+        Upload the application to the remote server. An app version is created (but disabled) and the related
+        objects are created.
 
         Args:
             application_name: application name
@@ -58,6 +98,23 @@ class CommandProcessor:
             raise ApplicationNotFound(application_name)
 
         return True
+
+    @log_function
+    def applications_publish(self, application_path: Path) -> bool:
+        """
+        Publish the application to the remote server. With this command we try to enable the current app version.
+
+        Args:
+            application_path: location of application files
+
+        Returns:
+            True when published successfully, otherwise False
+        """
+        application_data = self.__local.get_application_data(application_path)
+        published = self.__remote.publish_application(application_data=application_data)
+        self.__local.set_application_data(application_path, application_data)
+
+        return published
 
     @log_function
     def applications_list(self, remote: bool, local: bool) -> Dict[str, List[ApplicationType]]:
@@ -100,11 +157,18 @@ class CommandProcessor:
         return deleted_completely_local and deleted_completely_remote
 
     @log_function
-    def applications_publish(self, application_name: str) -> None:
-        self.__remote.publish_application(application_name)
-
-    @log_function
     def applications_validate(self, application_name: str, application_path: Path, local: bool = True) -> ErrorDictType:
+        """
+        Validate the application. Depending on parameter local the validation is done locally or remote.
+
+        Args:
+            application_name: application name
+            application_path: location of application files
+            local: is the application local or not
+
+        Returns:
+            Dictionary with errors, warnings found
+        """
         if local:
             return self.__local.validate_application(application_name, application_path)
         return self.__remote.validate_application(application_name)
@@ -156,22 +220,36 @@ class CommandProcessor:
                 raise NetworkNotAvailableForApplication(network_name, application_name)
 
         else:
-            raise ApplicationNotFound(application_name)
+            raise AppConfigNotFound(application_name)
 
     @log_function
     def experiments_list(self) -> List[ExperimentType]:
-        """Get the remote experiments for the authenticated user"""
+        """ Get the remote experiments for the authenticated user """
         return self.__remote.experiments_list()
 
     @log_function
     def experiments_validate(self, experiment_path: Path) -> ErrorDictType:
-        """Validate the local experiment files"""
+        """ Validate the local experiment files
+
+        Args:
+            experiment_path: directory where experiment resides
+
+        Returns:
+            Dictionary with errors, warnings found
+        """
         return self.__local.validate_experiment(experiment_path)
 
     @log_function
     def experiments_delete_remote_only(self, experiment_id: str) -> bool:
         """
         Delete the remote experiment.
+
+        Args:
+            experiment_id: experiment to delete
+
+        Returns:
+            Successful or not
+
         """
         return self.__remote.delete_experiment(experiment_id)
 
@@ -180,6 +258,13 @@ class CommandProcessor:
         """
         Get the remote experiment id registered for this experiment when it run remote, delete this remote experiment.
         Then delete the local experiment.
+
+        Args:
+            experiment_name: experiment name
+            experiment_path: location of experiment files
+
+        Returns:
+            Successful or not
         """
         deleted_remote = True
         remote = not self.__local.is_experiment_local(experiment_path=experiment_path)
@@ -192,9 +277,13 @@ class CommandProcessor:
 
     @log_function
     def experiments_run(self, experiment_path: Path, block: bool = True) -> Optional[List[ResultType]]:
-        """Run the experiment and get the results. When running a remote experiment depending on the parameter block
+        """ Run the experiment and get the results. When running a remote experiment depending on the parameter block
         we wait for the results, otherwise None is returned (results not yet available).
         With qne experiment results a next try can be done to get the results
+
+        Args:
+            experiment_path: location of experiment files
+            block: do we wait for the result or not
 
         Returns:
             None if remote results are not yet available, otherwise True
@@ -216,9 +305,10 @@ class CommandProcessor:
 
     @log_function
     def experiments_results(self, all_results: bool, experiment_path: Path) -> Optional[List[ResultType]]:
-        """Get the experiment results
+        """ Get the experiment results
+
         Returns:
-            None if remote results are not (yet) available, otherwise True
+            None if remote results are not (yet) available, otherwise the results
         """
         results = None
         remote = not self.__local.is_experiment_local(experiment_path=experiment_path)

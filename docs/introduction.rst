@@ -90,6 +90,24 @@ Commands
 The QNE-ADK uses various commands to create and run your applications and experiments. All of the commands are
 listed below:
 
+application list
+^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne application list [OPTIONS]
+
+Show a list of all applications and relevant information for each of them.
+For listing remote applications, the user must be logged in.
+
+    Options:
+      --remote  List remote applications  [default: False]
+      --local   List local applications  [default: False].
+      --help   Show this message and exit.
+
+    Example:
+      qne application list --remote
+
 application create
 ^^^^^^^^^^^^^^^^^^
 
@@ -159,24 +177,6 @@ application directory.
     Example:
       qne application validate
 
-application list
-^^^^^^^^^^^^^^^^
-
-.. code-block:: console
-
-    qne application list [OPTIONS]
-
-Show a list of all applications and relevant information for each of them.
-For listing remote applications, the user must be logged in.
-
-    Options:
-      --remote  List remote applications  [default: False]
-      --local   List local applications  [default: False].
-      --help   Show this message and exit.
-
-    Example:
-      qne application list --remote
-
 application upload
 ^^^^^^^^^^^^^^^^^^
 
@@ -201,6 +201,50 @@ application directory.
 
     Example:
       qne application upload application_name
+
+application publish
+^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne application publish [OPTIONS] [APPLICATION_NAME]
+
+Request the application to be published online.
+For publishing a new version of a remote application, the author of the application
+must have run at least one successful experiment on the remote backend for the new
+version of the application.
+For publishing a new version of remote applications, the user must be logged in.
+
+When application_name is given ./application_name is taken as application
+directory, when this directory does not contain an application the
+application directory is fetched from the application configuration. When
+application_name is not given, the current directory is taken as
+application directory.
+
+    Arguments:
+      [APPLICATION_NAME]  Name of the application
+
+    Options:
+      --help   Show this message and exit.
+
+    Example:
+      qne application publish application_name
+
+experiment list
+^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne experiment list [OPTIONS]
+
+List remote experiments.
+For listing remote experiments, the user must be logged in.
+
+    Options:
+      --help   Show this message and exit.
+
+    Example:
+      qne experiment list
 
 experiment create
 ^^^^^^^^^^^^^^^^^
@@ -276,22 +320,6 @@ directory.
 
     Example:
       qne experiment validate experiment_name
-
-experiment list
-^^^^^^^^^^^^^^^
-
-.. code-block:: console
-
-    qne experiment list [OPTIONS]
-
-List remote experiments.
-For listing remote experiments, the user must be logged in.
-
-    Options:
-      --help   Show this message and exit.
-
-    Example:
-      qne experiment list
 
 experiment run
 ^^^^^^^^^^^^^^
