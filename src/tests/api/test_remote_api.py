@@ -379,7 +379,7 @@ class TestRemoteApiApplication(TestRemoteApi):
         application_published = self.remote_api.publish_application(application_data)
         self.assertFalse(application_published)
 
+
 class TestRemoteApiExperiment(TestRemoteApi):
     def test_create_experiment(self):
         pass
-

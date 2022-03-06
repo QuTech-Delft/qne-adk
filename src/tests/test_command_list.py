@@ -276,18 +276,18 @@ class TestCommandList(unittest.TestCase):
              patch.object(CommandProcessor, 'applications_validate') as app_validate_mock, \
              patch.object(CommandProcessor, 'applications_upload') as application_upload_mock:
 
-             retrieve_appname_and_path_mock.return_value = self.path, self.application
-             app_validate_mock.return_value = {"error": [], "warning": [], "info": []}
-             application_upload_mock.return_value = True
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
+            app_validate_mock.return_value = {"error": [], "warning": [], "info": []}
+            application_upload_mock.return_value = True
 
-             application_upload_output = self.runner.invoke(applications_app,
-                                                            ['upload', 'test_application'])
-             self.assertEqual(retrieve_appname_and_path_mock.call_count, 1)
-             application_upload_mock.assert_called_once_with(application_name=self.application,
-                                                             application_path=self.path)
-             self.assertEqual(application_upload_output.exit_code, 0)
-             self.assertIn(f"Application '{self.application}' uploaded successfully",
-                           application_upload_output.stdout)
+            application_upload_output = self.runner.invoke(applications_app,
+                                                           ['upload', 'test_application'])
+            self.assertEqual(retrieve_appname_and_path_mock.call_count, 1)
+            application_upload_mock.assert_called_once_with(application_name=self.application,
+                                                            application_path=self.path)
+            self.assertEqual(application_upload_output.exit_code, 0)
+            self.assertIn(f"Application '{self.application}' uploaded successfully",
+                          application_upload_output.stdout)
 
     def test_applications_upload_fails(self):
         with patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \

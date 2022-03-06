@@ -298,7 +298,6 @@ class LocalApi:
 
     def init_application(self, application_path: Path) -> None:
         """ TODO """
-        pass
 
     def __create_application_structure(self, application_name: str, roles: List[str], application_path: Path) -> None:
         """
