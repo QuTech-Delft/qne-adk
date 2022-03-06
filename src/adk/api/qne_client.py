@@ -61,7 +61,6 @@ class QneClient:
 
         self.__headers: Dict[str, str] = {}
         self.__openapi_client_class = ApiStarClient
-        self.__auth_class = TokenAuthentication
         self.__client: Optional[ApiStarClient] = None
 
     def _set_open_api_client(self, auth: Optional[AuthBase] = None) -> None:

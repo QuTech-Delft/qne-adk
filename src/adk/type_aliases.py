@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Union, Tuple
+from typing import Any, Callable, Dict, List, Union, Tuple, Optional
 from typing_extensions import TypedDict
 
 DefaultPayloadType = Union[int, str]
@@ -16,9 +16,10 @@ round_resultType = Dict[str, Any]
 cumulative_resultType = Dict[str, Any]
 final_resultType = Dict[str, Any]
 coordinatesType = Dict[str, float]
-round_result_viewType = Dict[str, Any]
-cumulative_result_viewType = Dict[str, Any]
-final_result_viewType = Dict[str, Any]
+result_componentType = Optional[List[Dict[str, Any]]]
+round_result_viewType = List[result_componentType]
+cumulative_result_viewType = List[result_componentType]
+final_result_viewType = List[result_componentType]
 parametersType = List[str]
 
 TemplateType = Dict[str, Union[DefaultPayloadType, listValuesType]]
@@ -34,8 +35,7 @@ ApplicationType = Dict[str, Union[DefaultPayloadType, bool]]
 AppVersionType = Dict[str, Union[DefaultPayloadType, bool]]
 AppSourceType = Dict[str, Union[DefaultPayloadType, bool]]
 AppConfigType = Dict[str, Union[DefaultPayloadType, bool, app_configNetworkType, app_configApplicationType]]
-AppResultType = Dict[str, Union[DefaultPayloadType, bool, round_result_viewType, cumulative_result_viewType,
-                                final_result_viewType]]
+AppResultType = Dict[str, Union[round_result_viewType, cumulative_result_viewType, final_result_viewType]]
 AppSourceFilesType = Dict[str, Tuple[Any, Any]]
 
 TokenType = Dict[str, str]

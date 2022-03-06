@@ -2,8 +2,6 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Optional, Tuple, Union
 import time
 
-from apistar import Client
-from apistar.client.auth import TokenAuthentication
 from apistar.exceptions import ErrorResponse
 
 from adk import utils
@@ -58,9 +56,6 @@ class RemoteApi:
         self.__password: Optional[str] = self.auth_manager.get_password(self.__base_uri)
         self.__refresh_token: Optional[str] = self.auth_manager.load_token(self.__base_uri)
 
-        self.__headers: Dict[str, str] = {}
-        self.__openapi_client_class = Client
-        self.__auth_class = TokenAuthentication
         self.__resource_manager = ResourceManager()
 
     def __login_user(self, username: str, password: str, host: str) -> str:
@@ -146,6 +141,11 @@ class RemoteApi:
 
             # application must exist
             if application is not None:
+                # update all remote info with latest data
+                application_data["remote"]["application"] = application["url"]
+                application_data["remote"]["application_id"] = application["id"]
+                application_data["remote"]["slug"] = application["slug"]
+
                 app_version = self.__partial_update_app_version(application_data, application)
 
                 application_data["remote"]["app_version"]["app_version"] = app_version["url"]
@@ -199,6 +199,12 @@ class RemoteApi:
                 # rethrow exception
                 raise e
 
+        if application is not None:
+            # update all remote info with latest data
+            application_data["remote"]["application"] = application["url"]
+            application_data["remote"]["application_id"] = application["id"]
+            application_data["remote"]["slug"] = application["slug"]
+
         app_version: AppVersionType = {}
         try:
             # create AppVersion
@@ -209,23 +215,29 @@ class RemoteApi:
 
         except Exception as e:
             # The (incomplete) AppVersion already existed, use this one to connect the other objects
-            if "app_version" in application_data["remote"]["app_version"]:
+            if "app_version" in application_data["remote"]["app_version"] \
+                             and application_data["remote"]["app_version"]["app_version"]:
                 app_version["url"] = application_data["remote"]["app_version"]["app_version"]
             else:
                 # for now rethrow exception
                 raise e
 
         try:
-            # create AppConfig
-            app_config = self.__create_app_config(application_data, application_config, app_version)
-            application_data["remote"]["app_version"]["app_config"] = app_config["url"]
-            # create AppResult
-            app_result = self.__create_app_result(application_result, app_version)
-            application_data["remote"]["app_version"]["app_result"] = app_result["url"]
-            # create AppSource
-            app_source = self.__create_app_source(application_data, app_version,
-                                                  application_config, application_path)
-            application_data["remote"]["app_version"]["app_source"] = app_source["url"]
+            if not application_data["remote"]["app_version"]["app_config"]:
+                # create AppConfig
+                app_config = self.__create_app_config(application_data, application_config, app_version)
+                application_data["remote"]["app_version"]["app_config"] = app_config["url"]
+
+            if not application_data["remote"]["app_version"]["app_result"]:
+                # create AppResult
+                app_result = self.__create_app_result(application_result, app_version)
+                application_data["remote"]["app_version"]["app_result"] = app_result["url"]
+
+            if not application_data["remote"]["app_version"]["app_source"]:
+                # create AppSource
+                app_source = self.__create_app_source(application_data, app_version,
+                                                      application_config, application_path)
+                application_data["remote"]["app_version"]["app_source"] = app_source["url"]
 
             # Update application when AppVersion and its components is uploaded
             application_to_update = self.__create_application_type(application_data)
@@ -388,12 +400,6 @@ class RemoteApi:
         if application is None and "slug" in application_data["remote"]:
             application_slug = str(application_data["remote"]["slug"])
             application = self.__get_application_by_slug(application_slug)
-
-        if application is not None:
-            # update all remote info with latest data
-            application_data["remote"]["application"] = application["url"]
-            application_data["remote"]["application_id"] = application["id"]
-            application_data["remote"]["slug"] = application["slug"]
 
         return application
 

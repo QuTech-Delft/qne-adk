@@ -29,7 +29,7 @@ class AppValidate(unittest.TestCase):
             "application": {
                 "slug": "app_name",
                 "app_version": "",
-                "multi_round": "False"
+                "multi_round": False
             },
             "backend": {
                 "location": "local",
@@ -43,7 +43,16 @@ class AppValidate(unittest.TestCase):
         self.experiment_data_local = {"meta": self.experiment_meta_local,
                                       "asset": {}
                                       }
-
+        self.mock_app_manifest = {
+            "application": {
+                "name": "killer_app",
+                "description": "add description",
+                "author": "add your name",
+                "email": "add@your.email",
+                "multi_round": False
+            },
+            "remote": {}
+        }
         self.mock_app_config = {"application": [
             {
                 "title": "Qubit state of Sender",
@@ -734,6 +743,22 @@ class ApplicationValidate(AppValidate):
             get_application_mock.return_value = {}
             config = self.local_api.get_application_config('test')
             self.assertIsNone(config)
+
+    def test_set_application_data(self):
+        with patch("adk.api.local_api.utils.write_json_file") as write_mock:
+
+            self.local_api.set_application_data(self.path, self.mock_app_manifest)
+            self.assertEqual(write_mock.call_count, 1)
+            write_mock.assert_called_once_with(self.path / 'manifest.json', self.mock_app_manifest)
+
+    def test_get_application_data(self):
+        with patch("adk.api.local_api.utils.read_json_file") as read_mock:
+
+            read_mock.return_value = self.mock_app_manifest
+            application_data = self.local_api.get_application_data(self.path)
+            self.assertEqual(read_mock.call_count, 1)
+            read_mock.assert_called_once_with(self.path / 'manifest.json')
+            self.assertDictEqual(application_data, self.mock_app_manifest)
 
     def test_delete_application_invalid_application_dir(self):
         with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
@@ -1569,9 +1594,9 @@ class ExperimentValidate(AppValidate):
             }
             get_experiment_data_mock.reset_mock()
             get_experiment_data_mock.return_value = experiment_data_incorrect_channel_nodes
-            error_1 = "In file 'path/to/application/experiment.json': Value 'n' of Node 'node1' in channel 'n1-n2' " \
+            error_1 = f"In file '{self.path / 'experiment.json'}': Value 'n' of Node 'node1' in channel 'n1-n2' " \
                       "does not exist or is not a valid node for the channel"
-            error_2 = "In file 'path/to/application/experiment.json': Value 'n' of Node 'node2' in channel 'n1-n2' " \
+            error_2 = f"In file '{self.path / 'experiment.json'}': Value 'n' of Node 'node2' in channel 'n1-n2' " \
                       "does not exist or is not a valid node for the channel"
             error_dict = {'error': [error_1, error_2], 'warning': [], 'info': []}
             self.local_api.validate_experiment(self.path)
@@ -1611,12 +1636,12 @@ class ExperimentValidate(AppValidate):
             mock_exp_data_for_roles = self.mock_experiment_data
             mock_exp_data_for_roles["asset"]["network"]["roles"] = {"role1": "n1", "role2": "n1"}
             get_experiment_data_mock.return_value = mock_exp_data_for_roles
-            error_1 = "In file 'path/to/application/experiment.json': Node 'n1' used for role 'role1' is not valid " \
+            error_1 = f"In file '{self.path / 'experiment.json'}': Node 'n1' used for role 'role1' is not valid " \
                       "for the application"
-            error_2 = "In file 'path/to/application/experiment.json': Role 'role2' is not valid for the application"
-            error_3 = "In file 'path/to/application/experiment.json': Node 'n1' used for role 'role2' is not valid " \
+            error_2 = f"In file '{self.path / 'experiment.json'}': Role 'role2' is not valid for the application"
+            error_3 = f"In file '{self.path / 'experiment.json'}': Node 'n1' used for role 'role2' is not valid " \
                       "for the application"
-            error_4 = "In file 'path/to/application/experiment.json': Node 'n1' is used for multiple roles"
+            error_4 = f"In file '{self.path / 'experiment.json'}': Node 'n1' is used for multiple roles"
             error_dict = {'error': [error_1, error_2, error_3, error_4], 'warning': [], 'info': []}
             self.local_api.validate_experiment(self.path)
             validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, error_dict=error_dict)
@@ -1714,14 +1739,14 @@ class ExperimentValidate(AppValidate):
                     't2': {'maximum_value': 1000, 'minimum_value': 0}
                 }
             }
-            error_1 = "In file 'path/to/application/experiment.json': Value '12344.0' of param " \
+            error_1 = f"In file '{self.path / 'experiment.json'}': Value '12344.0' of param " \
                       "'elementary-link-fidelity' -> 'fidelity' in channel 'n1-n2' is not within the allowed range " \
                       "of minimum (0.5) and maximum (1.0)"
-            error_2 = "In file 'path/to/application/experiment.json': Value 'string_value' of param " \
+            error_2 = f"In file '{self.path / 'experiment.json'}': Value 'string_value' of param " \
                       "'relaxation-time' -> 't1' in channel 'n1-n2' is not of the required type (integer or float)"
-            error_3 = "In file 'path/to/application/experiment.json': Parameter 'unknown_param' in channel 'n2-n3' " \
+            error_3 = f"In file '{self.path / 'experiment.json'}': Parameter 'unknown_param' in channel 'n2-n3' " \
                       "does not exist"
-            error_4 = "In file 'path/to/application/experiment.json': 'incorrect_name' is not valid for param " \
+            error_4 = f"In file '{self.path / 'experiment.json'}': 'incorrect_name' is not valid for param " \
                       "'relaxation-time' in channel 'n2-n3'"
             error_dict = {'error': [error_1, error_2, error_3, error_4], 'warning': [], 'info': []}
             self.local_api.validate_experiment(self.path)

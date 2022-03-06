@@ -172,7 +172,7 @@ def applications_upload(
                                                     application_path=application_path)
     if validate_dict["error"] or validate_dict["warning"]:
         show_validation_messages(validate_dict)
-        typer.echo(f"Application '{application_name}' is invalid. Application not uploaded.")
+        typer.echo(f"Application '{application_name}' is invalid. Application not uploaded")
     else:
         uploaded_success = processor.applications_upload(application_name=application_name,
                                                          application_path=application_path)
@@ -199,10 +199,10 @@ def applications_publish(
                                                     application_path=application_path)
     if validate_dict["error"] or validate_dict["warning"]:
         show_validation_messages(validate_dict)
-        typer.echo(f"Application '{application_name}' is invalid. Application not published.")
+        typer.echo(f"Application '{application_name}' is invalid. Application not published")
     else:
-        uploaded_success = processor.applications_publish(application_path=application_path)
-        if uploaded_success:
+        publish_success = processor.applications_publish(application_path=application_path)
+        if publish_success:
             typer.echo(f"Application '{application_name}' published successfully")
         else:
             typer.echo(f"Application '{application_name}' not published")
