@@ -659,6 +659,7 @@ class RemoteApi:
                 raise JobTimeoutError(f"Failed getting result for round set '{round_set_url}': timeout reached. "
                                       f"Try again later using command 'experiment results'")
             time.sleep(wait)
+            round_set = self.__qne_client.retrieve_roundset(round_set_url)
             status = round_set["status"]
 
         return self.__get_results(round_set)

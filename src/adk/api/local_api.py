@@ -1492,6 +1492,7 @@ class LocalApi:
         """
         Validates if the experiment file structures input directory containing a:
         - network.json, application.json, result.json, app_role1.py, app_role2.py, ...
+        Validates the roles used in experiment if they are in input network.json from application
 
         Args:
             experiment_path: The location of the experiment
@@ -1501,8 +1502,28 @@ class LocalApi:
 
         if experiment_input_path.is_dir():
             self.__check_all_experiment_input_files_exist(experiment_input_path, error_dict)
+            self._validate_application_roles(experiment_path, error_dict)
         else:
             error_dict["error"].append(f"Required directory not found: '{experiment_input_path}'")
+
+    def _validate_application_roles(self, experiment_path: Path, error_dict: ErrorDictType) -> None:
+        """
+        Validate if the roles information available in the network -> roles section contains:
+            - valid name for roles (are application roles defined in network.json)
+
+        Args:
+            experiment_path: The location of the experiment directory
+            error_dict: Dictionary containing error and warning messages of the validations that failed
+        """
+        # Check if experiment is local or remote
+        experiment_data = self.get_experiment_data(experiment_path)
+        experiment_roles = experiment_data["asset"]["network"]["roles"]
+        application_roles = self.__get_role_names(experiment_path / 'input')
+
+        for role, _ in experiment_roles.items():
+            if role not in application_roles:
+                error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': Role '{role}' is not"
+                                           f" valid for the application")
 
     def _validate_experiment_nodes(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
                                    ErrorDictType) -> None:
@@ -1639,11 +1660,10 @@ class LocalApi:
                     f"In file '{experiment_file_path}': Parameter '{param['slug']}' in {entity}"
                     f" '{entity_slug}' does not exist")
 
-    def _validate_experiment_roles(self, experiment_path: Path, experiment_data: Dict[str, Any], error_dict:
-                                      ErrorDictType) -> None:
+    def _validate_experiment_roles(self, experiment_path: Path, experiment_data: Dict[str, Any],
+                                   error_dict: ErrorDictType) -> None:
         """
         Validate if the roles information available in the network -> roles section contains:
-            - valid name for roles
             - valid name for assigned nodes
             - No duplicate nodes
 
@@ -1653,7 +1673,6 @@ class LocalApi:
             error_dict: Dictionary containing error and warning messages of the validations that failed
         """
         experiment_roles = experiment_data["asset"]["network"]["roles"]
-        application_roles = self.__get_role_names(experiment_path / 'input')
 
         experiment_network_slug = experiment_data["asset"]["network"]["slug"]
         all_network_nodes = self._get_network_nodes()
@@ -1663,9 +1682,6 @@ class LocalApi:
         duplicate_nodes = []
 
         for role, node in experiment_roles.items():
-            if role not in application_roles:
-                error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': Role '{role}' is not"
-                    f" valid for the application")
             if node not in network_nodes:
                 error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': Node '{node}' used for"
                     f" role '{role}' is not valid for the application")
