@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 from adk.exceptions import ApplicationNotFound, ExperimentDirectoryNotValid
 from adk.command_list import app, applications_app, experiments_app, retrieve_application_name_and_path, \
                              retrieve_experiment_name_and_path
+from adk.api.local_api import LocalApi
 from adk.api.remote_api import RemoteApi
 from adk.command_processor import CommandProcessor
 from adk.managers.config_manager import ConfigManager
@@ -501,6 +502,7 @@ class TestCommandList(unittest.TestCase):
     def test_experiment_run(self):
         with patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock, \
              patch.object(CommandProcessor, 'experiments_run') as exp_run_mock, \
+             patch.object(LocalApi, "is_experiment_local", return_value=True), \
              patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
 
             retrieve_expname_and_path_mock.return_value = self.path, None

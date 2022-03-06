@@ -423,7 +423,9 @@ def experiments_run(
         typer.echo("Experiment is invalid. Please resolve the issues and then run the experiment.")
     else:
         if block:
-            typer.echo("Experiment is sent to the remote server. Please wait until the results are received...")
+            local = local_api.is_experiment_local(experiment_path=experiment_path)
+            typer.echo(f"Experiment is sent to the {'local' if local else 'remote'} server. "
+                       f"Please wait until the results are received...")
         results = processor.experiments_run(experiment_path=experiment_path, block=block)
         if results is not None:
             if "error" in results[0]["round_result"]:
@@ -432,7 +434,7 @@ def experiments_run(
             else:
                 typer.echo("Experiment run successfully. Check the results using command 'experiment results'")
         else:
-            typer.echo("Experiment sent successfully to backend. Check the results using command 'experiment results'")
+            typer.echo("Experiment sent successfully to server. Check the results using command 'experiment results'")
 
 
 @experiments_app.command("validate")
