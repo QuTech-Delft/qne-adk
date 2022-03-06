@@ -35,7 +35,8 @@ ApplicationType = Dict[str, Union[DefaultPayloadType, bool]]
 AppVersionType = Dict[str, Union[DefaultPayloadType, bool]]
 AppSourceType = Dict[str, Union[DefaultPayloadType, bool]]
 AppConfigType = Dict[str, Union[DefaultPayloadType, bool, app_configNetworkType, app_configApplicationType]]
-AppResultType = Dict[str, Union[round_result_viewType, cumulative_result_viewType, final_result_viewType]]
+AppResultType = Dict[str, Union[DefaultPayloadType, bool, round_result_viewType, cumulative_result_viewType,
+                                final_result_viewType]]
 AppSourceFilesType = Dict[str, Tuple[Any, Any]]
 
 TokenType = Dict[str, str]

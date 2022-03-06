@@ -245,7 +245,7 @@ class RemoteApi:
 
             # Update application when AppVersion and its components is uploaded
             application_to_update = self.__create_application_type(application_data)
-            self.__qne_client.partial_update_application(application["id"], application_to_update)
+            self.__qne_client.partial_update_application(str(application["id"]), application_to_update)
 
         except Exception as e:
             # Something went wrong, delete the (just created) AppVersion (currently not supported by api-router)
