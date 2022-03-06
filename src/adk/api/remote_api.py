@@ -212,9 +212,13 @@ class RemoteApi:
             application_data["remote"]["app_version"]["app_version"] = app_version["url"]
             application_data["remote"]["app_version"]["enabled"] = not app_version["is_disabled"]
             application_data["remote"]["app_version"]["version"] = app_version["version"]
+            # new app_version reset registered application references
+            application_data["remote"]["app_version"]["app_config"] = ''
+            application_data["remote"]["app_version"]["app_result"] = ''
+            application_data["remote"]["app_version"]["app_source"] = ''
 
         except Exception as e:
-            # The (incomplete) AppVersion already existed, use this one to connect the other objects
+            # The (incomplete) AppVersion already existed, use this one to connect the not yet registered objects
             if "app_version" in application_data["remote"]["app_version"] \
                              and application_data["remote"]["app_version"]["app_version"]:
                 app_version["url"] = application_data["remote"]["app_version"]["app_version"]

@@ -87,11 +87,17 @@ class CommandProcessor:
             application_data = self.__local.get_application_data(application_path)
             app_result = self.__local.get_application_result(application_name)
             if app_result is not None:
-                application_data = self.__remote.upload_application(application_path=application_path,
-                                                                    application_data=application_data,
-                                                                    application_config=app_config,
-                                                                    application_result=app_result)
-                self.__local.set_application_data(application_path, application_data)
+                try:
+                    application_data = self.__remote.upload_application(application_path=application_path,
+                                                                        application_data=application_data,
+                                                                        application_config=app_config,
+                                                                        application_result=app_result)
+                except Exception as e:
+                    # Something went wrong
+                    # write the application_data we have until now and rethrow exception
+                    raise e
+                finally:
+                    self.__local.set_application_data(application_path, application_data)
             else:
                 raise ApplicationNotComplete(application_name)
         else:

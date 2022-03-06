@@ -3,8 +3,8 @@ from unittest.mock import patch, MagicMock
 import unittest
 
 from adk.command_processor import CommandProcessor
-from adk.exceptions import (AppConfigNotFound, ApplicationNotComplete, ApplicationNotFound, DirectoryAlreadyExists, \
-                            NetworkNotAvailableForApplication)
+from adk.exceptions import (ApiClientError, AppConfigNotFound, ApplicationNotComplete, ApplicationNotFound,
+                            DirectoryAlreadyExists, NetworkNotAvailableForApplication)
 
 
 class TestCommandProcessor(unittest.TestCase):
@@ -59,6 +59,14 @@ class TestCommandProcessor(unittest.TestCase):
         self.local_api.set_application_data.assert_called_once_with(self.path,
                                                                     "application_data_result")
         self.assertTrue(return_value)
+
+    def test_applications_upload_fails_to_complete_app_version(self):
+        self.local_api.get_application_config.return_value = "app_config"
+        self.local_api.get_application_data.return_value = "application_data"
+        self.local_api.get_application_result.return_value = "app_result"
+        self.remote_api.upload_application.side_effect = ApiClientError("Error: app_config creation error")
+        self.assertRaises(ApiClientError, self.processor.applications_upload, self.application, self.path)
+        self.local_api.set_application_data.assert_called_once_with(self.path, "application_data")
 
     def test_applications_upload_fails_no_config(self):
         self.local_api.get_application_config.return_value = None

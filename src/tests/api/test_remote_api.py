@@ -246,7 +246,7 @@ class TestRemoteApiApplication(TestRemoteApi):
 
     def test_upload_application_appversion_exists_but_not_complete_succeeds_after_failure(self):
         application_data = self.application_data_uploaded
-        # appversion exists, but not yet completed
+        # appversion exists, delete some references to make it not complete
         application_data["remote"]["app_version"]["app_config"] = ''
         application_data["remote"]["app_version"]["app_result"] = ''
         application_data["remote"]["app_version"]["app_source"] = ''
@@ -279,6 +279,63 @@ class TestRemoteApiApplication(TestRemoteApi):
                                                                  application_result)
 
         self.assertDictEqual(app_data_actual, self.application_data_uploaded)
+
+    def test_upload_existing_application_appversion_new_version(self):
+        application_data = self.application_data_uploaded
+        application_config = {"application": self.application_config, "network": self.network_config}
+        self.next_app_version = {
+            "id": 43,
+            "url": f"{self.host}app_version/43",
+            "application": self.application["url"],
+            "version": 2,
+            "is_disabled": True
+        }
+        self.next_app_config = {
+            "id": 43,
+            "url": f"{self.host}app_config/43",
+            "app_version": self.app_version["url"],
+            "network": self.network_config,
+            "application": self.application_config,
+            "multi_round": self.application_data["application"]["multi_round"]
+        }
+        self.next_app_result = {
+            "id": 43,
+            "url": f"{self.host}app_result/43",
+            "app_version": self.app_version["url"],
+            "round_result_view": self.result["round_result_view"],
+            "cumulative_result_view": self.result["cumulative_result_view"],
+            "final_result_view": self.result["final_result_view"]
+        }
+        self.next_app_source_files = {
+            "id": 43,
+            "url": f"{self.host}app_source/43",
+            "source_files": ('tarball', self.mock_tarball),
+            "app_version": (None, self.app_version['url']),
+            "output_parser": (None, '{}')
+        }
+
+        self.remote_api._RemoteApi__resource_manager.prepare_resources.return_value = self.app_path, 'tarball'
+        self.remote_api._RemoteApi__resource_manager.delete_resources.return_value = None
+        self.remote_api._RemoteApi__qne_client.partial_update_application.return_value = None
+        self.remote_api._RemoteApi__qne_client.list_applications.return_value = [self.application]
+        self.remote_api._RemoteApi__qne_client.create_app_version.return_value = self.next_app_version
+        self.remote_api._RemoteApi__qne_client.create_app_config.return_value = self.next_app_config
+        self.remote_api._RemoteApi__qne_client.create_app_result.return_value = self.next_app_result
+        self.remote_api._RemoteApi__qne_client.create_app_source.return_value = self.next_app_source_files
+        with patch('adk.api.remote_api.open', mock_open(read_data=self.mock_tarball)):
+            app_data_actual = self.remote_api.upload_application(self.app_path,
+                                                                 application_data,
+                                                                 application_config,
+                                                                 self.result)
+
+        self.assertEqual(app_data_actual["remote"]["application"], f'{self.host}application/42')
+        self.assertEqual(app_data_actual["remote"]["application_id"], 42)
+        self.assertEqual(app_data_actual["remote"]["app_version"]["version"], 2)
+        self.assertEqual(app_data_actual["remote"]["app_version"]["enabled"], False)
+        self.assertEqual(app_data_actual["remote"]["app_version"]["app_version"], f'{self.host}app_version/43')
+        self.assertEqual(app_data_actual["remote"]["app_version"]["app_config"], f'{self.host}app_config/43')
+        self.assertEqual(app_data_actual["remote"]["app_version"]["app_result"], f'{self.host}app_result/43')
+        self.assertEqual(app_data_actual["remote"]["app_version"]["app_source"], f'{self.host}app_source/43')
 
     def test_publish_application_successful(self):
         application_data = self.application_data_uploaded
