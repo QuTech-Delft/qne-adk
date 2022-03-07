@@ -428,7 +428,7 @@ def experiments_run(
                        f"Please wait until the results are received...")
         results = processor.experiments_run(experiment_path=experiment_path, block=block)
         if results is not None:
-            if "error" in results[0]["round_result"]:
+            if results and "error" in results[0]["round_result"]:
                 typer.echo("Error encountered while running the experiment")
                 typer.echo(results[0]["round_result"]["error"])
             else:

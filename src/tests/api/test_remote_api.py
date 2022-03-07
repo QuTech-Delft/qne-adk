@@ -232,7 +232,8 @@ class TestRemoteApiApplication(TestRemoteApi):
         self.remote_api._RemoteApi__qne_client.partial_update_application.return_value = None
         self.remote_api._RemoteApi__qne_client.list_applications.return_value = [self.application]
         self.remote_api._RemoteApi__qne_client.create_app_version.side_effect = \
-            ApiClientError("Error: appversion already exists")
+            ApiClientError("Error: You already have one incomplete/draft AppVersion for this Application. "
+                           "Please complete it before adding a new AppVersion")
         self.remote_api._RemoteApi__qne_client.create_app_config.return_value = self.app_config
         self.remote_api._RemoteApi__qne_client.create_app_result.return_value = self.app_result
         self.remote_api._RemoteApi__qne_client.create_app_source.return_value = self.app_source_files
@@ -259,7 +260,8 @@ class TestRemoteApiApplication(TestRemoteApi):
         self.remote_api._RemoteApi__qne_client.partial_update_application.return_value = None
         self.remote_api._RemoteApi__qne_client.list_applications.return_value = [self.application]
         self.remote_api._RemoteApi__qne_client.create_app_version.side_effect = \
-            ApiClientError("Error: appversion already exists")
+            ApiClientError("Error: You already have one incomplete/draft AppVersion for this Application. "
+                           "Please complete it before adding a new AppVersion")
         self.remote_api._RemoteApi__qne_client.create_app_config.return_value = self.app_config
         self.remote_api._RemoteApi__qne_client.create_app_result.side_effect = \
             ApiClientError("Error: appresult creation failed")

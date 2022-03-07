@@ -339,7 +339,7 @@ class CommandProcessor:
         processed_result_json_file = experiment_path / 'results' / 'processed.json'
         if processed_result_json_file.exists():
             results = self.__get_results(experiment_path=experiment_path)
-            if results[0]["round_set"] == round_set_url:
+            if results and results[0]["round_set"] == round_set_url:
                 return True
         return False
 

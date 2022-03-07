@@ -6,7 +6,7 @@ from apistar.exceptions import ErrorResponse
 
 from adk import utils
 from adk.api.qne_client import QneFrontendClient
-from adk.exceptions import ExperimentFailed, ExperimentValueError, JobTimeoutError
+from adk.exceptions import ApiClientError, ExperimentFailed, ExperimentValueError, JobTimeoutError
 from adk.generators.result_generator import ResultGenerator
 from adk.managers.config_manager import ConfigManager
 from adk.managers.auth_manager import AuthManager
@@ -217,15 +217,14 @@ class RemoteApi:
             application_data["remote"]["app_version"]["app_result"] = ''
             application_data["remote"]["app_version"]["app_source"] = ''
 
-        except Exception as e:
-            # The (incomplete) AppVersion already existed, use this one to connect the not yet registered objects
-            if "app_version" in application_data["remote"]["app_version"] \
-                             and application_data["remote"]["app_version"]["app_version"]:
+        except ApiClientError as e:
+            if "Please complete" in str(e) and "app_version" in application_data["remote"]["app_version"] and \
+                                               application_data["remote"]["app_version"]["app_version"]:
+                # The (incomplete) AppVersion already existed, use this one to connect the not yet registered objects
                 app_version["url"] = application_data["remote"]["app_version"]["app_version"]
             else:
-                # for now rethrow exception
+                # for now rethrow all other exceptions
                 raise e
-
         try:
             if not application_data["remote"]["app_version"]["app_config"]:
                 # create AppConfig
