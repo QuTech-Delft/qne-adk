@@ -26,7 +26,7 @@
           "maxLength": 254
         },
         "multi_round": {
-            "type": "boolean"
+          "type": "boolean"
         }
       },
       "required": [
@@ -55,6 +55,12 @@
         "app_version": {
           "type": "object",
           "properties": {
+            "version": {
+              "type": "integer"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
             "app_version": {
               "type": "string",
               "format": "uri-reference"

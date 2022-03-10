@@ -121,6 +121,15 @@ def retrieve_application_name_and_path(application_name: Optional[str]) -> Tuple
     return application_path, application_name
 
 
+@applications_app.command("init")
+@catch_qne_adk_exceptions
+def applications_init() -> None:
+    """
+    Initialize an existing application.
+    """
+    raise CommandNotImplemented
+
+
 @applications_app.command("delete")
 @catch_qne_adk_exceptions
 def applications_delete(
@@ -146,15 +155,6 @@ def applications_delete(
             typer.echo("Application files deleted, directory not empty")
 
 
-@applications_app.command("init")
-@catch_qne_adk_exceptions
-def applications_init() -> None:
-    """
-    Initialize an existing application.
-    """
-    raise CommandNotImplemented
-
-
 @applications_app.command("upload")
 @catch_qne_adk_exceptions
 def applications_upload(
@@ -172,7 +172,7 @@ def applications_upload(
                                                     application_path=application_path)
     if validate_dict["error"] or validate_dict["warning"]:
         show_validation_messages(validate_dict)
-        typer.echo(f"Application '{application_name}' is invalid. Application not uploaded.")
+        typer.echo(f"Application '{application_name}' is invalid. Application not uploaded")
     else:
         uploaded_success = processor.applications_upload(application_name=application_name,
                                                          application_path=application_path)
@@ -180,6 +180,32 @@ def applications_upload(
             typer.echo(f"Application '{application_name}' uploaded successfully")
         else:
             typer.echo(f"Application '{application_name}' not uploaded")
+
+
+@applications_app.command("publish")
+@catch_qne_adk_exceptions
+def applications_publish(
+    application_name: Optional[str] = typer.Argument(None, help="Name of the application")
+) -> None:
+    """
+    Request the application to be published online.
+
+    When application_name is given ./application_name is taken as application directory, when this directory does not
+    contain an application the application directory is fetched from the application configuration.
+    When application_name is not given, the current directory is taken as application directory.
+    """
+    application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
+    validate_dict = processor.applications_validate(application_name=application_name,
+                                                    application_path=application_path)
+    if validate_dict["error"] or validate_dict["warning"]:
+        show_validation_messages(validate_dict)
+        typer.echo(f"Application '{application_name}' is invalid. Application not published")
+    else:
+        publish_success = processor.applications_publish(application_path=application_path)
+        if publish_success:
+            typer.echo(f"Application '{application_name}' published successfully")
+        else:
+            typer.echo(f"Application '{application_name}' not published")
 
 
 @applications_app.command("list")
@@ -225,15 +251,6 @@ def applications_list(
                                                           "is_public": "public",
                                                           "is_disabled": "disabled"}))
             typer.echo(f'{len(applications["remote"])} remote application(s)')
-
-
-@applications_app.command("publish")
-@catch_qne_adk_exceptions
-def applications_publish() -> None:
-    """
-    Request the application to be published online.
-    """
-    raise CommandNotImplemented
 
 
 def show_validation_messages(validation_dict: ErrorDictType) -> None:
@@ -406,16 +423,18 @@ def experiments_run(
         typer.echo("Experiment is invalid. Please resolve the issues and then run the experiment.")
     else:
         if block:
-            typer.echo("Experiment is sent to the remote server. Please wait until the results are received...")
+            local = local_api.is_experiment_local(experiment_path=experiment_path)
+            typer.echo(f"Experiment is sent to the {'local' if local else 'remote'} server. "
+                       f"Please wait until the results are received...")
         results = processor.experiments_run(experiment_path=experiment_path, block=block)
         if results is not None:
-            if "error" in results[0]["round_result"]:
+            if results and "error" in results[0]["round_result"]:
                 typer.echo("Error encountered while running the experiment")
                 typer.echo(results[0]["round_result"]["error"])
             else:
                 typer.echo("Experiment run successfully. Check the results using command 'experiment results'")
         else:
-            typer.echo("Experiment sent successfully to backend. Check the results using command 'experiment results'")
+            typer.echo("Experiment sent successfully to server. Check the results using command 'experiment results'")
 
 
 @experiments_app.command("validate")

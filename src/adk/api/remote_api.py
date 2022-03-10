@@ -2,13 +2,11 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Optional, Tuple, Union
 import time
 
-from apistar import Client
-from apistar.client.auth import TokenAuthentication
 from apistar.exceptions import ErrorResponse
 
 from adk import utils
 from adk.api.qne_client import QneFrontendClient
-from adk.exceptions import ExperimentFailed, ExperimentValueError, JobTimeoutError
+from adk.exceptions import ApiClientError, ExperimentFailed, ExperimentValueError, JobTimeoutError
 from adk.generators.result_generator import ResultGenerator
 from adk.managers.config_manager import ConfigManager
 from adk.managers.auth_manager import AuthManager
@@ -22,8 +20,8 @@ from adk.type_aliases import (AppConfigType, app_configNetworkType, AppResultTyp
 from adk.settings import BASE_DIR
 
 
-# The status of the qne_job can be 'NEW', 'RUNNING', 'COMPLETE', 'FAILED'
 class JobStatus:
+    """ The status of the qne_job can be 'NEW', 'RUNNING', 'COMPLETE', 'FAILED' """
     NEW: str = 'NEW'
     RUNNING: str = 'RUNNING'
     COMPLETE: str = 'COMPLETE'
@@ -58,9 +56,6 @@ class RemoteApi:
         self.__password: Optional[str] = self.auth_manager.get_password(self.__base_uri)
         self.__refresh_token: Optional[str] = self.auth_manager.load_token(self.__base_uri)
 
-        self.__headers: Dict[str, str] = {}
-        self.__openapi_client_class = Client
-        self.__auth_class = TokenAuthentication
         self.__resource_manager = ResourceManager()
 
     def __login_user(self, username: str, password: str, host: str) -> str:
@@ -129,13 +124,47 @@ class RemoteApi:
             return True
         return False
 
+    def publish_application(self, application_data: ApplicationDataType) -> bool:
+        """
+        Publish the application by enabling the AppVersion.
+
+        Args:
+            application_data: application data from manifest.json
+
+        Returns:
+            True when published successfully, otherwise False
+        """
+
+        if "app_version" in application_data["remote"]:
+            # check if application exists
+            application = self.__get_application(application_data)
+
+            # application must exist
+            if application is not None:
+                # update all remote info with latest data
+                application_data["remote"]["application"] = application["url"]
+                application_data["remote"]["application_id"] = application["id"]
+                application_data["remote"]["slug"] = application["slug"]
+
+                app_version = self.__partial_update_app_version(application_data, application)
+
+                application_data["remote"]["app_version"]["app_version"] = app_version["url"]
+                application_data["remote"]["app_version"]["app_config"] = app_version["app_config"]
+                application_data["remote"]["app_version"]["app_result"] = app_version["app_result"]
+                application_data["remote"]["app_version"]["app_source"] = app_version["app_source"]
+                application_data["remote"]["app_version"]["enabled"] = not app_version["is_disabled"]
+                application_data["remote"]["app_version"]["version"] = app_version["version"]
+
+                return True
+        return False
+
     def upload_application(self,  # pylint: disable=R0914
                            application_path: Path,
                            application_data: ApplicationDataType,
                            application_config: AppConfigType,
                            application_result: AppResultType) -> ApplicationDataType:
         """
-        Upload the application to the remote server
+        Upload the application to the remote server.
 
         Args:
             application_path: location of application files
@@ -146,12 +175,7 @@ class RemoteApi:
         Returns:
             True when uploaded successfully, otherwise False
         """
-        # if application id present, update that application
-        application = None
-        application_id = None
-        if "application_id" in application_data["remote"]:
-            application_id = str(application_data["remote"]["application_id"])
-            application = self.__get_application_by_id(application_id)
+        application = self.__get_application(application_data)
 
         if application is None:
             try:
@@ -159,44 +183,78 @@ class RemoteApi:
                 application_data["remote"] = {"application": "",
                                               "application_id": 0,
                                               "slug": "",
-                                              "app_version": {"app_version": "",
-                                                              "app_config": "",
-                                                              "app_result": "",
-                                                              "app_source": ""
-                                                              }
+                                              "app_version": {
+                                                  "enabled": False,
+                                                  "version": 0,
+                                                  "app_version": "",
+                                                  "app_config": "",
+                                                  "app_result": "",
+                                                  "app_source": ""
+                                                  }
                                               }
                 # create Application
                 application = self.__create_application(application_data)
-                application_data["remote"]["application"] = application["url"]
-                application_data["remote"]["application_id"] = application["id"]
-                application_data["remote"]["slug"] = application["slug"]
-                # create AppVersion
-                app_version = self.__create_app_version(application)
-                application_data["remote"]["app_version"]["app_version"] = app_version["url"]
+
+            except Exception as e:
+                # rethrow exception
+                raise e
+
+        if application is not None:
+            # update all remote info with latest data
+            application_data["remote"]["application"] = application["url"]
+            application_data["remote"]["application_id"] = application["id"]
+            application_data["remote"]["slug"] = application["slug"]
+
+        app_version: AppVersionType = {}
+        try:
+            # create AppVersion
+            app_version = self.__create_app_version(application)
+            application_data["remote"]["app_version"]["app_version"] = app_version["url"]
+            application_data["remote"]["app_version"]["enabled"] = not app_version["is_disabled"]
+            application_data["remote"]["app_version"]["version"] = app_version["version"]
+            # new app_version reset registered application references
+            application_data["remote"]["app_version"]["app_config"] = ''
+            application_data["remote"]["app_version"]["app_result"] = ''
+            application_data["remote"]["app_version"]["app_source"] = ''
+
+        except ApiClientError as e:
+            if "Please complete" in str(e) and "app_version" in application_data["remote"]["app_version"] and \
+                                               application_data["remote"]["app_version"]["app_version"]:
+                # The (incomplete) AppVersion already existed, use this one to connect the not yet registered objects
+                app_version["url"] = application_data["remote"]["app_version"]["app_version"]
+            else:
+                # for now rethrow all other exceptions
+                raise e
+        try:
+            if not application_data["remote"]["app_version"]["app_config"]:
                 # create AppConfig
                 app_config = self.__create_app_config(application_data, application_config, app_version)
                 application_data["remote"]["app_version"]["app_config"] = app_config["url"]
+
+            if not application_data["remote"]["app_version"]["app_result"]:
                 # create AppResult
                 app_result = self.__create_app_result(application_result, app_version)
                 application_data["remote"]["app_version"]["app_result"] = app_result["url"]
+
+            if not application_data["remote"]["app_version"]["app_source"]:
                 # create AppSource
                 app_source = self.__create_app_source(application_data, app_version,
                                                       application_config, application_path)
                 application_data["remote"]["app_version"]["app_source"] = app_source["url"]
-            except Exception as e:
-                if application is not None and "id" in application:
-                    # delete app when something went wrong
-                    self.delete_application(str(application["id"]))
-                # and rethrow exception
-                raise e
-        else:
-            # Update application
+
+            # Update application when AppVersion and its components is uploaded
             application_to_update = self.__create_application_type(application_data)
-            assert application_id is not None
-            application = self.__qne_client.partial_update_application(application_id, application_to_update)
-            application_data["remote"]["application"] = application["url"]
-            application_data["remote"]["application_id"] = application["id"]
-            application_data["remote"]["slug"] = application["slug"]
+            self.__qne_client.partial_update_application(str(application["id"]), application_to_update)
+
+        except Exception as e:
+            # Something went wrong, delete the (just created) AppVersion (currently not supported by api-router)
+            # app_version_to_delete: AppVersionType = {
+            #     "application": application["url"],
+            #     "version": app_version["version"]
+            # }
+            # app_version = self.__qne_client.delete_app_version(app_version_to_delete)
+            # for now rethrow exception
+            raise e
 
         return application_data
 
@@ -240,7 +298,7 @@ class RemoteApi:
     def __create_app_version_type(application: ApplicationType, version: int = 1) -> AppVersionType:
         app_version: AppVersionType = {
             "application": application["url"],
-            "version": version
+            "is_disabled": True
         }
         return app_version
 
@@ -309,8 +367,44 @@ class RemoteApi:
 
         return app_source
 
-    def publish_application(self, application: str) -> None:
-        pass
+    @staticmethod
+    def __partial_update_version_type(application: ApplicationType) -> AppVersionType:
+        app_version: AppVersionType = {
+            "application": application["url"],
+            'is_disabled': False
+        }
+        return app_version
+
+    def __partial_update_app_version(self, application_data: ApplicationDataType,
+                                     application: ApplicationType) -> AppVersionType:
+        """
+        Create and send an AppVersion object to api-router for updating it
+        """
+        app_version_to_update = self.__partial_update_version_type(application)
+        app_version_url = application_data["remote"]["app_version"]["app_version"]
+        app_version = self.__qne_client.partial_update_app_version(app_version_url, app_version_to_update)
+
+        return app_version
+
+    def __get_application(self, application_data: ApplicationDataType) -> Optional[ApplicationType]:
+        """
+        Get the application object from api-router for this remote application
+
+        Args:
+            application_data: application information from manifest
+
+        Returns:
+            Application object or None when the application was not found remotely
+        """
+        application = None
+        if "application_id" in application_data["remote"]:
+            application_id = str(application_data["remote"]["application_id"])
+            application = self.__get_application_by_id(application_id)
+        if application is None and "slug" in application_data["remote"]:
+            application_slug = str(application_data["remote"]["slug"])
+            application = self.__get_application_by_slug(application_slug)
+
+        return application
 
     def __get_application_by_id(self, application_id: Optional[str]) -> Optional[ApplicationType]:
         """
@@ -331,7 +425,8 @@ class RemoteApi:
 
     def __get_application_by_slug(self, application_slug: str) -> Optional[ApplicationType]:
         """
-        Get the application object from api-router for this remote application
+        Get the application object from api-router for this remote application.
+        Returned applications are not disabled and either are public with enabled versions or are owned by user
 
         Args:
             application_slug: Slug of the application
@@ -362,7 +457,10 @@ class RemoteApi:
 
     def get_application_config(self, application_slug: str) -> Optional[AppConfigType]:
         """
-        Get the app config from api-router for this remote application
+        Get the app config for the relevant app_version from api-router for this remote application.
+        For the author of the application this is the app_config linked to the highest numbered app_version (which can
+        be disabled, because it is not yet published),
+        For all the other users this will be the highest versioned enabled app_version
 
         Args:
             application_slug: Slug of the application
@@ -372,7 +470,13 @@ class RemoteApi:
         """
         application = self.__get_application_by_slug(application_slug)
         if application is not None:
-            return self.__qne_client.app_config_application(str(application["url"]))
+            app_versions = self.__qne_client.app_versions_application(str(application["url"]))
+            if len(app_versions) > 0:
+                app_version = app_versions[0]
+                app_config = self.__qne_client.app_config_appversion(str(app_version["url"]))
+                if app_config["app_version"] is not None:
+                    return app_config
+
         return None
 
     def validate_application(self, application_slug: str) -> ErrorDictType:
@@ -389,7 +493,8 @@ class RemoteApi:
         """
         error_dict: ErrorDictType = utils.get_empty_errordict()
         if None is self.__get_application_by_slug(application_slug):
-            error_dict["error"].append(f"Application '{application_slug}' does not exist remotely")
+            error_dict["error"].append(f"Application '{application_slug}' does not exist, is not enabled, "
+                                       f"is not public or is owned by someone else")
 
         return error_dict
 
@@ -446,7 +551,8 @@ class RemoteApi:
                                        f"application")
         app_config = self.get_application_config(application_slug)
         if app_config is None:
-            raise ExperimentValueError(f"Application '{application_slug}' is not a remote application")
+            raise ExperimentValueError(f"Application '{application_slug}' does not have a valid application "
+                                       f"configuration")
         app_version_url = str(app_config["app_version"])
 
         if app_version != app_version_url:
@@ -552,6 +658,8 @@ class RemoteApi:
                 raise JobTimeoutError(f"Failed getting result for round set '{round_set_url}': timeout reached. "
                                       f"Try again later using command 'experiment results'")
             time.sleep(wait)
+            round_set = self.__qne_client.retrieve_roundset(round_set_url)
+            status = round_set["status"]
 
         return self.__get_results(round_set)
 

@@ -61,7 +61,6 @@ class QneClient:
 
         self.__headers: Dict[str, str] = {}
         self.__openapi_client_class = ApiStarClient
-        self.__auth_class = TokenAuthentication
         self.__client: Optional[ApiStarClient] = None
 
     def _set_open_api_client(self, auth: Optional[AuthBase] = None) -> None:
@@ -282,6 +281,15 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         response = self._action('createApplication', application=params)
         return cast(ApplicationType, response)
 
+    def partial_update_app_version(self, app_version_url: str, app_version: AppVersionType) -> AppVersionType:
+        _, app_version_id = QneClient.parse_url(app_version_url)
+        params = self._cast_parameter_type({
+            'application': app_version['application'],
+            'is_disabled': app_version['is_disabled']
+        })
+        response = self._action('partialUpdateAppVersion', id=app_version_id, appversion=params)
+        return cast(AppVersionType, response)
+
     def create_app_version(self, app_version: AppVersionType) -> AppVersionType:
         params = self._cast_parameter_type(app_version)
         response = self._action('createAppVersion', appversion=params)
@@ -306,6 +314,11 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         auth = HTTPBasicAuth(self.username, self.password)
         response = self._client_post(url=app_source_url, files=app_source_files, auth=auth)
         return cast(AppSourceType, response.json())
+
+    def app_versions_application(self, application_url: str) -> List[AppVersionType]:
+        _, application_id = QneClient.parse_url(application_url)
+        response = self._action('appVersionsApplication', id=application_id)
+        return cast(List[AppVersionType], response)
 
     def app_config_application(self, application_url: str) -> AppConfigType:
         _, application_id = QneClient.parse_url(application_url)

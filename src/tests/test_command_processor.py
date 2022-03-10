@@ -3,7 +3,8 @@ from unittest.mock import patch, MagicMock
 import unittest
 
 from adk.command_processor import CommandProcessor
-from adk.exceptions import ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication
+from adk.exceptions import (ApiClientError, AppConfigNotFound, ApplicationNotComplete, ApplicationNotFound,
+                            DirectoryAlreadyExists, NetworkNotAvailableForApplication)
 
 
 class TestCommandProcessor(unittest.TestCase):
@@ -57,6 +58,36 @@ class TestCommandProcessor(unittest.TestCase):
                                                                    application_result="app_result")
         self.local_api.set_application_data.assert_called_once_with(self.path,
                                                                     "application_data_result")
+        self.assertTrue(return_value)
+
+    def test_applications_upload_fails_to_complete_app_version(self):
+        self.local_api.get_application_config.return_value = "app_config"
+        self.local_api.get_application_data.return_value = "application_data"
+        self.local_api.get_application_result.return_value = "app_result"
+        self.remote_api.upload_application.side_effect = ApiClientError("Error: app_config creation error")
+        self.assertRaises(ApiClientError, self.processor.applications_upload, self.application, self.path)
+        self.local_api.set_application_data.assert_called_once_with(self.path, "application_data")
+
+    def test_applications_upload_fails_no_config(self):
+        self.local_api.get_application_config.return_value = None
+        self.assertRaises(ApplicationNotFound, self.processor.applications_upload, self.application, self.path)
+
+    def test_applications_upload_fails_no_app_result(self):
+        self.local_api.get_application_config.return_value = "app_config"
+        self.local_api.get_application_data.return_value = "application_data"
+        self.local_api.get_application_result.return_value = None
+        self.assertRaises(ApplicationNotComplete, self.processor.applications_upload, self.application, self.path)
+
+    def test_applications_publish(self):
+        self.local_api.get_application_data.return_value = "application_data"
+        self.local_api.get_application_result.return_value = "app_result"
+        self.remote_api.publish_application.return_value = True
+
+        return_value = self.processor.applications_publish(application_path=self.path)
+        self.local_api.get_application_data.assert_called_once_with(self.path)
+        self.remote_api.publish_application.assert_called_once_with(application_data="application_data")
+        self.local_api.set_application_data.assert_called_once_with(self.path,
+                                                                    "application_data")
         self.assertTrue(return_value)
 
     def test_applications_list(self):
@@ -127,10 +158,6 @@ class TestCommandProcessor(unittest.TestCase):
         self.remote_api.delete_application.assert_not_called()
         self.assertFalse(return_value)
 
-    def test_applications_publish(self):
-        self.processor.applications_publish(self.application)
-        self.remote_api.publish_application.assert_called_once_with(self.application)
-
     def test_applications_validate(self):
         self.remote_api.validate_application.return_value = False
         self.local_api.validate_application.return_value = True
@@ -182,7 +209,7 @@ class TestCommandProcessor(unittest.TestCase):
 
             self.local_api.get_application_config.reset_mock()
             self.local_api.get_application_config.return_value = None
-            self.assertRaises(ApplicationNotFound, self.processor.experiments_create, 'test_exp',
+            self.assertRaises(AppConfigNotFound, self.processor.experiments_create, 'test_exp',
                               'app_name', 'network_1', True, Path('test'))
 
             mock_path_exists.return_value = True

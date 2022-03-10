@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Union, Tuple
+from typing import Any, Callable, Dict, List, Union, Tuple, Optional
 from typing_extensions import TypedDict
 
 DefaultPayloadType = Union[int, str]
@@ -16,9 +16,10 @@ round_resultType = Dict[str, Any]
 cumulative_resultType = Dict[str, Any]
 final_resultType = Dict[str, Any]
 coordinatesType = Dict[str, float]
-round_result_viewType = Dict[str, Any]
-cumulative_result_viewType = Dict[str, Any]
-final_result_viewType = Dict[str, Any]
+result_componentType = Optional[List[Dict[str, Any]]]
+round_result_viewType = List[result_componentType]
+cumulative_result_viewType = List[result_componentType]
+final_result_viewType = List[result_componentType]
 parametersType = List[str]
 
 TemplateType = Dict[str, Union[DefaultPayloadType, listValuesType]]
