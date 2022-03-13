@@ -46,6 +46,7 @@ class CommandProcessor:
         """
         return self.__remote.logout(host=host)
 
+    @log_function
     def applications_create(self, application_name: str, roles: List[str], application_path: Path) -> None:
         """
         Redirects application create to local api.
@@ -56,18 +57,36 @@ class CommandProcessor:
             application_path: location of application files
 
         """
+        if application_path.exists():
+            raise DirectoryAlreadyExists('Application', str(application_path))
+
         self.__local.create_application(application_name, roles, application_path)
 
     @log_function
-    def applications_init(self, application_path: Path) -> None:
+    def applications_clone(self, application_name: str, local: bool, new_application_name: str,
+                           new_application_path: Path) -> None:
         """
-        Redirects application int to local api.
+        Clone the application by copying the required files in the local application structure.
 
         Args:
-            application_path: location of application files
+            application_name: name of the application to be cloned
+            local: Boolean flag for cloning a local application (otherwise remote)
+            new_application_name: name of the application after cloning
+            new_application_path: location of application files
 
         """
-        self.__local.init_application(application_path)
+        # check if application path is already an existing dir/file
+        if new_application_path.exists():
+            raise DirectoryAlreadyExists('Application', str(new_application_path))
+
+        if local:
+            return self.__local.clone_application(application_name=application_name,
+                                                  new_application_name=new_application_name,
+                                                  new_application_path=new_application_path)
+
+        return self.__remote.clone_application(application_name=application_name,
+                                               new_application_name=new_application_name,
+                                               new_application_path=new_application_path)
 
     @log_function
     def applications_upload(self, application_name: str, application_path: Path) -> bool:

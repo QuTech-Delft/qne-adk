@@ -157,6 +157,16 @@ def get_py_dummy() -> str:
     return dummy_main
 
 
+def get_default_manifest(application_name: str) -> Dict[str, Dict[str, Any]]:
+    default_manifest = {"application": {"name": f"{application_name}",
+                                        "description": "add description",
+                                        "author": "add your name",
+                                        "email": "add@your.email",
+                                        "multi_round": False},
+                        "remote": {}}
+    return default_manifest
+
+
 def validate_path_name(obj: str, name: str) -> None:
     """ Checks if the name of a certain object, can be used as part of a path.
     An Exception is raised when name contains an incompatible character.

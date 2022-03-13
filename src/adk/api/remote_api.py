@@ -6,7 +6,8 @@ from apistar.exceptions import ErrorResponse
 
 from adk import utils
 from adk.api.qne_client import QneFrontendClient
-from adk.exceptions import ApiClientError, ExperimentFailed, ExperimentValueError, JobTimeoutError
+from adk.exceptions import (ApiClientError, ApplicationNotFound, ExperimentFailed, ExperimentValueError,
+                            JobTimeoutError)
 from adk.generators.result_generator import ResultGenerator
 from adk.managers.config_manager import ConfigManager
 from adk.managers.auth_manager import AuthManager
@@ -123,6 +124,50 @@ class RemoteApi:
             # application deleted successfully
             return True
         return False
+
+    def clone_application(self, application_name: str, new_application_name: str,
+                          new_application_path: Path) -> None:
+        """
+        Clone the application by copying the required files in the local application structure.
+
+        Args:
+            application_name: name of the application to be cloned
+            new_application_name: name of the application after cloning
+            new_application_path: location of application files
+
+        """
+        application = self.__get_application_by_slug(application_name)
+
+        if application is None:
+            raise ApplicationNotFound(new_application_name)
+
+        new_application_name = new_application_name.lower()
+
+        local_app_src_path = new_application_path / 'src'
+        local_app_config_path = new_application_path / 'config'
+        local_app_src_path.mkdir(parents=True, exist_ok=True)
+        local_app_config_path.mkdir(parents=True, exist_ok=True)
+
+        app_config = self.__qne_client.app_config_application(application["url"])
+        utils.write_json_file(local_app_config_path / 'network.json', app_config["network"])
+        utils.write_json_file(local_app_config_path / 'application.json', app_config["application"])
+
+        app_result = self.__qne_client.app_result_application(application["url"])
+        utils.write_json_file(local_app_config_path / 'result.json',
+                              {"round_result_view": app_result["round_result_view"],
+                               "cumulative_result_view": app_result["cumulative_result_view"],
+                               "final_result_view": app_result["final_result_view"]
+                               })
+
+        app_source = self.__qne_client.app_source_application(application["url"])
+        # Create app_*.py files
+        self.__resource_manager.generate_resources(self.__qne_client, app_source, new_application_path)
+
+        # Manifest.json configuration
+        utils.write_json_file(new_application_path / 'manifest.json', utils.get_default_manifest(new_application_name))
+
+        self.__config_manager.add_application(application_name=new_application_name,
+                                              application_path=new_application_path)
 
     def publish_application(self, application_data: ApplicationDataType) -> bool:
         """

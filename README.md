@@ -76,6 +76,34 @@ Example:
 ```
 </details>
 
+<!--- QNE APPLICATION CLONE --->
+<details closed>
+<summary><b>qne application clone</b></summary>
+Clone an existing remote (--remote) or local application to the current directory.
+When a new application name is not given (remote only) the application will have the same name as the cloned
+application. An application with the new application name may not exist locally.
+A local application must be valid before it can be cloned. For cloning a remote application the user must be logged in.
+Cloning remote applications is limited to publicly available applications and applications of which the user is the
+author.
+<br></br>
+
+```
+qne application clone [OPTIONS] APPLICATION_NAME [NEW_APPLICATION_NAME]
+
+Arguments:
+  APPLICATION_NAME        Name of the application to clone  [required]
+  [NEW_APPLICATION_NAME]  New name for the cloned application
+
+
+Options:
+  --remote  Clone remote application  [default: False]
+  --help    Show this message and exit.
+
+Example:
+  qne application clone existing_application new_application
+```
+</details>
+
 <!--- QNE APPLICATION DELETE --->
 <details closed>
 <summary><b>qne application delete</b></summary>

@@ -34,13 +34,41 @@ class TestCommandProcessor(unittest.TestCase):
         self.remote_api.logout.assert_called_once_with(host=self.host)
 
     def test_applications_create(self):
-        self.processor.applications_create(application_name=self.application, roles=self.roles,
-                                           application_path=self.path)
-        self.local_api.create_application.assert_called_once_with(self.application, self.roles, self.path)
+        with patch("adk.command_processor.Path.exists") as mock_path_exists:
+            mock_path_exists.return_value = False
+            self.processor.applications_create(application_name=self.application, roles=self.roles,
+                                               application_path=self.path)
+            self.local_api.create_application.assert_called_once_with(self.application, self.roles, self.path)
 
-    def test_applications_init(self):
-        self.processor.applications_init(application_path=self.path)
-        self.local_api.init_application.assert_called_once_with(self.path)
+    def test_applications_create_fails(self):
+        with patch("adk.command_processor.Path.exists") as mock_path_exists:
+            mock_path_exists.return_value = True
+            self.assertRaises(DirectoryAlreadyExists, self.processor.applications_create, self.application,
+                              self.roles, self.path)
+
+    def test_applications_clone_local(self):
+        with patch("adk.command_processor.Path.exists") as mock_path_exists:
+            mock_path_exists.return_value = False
+            self.processor.applications_clone(self.application, True, "new_app", Path("new_path"))
+            self.local_api.clone_application.assert_called_once_with(application_name=self.application,
+                                                                     new_application_name="new_app",
+                                                                     new_application_path=Path("new_path"))
+            self.remote_api.clone_application.assert_not_called()
+
+    def test_applications_clone_remote(self):
+        with patch("adk.command_processor.Path.exists") as mock_path_exists:
+            mock_path_exists.return_value = False
+            self.processor.applications_clone(self.application, False, "new_app", Path("new_path"))
+            self.remote_api.clone_application.assert_called_once_with(application_name=self.application,
+                                                                      new_application_name="new_app",
+                                                                      new_application_path=Path("new_path"))
+            self.local_api.clone_application.assert_not_called()
+
+    def test_applications_clone_fails(self):
+        with patch("adk.command_processor.Path.exists") as mock_path_exists:
+            mock_path_exists.return_value = True
+            self.assertRaises(DirectoryAlreadyExists, self.processor.applications_clone, self.application,
+                              True, "new_app", self.path)
 
     def test_applications_upload_succeeds(self):
         self.local_api.get_application_config.return_value = "app_config"

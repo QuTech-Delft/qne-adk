@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import re
+from pathlib import Path
 from typing import Any, cast, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
@@ -59,7 +60,7 @@ class QneClient:
         self.__password: Optional[str] = self.__auth_manager.get_password(self.__base_uri)
         self.__refresh_token: Optional[str] = self.__auth_manager.load_token(self.__base_uri)
 
-        self.__headers: Dict[str, str] = {}
+        self._headers: Dict[str, str] = {}
         self.__openapi_client_class = ApiStarClient
         self.__client: Optional[ApiStarClient] = None
 
@@ -75,15 +76,15 @@ class QneClient:
 
         if self.__client:
             self.__client.transport = self.__client.init_transport(encoders=encoders,
-                                                                   headers=self.__headers,
+                                                                   headers=self._headers,
                                                                    auth=auth)
         else:
             schema_url = urljoin(self.__base_uri, 'schema/')
-            schema = self._client_get(schema_url, headers=self.__headers).json()
+            schema = self._client_get(schema_url, headers=self._headers).json()
             self.__client = self.__openapi_client_class(base_url=self.__base_uri,
                                                         schema=schema,
                                                         encoders=encoders,
-                                                        headers=self.__headers,
+                                                        headers=self._headers,
                                                         auth=auth)
 
     def _refresh_token_expired(self) -> None:
@@ -129,9 +130,9 @@ class QneClient:
 
     def _authenticate(self) -> None:
 
-        self.__headers = {}
+        self._headers = {}
         access_token = self._authentication_access_token()
-        self.__headers = {'Authorization': f'JWT {access_token}'}
+        self._headers = {'Authorization': f'JWT {access_token}'}
 
         auth_mech = TokenAuthentication(access_token, scheme="JWT")
         self._set_open_api_client(auth_mech)
@@ -329,6 +330,11 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         _, application_id = QneClient.parse_url(application_url)
         response = self._action('appResultApplication', id=application_id)
         return cast(AppResultType, response)
+
+    def app_source_application(self, application_url: str) -> AppSourceType:
+        _, application_id = QneClient.parse_url(application_url)
+        response = self._action('appSourceApplication', id=application_id)
+        return cast(AppSourceType, response)
 
     def retrieve_appversion(self, appversion_url: str) -> AppVersionType:
         _, appversion_id = QneClient.parse_url(appversion_url)
@@ -528,3 +534,21 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         _, node_id = QneClient.parse_url(node_url)
         response = self._action('retrieveNode', id=node_id)
         return cast(NodeType, response)
+
+    def download_source_files(self, source_url: str, dest_dir: Path, file_name: str) -> None:
+        """Download source files for an application to the download location.
+
+        The files are downloaded from the `source_url` and stored in the `dest_dir`.
+
+        Args:
+            source_url: remote location from which to download the source files.
+            dest_dir: local directory to which the source files should be downloaded.
+            file_name: name of the file it should have on the local disk.
+        """
+        with self._client_get(source_url, headers=self._headers, stream=True) as response:
+
+            if not dest_dir.exists():
+                dest_dir.mkdir(parents=True, exist_ok=True)
+
+            with open(str(dest_dir / file_name), 'wb') as fp:
+                fp.write(response.raw.read())

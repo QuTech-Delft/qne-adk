@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import call, patch, MagicMock, mock_open
 
 from adk.api.remote_api import RemoteApi
-from adk.exceptions import ApiClientError
+from adk.exceptions import ApiClientError, ApplicationNotFound
 
 
 class TestRemoteApi(unittest.TestCase):
@@ -163,6 +163,59 @@ class TestRemoteApiApplication(TestRemoteApi):
 
     def test_get_application_config(self):
         pass
+
+    def test_clone_application_successful(self):
+        with patch('adk.api.remote_api.Path.mkdir') as mock_mkdir, \
+             patch("adk.api.remote_api.utils.write_json_file") as write_json_file_mock, \
+             patch.object(RemoteApi, "_RemoteApi__get_application_by_slug") as get_application_by_slug_mock:
+
+            self.remote_api._RemoteApi__qne_client.app_config_application.return_value = {"network" : "the_net",
+                                                                                          "application": "the_app"}
+            self.remote_api._RemoteApi__qne_client.app_result_application.return_value = self.result
+            self.remote_api._RemoteApi__qne_client.app_source_application.return_value = "app_source"
+            get_application_by_slug_mock.return_value = self.application
+            self.remote_api.clone_application("Old_App", "New_App", self.app_path)
+
+            self.assertEqual(mock_mkdir.call_count, 2)
+            get_application_by_slug_mock.assert_called_once_with("Old_App")
+            self.remote_api._RemoteApi__qne_client.app_config_application.assert_called_once_with(
+                self.application["url"])
+            self.remote_api._RemoteApi__qne_client.app_result_application.assert_called_once_with(
+                self.application["url"])
+            self.remote_api._RemoteApi__qne_client.app_source_application.assert_called_once_with(
+                self.application["url"])
+
+            self.remote_api._RemoteApi__resource_manager.generate_resources.assert_called_once_with(
+                self.remote_api._RemoteApi__qne_client, "app_source", self.app_path)
+
+            expected_manifest = {
+                "application": {
+                    "name": "new_app",
+                    "description": "add description",
+                    "author": "add your name",
+                    "email": "add@your.email",
+                    "multi_round": False
+                },
+                "remote": {}
+            }
+            write_json_files_calls = [call(self.app_path / 'config' / 'network.json', "the_net"),
+                                      call(self.app_path / 'config' / 'application.json', "the_app"),
+                                      call(self.app_path / 'config' / 'result.json', self.result),
+                                      call(self.app_path / 'manifest.json', expected_manifest)]
+
+            write_json_file_mock.assert_has_calls(write_json_files_calls)
+            self.remote_api._RemoteApi__config_manager.add_application.assert_called_once_with(
+                application_name="new_app", application_path=self.app_path)
+
+    def test_clone_application_fails(self):
+        with patch('adk.api.remote_api.Path.mkdir') as mock_mkdir, \
+             patch("adk.api.remote_api.utils.write_json_file") as write_json_file_mock, \
+             patch.object(RemoteApi, "_RemoteApi__get_application_by_slug") as get_application_by_slug_mock:
+
+            get_application_by_slug_mock.return_value = None
+
+            self.assertRaises(ApplicationNotFound, self.remote_api.clone_application,
+                              "Old_App", "New_App", self.app_path)
 
     def test_upload_application_new_app_successful(self):
         application_data = self.application_data

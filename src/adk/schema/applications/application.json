@@ -33,7 +33,7 @@
                   "type": "string"
                 },
                 "scale_value": {
-                  "type": "number"
+                  "type": ["number", "string"]
                 }
               },
               "required": [
