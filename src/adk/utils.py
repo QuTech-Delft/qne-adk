@@ -158,12 +158,12 @@ def get_py_dummy() -> str:
 
 
 def get_default_manifest(application_name: str) -> Dict[str, Dict[str, Any]]:
-    default_manifest = {"application": {"name": f"{application_name}",
-                                        "description": "add description",
-                                        "author": "add your name",
-                                        "email": "add@your.email",
-                                        "multi_round": False},
-                        "remote": {}}
+    default_manifest: Dict[str, Dict[str, Any]] = {"application": {"name": f"{application_name}",
+                                                                   "description": "add description",
+                                                                   "author": "add your name",
+                                                                   "email": "add@your.email",
+                                                                   "multi_round": False},
+                                                   "remote": {}}
     return default_manifest
 
 

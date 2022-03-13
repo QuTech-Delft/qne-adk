@@ -297,13 +297,17 @@ class LocalApi:
         application_name = application_name.lower()
         new_application_name = new_application_name.lower()
 
+        application_path = self.__config_manager.get_application_path(application_name)
+        if application_path is None:
+            # This will never happen because of checks done earlier
+            return
+        source_app_path = Path(application_path)
+
         dest_app_src_path = new_application_path / 'src'
         dest_app_config_path = new_application_path / 'config'
         dest_app_src_path.mkdir(parents=True, exist_ok=True)
         dest_app_config_path.mkdir(parents=True, exist_ok=True)
 
-        source_app_path = self.__config_manager.get_application_path(application_name)
-        source_app_path = Path(source_app_path)
         utils.copy_files(source_app_path, new_application_path, files_list=['manifest.json'])
         utils.copy_files(source_app_path / 'config', dest_app_config_path,
                          files_list=self.__get_config_file_names())
