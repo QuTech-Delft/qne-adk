@@ -148,18 +148,18 @@ class RemoteApi:
         local_app_src_path.mkdir(parents=True, exist_ok=True)
         local_app_config_path.mkdir(parents=True, exist_ok=True)
 
-        app_config = self.__qne_client.app_config_application(application["url"])
+        app_config = self.__qne_client.app_config_application(str(application["url"]))
         utils.write_json_file(local_app_config_path / 'network.json', app_config["network"])
         utils.write_json_file(local_app_config_path / 'application.json', app_config["application"])
 
-        app_result = self.__qne_client.app_result_application(application["url"])
+        app_result = self.__qne_client.app_result_application(str(application["url"]))
         utils.write_json_file(local_app_config_path / 'result.json',
                               {"round_result_view": app_result["round_result_view"],
                                "cumulative_result_view": app_result["cumulative_result_view"],
                                "final_result_view": app_result["final_result_view"]
                                })
 
-        app_source = self.__qne_client.app_source_application(application["url"])
+        app_source = self.__qne_client.app_source_application(str(application["url"]))
         # Create app_*.py files
         self.__resource_manager.generate_resources(self.__qne_client, app_source, new_application_path)
 
