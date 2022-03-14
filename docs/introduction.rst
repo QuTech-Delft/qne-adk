@@ -130,6 +130,32 @@ Two subdirectories `src` and `config` will be created, along with the default fi
     Example:
       qne application create my_application Alice Bob
 
+application clone
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne application clone [OPTIONS] APPLICATION_NAME [NEW_APPLICATION_NAME]
+
+Clone an existing remote (--remote) or local application to the current directory.
+When a new application name is not given (remote only) the application will have the same name as the cloned
+application. An application with the new application name may not already exist locally.
+A local application must be valid before it can be cloned. For cloning a remote application the user must be logged in.
+Cloning remote applications is limited to publicly available applications and applications of which the user is the
+author.
+
+    Arguments:
+      APPLICATION_NAME  Name of the application to clone [required]
+
+      [NEW_APPLICATION_NAME]  New name for the cloned application
+
+    Options:
+      --remote  Clone remote application  [default: False]
+      --help  Show this message and exit.
+
+    Example:
+      qne application clone existing_application new_application
+
 application delete
 ^^^^^^^^^^^^^^^^^^
 

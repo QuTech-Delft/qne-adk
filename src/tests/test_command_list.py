@@ -4,7 +4,7 @@ from unittest.mock import patch
 from typer.testing import CliRunner
 
 from adk.exceptions import ApplicationNotFound, ExperimentDirectoryNotValid
-from adk.command_list import app, applications_app, experiments_app, retrieve_application_name_and_path, \
+from adk.command_list import app, applications_app, experiments_app, networks_app, retrieve_application_name_and_path, \
                              retrieve_experiment_name_and_path
 from adk.api.local_api import LocalApi
 from adk.api.remote_api import RemoteApi
@@ -54,24 +54,29 @@ class TestCommandList(unittest.TestCase):
             logout_output = self.runner.invoke(app, ['logout', host])
             self.assertIn('Not logged in to a host', logout_output.stdout)
 
-    def test_applications_create_succes(self):
+    def test_applications_create_success(self):
         with patch("adk.command_list.Path.cwd", return_value=self.path) as mock_cwd, \
+             patch.object(ConfigManager, "application_exists") as application_exists_mock, \
              patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
              patch.object(CommandProcessor, 'applications_create') as application_create_mock:
 
+            application_exists_mock.return_value = False, ""
             application_create_output = self.runner.invoke(applications_app,
-                                                           ['create', 'test_application', 'role1', 'role2'])
+                                                           ['create', self.application, 'role1', 'role2'])
             mock_cwd.assert_called_once()
             self.assertEqual(mock_validate_path_name.call_count, 3)
             application_create_mock.assert_called_once_with(application_name=self.application, roles=('role1', 'role2'),
                                                             application_path=self.path / self.application)
             self.assertEqual(application_create_output.exit_code, 0)
-            self.assertIn(f"Application 'test_application' created successfully in directory '{self.path}'",
+            self.assertIn(f"Application '{self.application}' created successfully in directory "
+                          f"'{self.path / self.application}'",
                           application_create_output.stdout)
 
     def test_applications_create_exceptions(self):
-        with patch("adk.command_list.Path.cwd", return_value='test') as mock_cwd:
+        with patch("adk.command_list.Path.cwd", return_value='test') as mock_cwd, \
+             patch.object(ConfigManager, "application_exists") as application_exists_mock:
 
+            application_exists_mock.return_value = False, ""
             # Raise NotEnoughRoles when only one or less roles are given
             application_create_output = self.runner.invoke(applications_app, ['create', 'test_application', 'role1'])
             self.assertIn('The number of roles must be higher than one', application_create_output.stdout)
@@ -114,11 +119,109 @@ class TestCommandList(unittest.TestCase):
             self.assertIn('Error: Role name can\'t contain any of the following characters: [\'/\', \'\\\', '
                           '\'*\', \':\', \'?\', \'"\', \'<\', \'>\', \'|\']', application_create_output.stdout)
 
+            # Raise ApplicationAlreadyExists
+            application_exists_mock.return_value = True, "the_path"
+            application_create_output = self.runner.invoke(applications_app,
+                                                           ['create', self.application, 'role1', 'role2'])
+            self.assertIn(f"Application '{self.application}' already exists. Application location: 'the_path'",
+                          application_create_output.stdout)
+
+            application_exists_mock.return_value = False, "the_path"
             # Raise Other Exception
             mock_cwd.side_effect = Exception("Test")
             application_create_output = self.runner.invoke(applications_app,
                                                            ['create', 'test_application', 'role1', 'role2'])
             self.assertIn("Unhandled exception: Exception('Test')", application_create_output.stdout)
+
+    def test_applications_local_clone_success(self):
+        with patch("adk.command_list.Path.cwd", return_value=self.path) as mock_cwd, \
+             patch.object(ConfigManager, "application_exists") as application_exists_mock, \
+             patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
+             patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \
+             patch.object(CommandProcessor, 'applications_validate') as applications_validate_mock, \
+             patch.object(CommandProcessor, 'applications_clone') as application_clone_mock:
+
+            application_exists_mock.return_value = False, ""
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
+            # When application is valid (no items in error, warning and info)
+            applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
+            application_clone_output = self.runner.invoke(applications_app,
+                                                          ['clone', self.application, 'new_app'])
+            mock_cwd.assert_called_once()
+            self.assertEqual(retrieve_appname_and_path_mock.call_count, 1)
+            self.assertEqual(applications_validate_mock.call_count, 1)
+            self.assertEqual(mock_validate_path_name.call_count, 1)
+            application_clone_mock.assert_called_once_with(application_name=self.application, local=True,
+                                                            new_application_name='new_app',
+                                                            new_application_path=self.path / 'new_app')
+            self.assertEqual(application_clone_output.exit_code, 0)
+            self.assertIn(f"Application 'new_app' cloned successfully in directory "
+                          f"'{self.path / 'new_app'}'",
+                          application_clone_output.stdout)
+
+    def test_applications_remote_clone_success(self):
+        with patch("adk.command_list.Path.cwd", return_value=self.path) as mock_cwd, \
+             patch.object(ConfigManager, "application_exists") as application_exists_mock, \
+             patch("adk.command_list.validate_path_name") as mock_validate_path_name, \
+             patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \
+             patch.object(CommandProcessor, 'applications_validate') as applications_validate_mock, \
+             patch.object(CommandProcessor, 'applications_clone') as application_clone_mock:
+
+            application_exists_mock.return_value = False, ""
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
+            # When application is valid (no items in error, warning and info)
+            applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
+            application_clone_output = self.runner.invoke(applications_app,
+                                                          ['clone', self.application, '--remote'])
+            mock_cwd.assert_called_once()
+            self.assertEqual(retrieve_appname_and_path_mock.call_count, 0)
+            self.assertEqual(applications_validate_mock.call_count, 0)
+            self.assertEqual(mock_validate_path_name.call_count, 1)
+            application_clone_mock.assert_called_once_with(application_name=self.application, local=False,
+                                                           new_application_name=self.application,
+                                                           new_application_path=self.path / self.application)
+            self.assertEqual(application_clone_output.exit_code, 0)
+            self.assertIn(f"Application '{self.application}' cloned successfully in directory "
+                          f"'{self.path / self.application}'",
+                          application_clone_output.stdout)
+
+    def test_applications_clone_exceptions(self):
+        with patch("adk.command_list.Path.cwd", return_value=self.path) as mock_cwd, \
+             patch.object(ConfigManager, "application_exists") as application_exists_mock, \
+             patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \
+             patch.object(CommandProcessor, 'applications_validate') as applications_validate_mock, \
+             patch.object(CommandProcessor, 'applications_clone') as application_clone_mock:
+
+            application_exists_mock.return_value = False, ""
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
+            # When application is valid (no items in error, warning and info)
+            applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
+            application_clone_output = self.runner.invoke(applications_app,
+                                                          ['clone', self.application, 'new*app'])
+
+            self.assertIn('Error: Application name can\'t contain any of the following characters: [\'/\', \'\\\', '
+                          '\'*\', \':\', \'?\', \'"\', \'<\', \'>\', \'|\']', application_clone_output.stdout)
+
+            # Raise ApplicationAlreadyExists
+            application_exists_mock.return_value = True, "the_path"
+            application_clone_output = self.runner.invoke(applications_app,
+                                                           ['clone', self.application, 'new_app'])
+            self.assertIn(f"Application 'new_app' already exists. Application location: 'the_path'",
+                          application_clone_output.stdout)
+
+            application_exists_mock.return_value = False, ""
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
+            # When application is valid (no items in error, warning and info)
+            applications_validate_mock.return_value = {"error": {"an_error"}, "warning": {}, "info": {}}
+            application_clone_output = self.runner.invoke(applications_app,
+                                                          ['clone', self.application, 'new_app'])
+            self.assertIn(f"Local application '{self.application}' is invalid. Application not cloned",
+                          application_clone_output.stdout)
+
+            application_clone_output = self.runner.invoke(applications_app,
+                                                          ['clone', self.application])
+            self.assertIn("Cloning a local application requires a new application name",
+                          application_clone_output.stdout)
 
     def test_application_delete_no_experiment_dir(self):
         with patch.object(CommandProcessor, 'applications_delete', return_value=True) as applications_delete_mock, \
@@ -150,25 +253,6 @@ class TestCommandList(unittest.TestCase):
             retrieve_appname_and_path_mock.assert_called_once()
             self.assertIn("Application files deleted, directory not empty",
                           application_delete_output.stdout)
-
-    def test_experiment_delete_no_experiment_dir(self):
-        with patch.object(CommandProcessor, 'experiments_delete', return_value=True) as experiments_delete_mock, \
-             patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
-
-            retrieve_expname_and_path_mock.return_value = self.path, self.experiment_name
-            experiment_delete_output = self.runner.invoke(experiments_app, ['delete'])
-            self.assertEqual(experiment_delete_output.exit_code, 0)
-            retrieve_expname_and_path_mock.assert_called_once()
-            self.assertIn("Experiment deleted successfully",
-                          experiment_delete_output.stdout)
-
-            retrieve_expname_and_path_mock.reset_mock()
-            experiments_delete_mock.return_value = False
-            experiment_delete_output = self.runner.invoke(experiments_app, ['delete'])
-            self.assertEqual(experiment_delete_output.exit_code, 0)
-            retrieve_expname_and_path_mock.assert_called_once()
-            self.assertIn("Experiment files deleted",
-                          experiment_delete_output.stdout)
 
     def test_retrieve_application_name_and_path(self):
         with patch("adk.command_list.validate_path_name") as validate_path_name_mock, \
@@ -378,6 +462,68 @@ class TestCommandList(unittest.TestCase):
             self.assertIn(f"Application '{self.application}' is invalid. Application not published",
                           application_publish_output.stdout)
 
+    def test_applications_list(self):
+        with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
+            list_applications_mock.side_effect = [self.app_dict_1, self.app_dict_2,
+                                                  self.app_dict_3, self.app_dict_4]
+
+            result_both = self.runner.invoke(applications_app, ['list'])
+            self.assertEqual(result_both.exit_code, 0)
+            self.assertIn('There are no local applications available', result_both.stdout)
+            self.assertIn('There are no remote applications available', result_both.stdout)
+
+            result_both = self.runner.invoke(applications_app, ['list'])
+            self.assertEqual(result_both.exit_code, 0)
+            self.assertIn('There are no local applications available', result_both.stdout)
+            self.assertIn('2 remote application(s)', result_both.stdout)
+            self.assertIn('foo', result_both.stdout)
+            self.assertIn('bar', result_both.stdout)
+
+            result_both = self.runner.invoke(applications_app, ['list'])
+            self.assertEqual(result_both.exit_code, 0)
+            self.assertIn('1 local application(s)', result_both.stdout)
+            self.assertIn('foo', result_both.stdout)
+            self.assertIn('There are no remote applications available', result_both.stdout)
+
+            result_both = self.runner.invoke(applications_app, ['list'])
+            self.assertEqual(result_both.exit_code, 0)
+            self.assertIn('1 local application(s)', result_both.stdout)
+            self.assertIn('1 remote application(s)', result_both.stdout)
+            self.assertIn('foo', result_both.stdout)
+            self.assertIn('bar', result_both.stdout)
+
+    def test_applications_list_local(self):
+        with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
+            list_applications_mock.side_effect = [self.app_dict_5, self.app_dict_6]
+
+            result_local = self.runner.invoke(applications_app, ['list', '--local'])
+            self.assertEqual(result_local.exit_code, 0)
+            self.assertIn('There are no local applications available', result_local.stdout)
+            self.assertNotIn('remote', result_local.stdout)
+
+            result_local = self.runner.invoke(applications_app, ['list', '--local'])
+            self.assertEqual(result_local.exit_code, 0)
+            self.assertIn('2 local application(s)', result_local.stdout)
+            self.assertIn('foo', result_local.stdout)
+            self.assertIn('bar', result_local.stdout)
+            self.assertNotIn('remote', result_local.stdout)
+
+    def test_applications_list_remote(self):
+        with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
+            list_applications_mock.side_effect = [self.app_dict_7, self.app_dict_8]
+
+            result_remote = self.runner.invoke(applications_app, ['list', '--remote'])
+            self.assertEqual(result_remote.exit_code, 0)
+            self.assertIn('There are no remote applications available', result_remote.stdout)
+            self.assertNotIn('local', result_remote.stdout)
+
+            result_remote = self.runner.invoke(applications_app, ['list', '--remote'])
+            self.assertEqual(result_remote.exit_code, 0)
+            self.assertIn('2 remote application(s)', result_remote.stdout)
+            self.assertIn('foo', result_remote.stdout)
+            self.assertIn('bar', result_remote.stdout)
+            self.assertNotIn('local', result_remote.stdout)
+
     def test_experiment_create(self):
         with patch("adk.command_list.Path.cwd") as mock_cwd, \
              patch.object(CommandProcessor, 'experiments_create') as experiment_create_mock, \
@@ -486,6 +632,25 @@ class TestCommandList(unittest.TestCase):
             show_validation_messages_mock.assert_called_once()
             self.assertIn("Experiment is valid", experiment_validate_output.stdout)
 
+    def test_experiment_delete_no_experiment_dir(self):
+        with patch.object(CommandProcessor, 'experiments_delete', return_value=True) as experiments_delete_mock, \
+             patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
+
+            retrieve_expname_and_path_mock.return_value = self.path, self.experiment_name
+            experiment_delete_output = self.runner.invoke(experiments_app, ['delete'])
+            self.assertEqual(experiment_delete_output.exit_code, 0)
+            retrieve_expname_and_path_mock.assert_called_once()
+            self.assertIn("Experiment deleted successfully",
+                          experiment_delete_output.stdout)
+
+            retrieve_expname_and_path_mock.reset_mock()
+            experiments_delete_mock.return_value = False
+            experiment_delete_output = self.runner.invoke(experiments_app, ['delete'])
+            self.assertEqual(experiment_delete_output.exit_code, 0)
+            retrieve_expname_and_path_mock.assert_called_once()
+            self.assertIn("Experiment files deleted",
+                          experiment_delete_output.stdout)
+
     def test_experiment_delete_with_experiment_dir(self):
         with patch.object(CommandProcessor, 'experiments_delete', return_value=False) as experiments_delete_mock, \
              patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
@@ -497,6 +662,23 @@ class TestCommandList(unittest.TestCase):
             self.assertEqual(experiment_delete_output.exit_code, 0)
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertIn("Experiment files deleted, directory not empty",
+                          experiment_delete_output.stdout)
+
+    def test_experiment_delete_remote_with_experiment_dir(self):
+        with patch.object(CommandProcessor, 'experiments_delete_remote_only',
+                          return_value=False) as experiments_delete_mock:
+
+            experiment_delete_output = self.runner.invoke(experiments_app, ['delete', '--remote'])
+            self.assertIn("Remote experiment not deleted. No remote experiment id given",
+                          experiment_delete_output.stdout)
+
+            experiment_delete_output = self.runner.invoke(experiments_app, ['delete', '--remote', 'exp_dir'])
+            self.assertIn("Remote experiment not deleted. No valid experiment id given",
+                          experiment_delete_output.stdout)
+
+            experiments_delete_mock.return_value = True
+            experiment_delete_output = self.runner.invoke(experiments_app, ['delete', '--remote', 'exp_dir'])
+            self.assertIn(f"Remote experiment with experiment name or id 'exp_dir' deleted successfully",
                           experiment_delete_output.stdout)
 
     def test_experiment_run(self):
@@ -549,64 +731,25 @@ class TestCommandList(unittest.TestCase):
             self.assertIn(f"Results are stored at location '{self.path / 'results' / 'processed.json'}'",
                           exp_results_output.stdout)
 
-    def test_applications_list(self):
-        with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
-            list_applications_mock.side_effect = [self.app_dict_1, self.app_dict_2,
-                                                  self.app_dict_3, self.app_dict_4]
+    def test_networks_update(self):
+        with patch.object(CommandProcessor, "networks_update") as networks_update_mock:
 
-            result_both = self.runner.invoke(applications_app, ['list'])
-            self.assertEqual(result_both.exit_code, 0)
-            self.assertIn('There are no local applications available', result_both.stdout)
-            self.assertIn('There are no remote applications available', result_both.stdout)
+            networks_update_mock.return_value = True
+            result_update = self.runner.invoke(networks_app, ['update'])
+            networks_update_mock.assert_called_once_with(overwrite=False)
+            self.assertEqual(result_update.exit_code, 0)
+            self.assertIn('The local networks are updated', result_update.stdout)
 
-            result_both = self.runner.invoke(applications_app, ['list'])
-            self.assertEqual(result_both.exit_code, 0)
-            self.assertIn('There are no local applications available', result_both.stdout)
-            self.assertIn('2 remote application(s)', result_both.stdout)
-            self.assertIn('foo', result_both.stdout)
-            self.assertIn('bar', result_both.stdout)
+            networks_update_mock.reset_mock()
+            networks_update_mock.return_value = True
+            result_update = self.runner.invoke(networks_app, ['update', '--overwrite'])
+            networks_update_mock.assert_called_once_with(overwrite=True)
+            self.assertEqual(result_update.exit_code, 0)
+            self.assertIn('The local networks are updated', result_update.stdout)
 
-            result_both = self.runner.invoke(applications_app, ['list'])
-            self.assertEqual(result_both.exit_code, 0)
-            self.assertIn('1 local application(s)', result_both.stdout)
-            self.assertIn('foo', result_both.stdout)
-            self.assertIn('There are no remote applications available', result_both.stdout)
-
-            result_both = self.runner.invoke(applications_app, ['list'])
-            self.assertEqual(result_both.exit_code, 0)
-            self.assertIn('1 local application(s)', result_both.stdout)
-            self.assertIn('1 remote application(s)', result_both.stdout)
-            self.assertIn('foo', result_both.stdout)
-            self.assertIn('bar', result_both.stdout)
-
-    def test_applications_list_local(self):
-        with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
-            list_applications_mock.side_effect = [self.app_dict_5, self.app_dict_6]
-
-            result_local = self.runner.invoke(applications_app, ['list', '--local'])
-            self.assertEqual(result_local.exit_code, 0)
-            self.assertIn('There are no local applications available', result_local.stdout)
-            self.assertNotIn('remote', result_local.stdout)
-
-            result_local = self.runner.invoke(applications_app, ['list', '--local'])
-            self.assertEqual(result_local.exit_code, 0)
-            self.assertIn('2 local application(s)', result_local.stdout)
-            self.assertIn('foo', result_local.stdout)
-            self.assertIn('bar', result_local.stdout)
-            self.assertNotIn('remote', result_local.stdout)
-
-    def test_applications_list_remote(self):
-        with patch.object(CommandProcessor, "applications_list") as list_applications_mock:
-            list_applications_mock.side_effect = [self.app_dict_7, self.app_dict_8]
-
-            result_remote = self.runner.invoke(applications_app, ['list', '--remote'])
-            self.assertEqual(result_remote.exit_code, 0)
-            self.assertIn('There are no remote applications available', result_remote.stdout)
-            self.assertNotIn('local', result_remote.stdout)
-
-            result_remote = self.runner.invoke(applications_app, ['list', '--remote'])
-            self.assertEqual(result_remote.exit_code, 0)
-            self.assertIn('2 remote application(s)', result_remote.stdout)
-            self.assertIn('foo', result_remote.stdout)
-            self.assertIn('bar', result_remote.stdout)
-            self.assertNotIn('local', result_remote.stdout)
+            networks_update_mock.reset_mock()
+            networks_update_mock.return_value = False
+            result_update = self.runner.invoke(networks_app, ['update'])
+            networks_update_mock.assert_called_once_with(overwrite=False)
+            self.assertEqual(result_update.exit_code, 0)
+            self.assertIn('The local networks are not updated completely', result_update.stdout)

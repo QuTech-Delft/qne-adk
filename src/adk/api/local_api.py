@@ -5,7 +5,7 @@ import shutil
 from typing import Any, cast, Dict, List, Optional
 
 from adk import utils
-from adk.exceptions import (ApplicationAlreadyExists, ApplicationDoesNotExist, DirectoryAlreadyExists,
+from adk.exceptions import (ApplicationDoesNotExist,
                             ExperimentDirectoryNotValid, ExperimentValueError, JsonFileNotFound, MalformedJsonFile,
                             NetworkNotFound, NoNetworkAvailable, PackageNotComplete, SchemaError)
 from adk.managers.config_manager import ConfigManager
@@ -188,7 +188,7 @@ class LocalApi:
         """
         return [self.__networks_data["networks"][network] for network in self.__networks_data["networks"]]
 
-    def  _get_template_params_max_min_range(self) -> Dict[str, Dict[str, Dict[str, Any]]]:
+    def _get_template_params_max_min_range(self) -> Dict[str, Dict[str, Dict[str, Any]]]:
         """
         Get the maximum and minimum value for all the template parameters
 
@@ -277,29 +277,53 @@ class LocalApi:
         application_data = utils.read_json_file(manifest_json_file)
         return cast(ApplicationDataType, application_data)
 
-    def create_application(self, application_name: str, roles: List[str], application_path: Path) -> None:
+    def clone_application(self, application_name: str, new_application_name: str,
+                          new_application_path: Path) -> None:
         """
-        Creates the application by checking if the application name does not exist and calling
-        create_application_structure.
+        Clone the application by copying the required files in the local application structure.
+
+        Creates the application directory structure and copies the necessary files from the source application.
+        Each application will consist of a manifest.json and two directories: application and config.
+        In the directory application, the files network.json, application.json and
+        result.json will be copied. In the directory config, python files will be copied according to the value of
+        the roles in the source application.
 
         Args:
-            application_name: name of the application
-            roles: a list of roles
-            application_path: the path where the application is stored
+            application_name: name of the application to be cloned
+            new_application_name: name of the application after cloning
+            new_application_path: location of application files
 
-        Raises:
-            ApplicationAlreadyExists: Raised when application name is not unique
         """
-        application_exists, existing_application_path = self.__config_manager.application_exists(application_name)
-        if application_exists:
-            raise ApplicationAlreadyExists(application_name, existing_application_path)
+        application_name = application_name.lower()
+        new_application_name = new_application_name.lower()
 
-        self.__create_application_structure(application_name, roles, application_path)
+        application_path = self.__config_manager.get_application_path(application_name)
+        if application_path is None:
+            # This will never happen because of checks done earlier
+            return
+        source_app_path = Path(application_path)
 
-    def init_application(self, application_path: Path) -> None:
-        """ TODO """
+        dest_app_src_path = new_application_path / 'src'
+        dest_app_config_path = new_application_path / 'config'
+        dest_app_src_path.mkdir(parents=True, exist_ok=True)
+        dest_app_config_path.mkdir(parents=True, exist_ok=True)
 
-    def __create_application_structure(self, application_name: str, roles: List[str], application_path: Path) -> None:
+        utils.copy_files(source_app_path, new_application_path, files_list=['manifest.json'])
+        utils.copy_files(source_app_path / 'config', dest_app_config_path,
+                         files_list=self.__get_config_file_names())
+        utils.copy_files(source_app_path / 'src', dest_app_src_path,
+                         files_list=self.__get_role_file_names(app_config_path=source_app_path / 'config'))
+        application_data = self.get_application_data(source_app_path)
+        # only fill the fields that change with a new application
+        application_data["application"]["name"] = new_application_name
+        application_data["application"]["description"] = "add description"
+        # reset remote
+        application_data["remote"] = {}
+        self.set_application_data(new_application_path, application_data)
+        self.__config_manager.add_application(application_name=new_application_name,
+                                              application_path=new_application_path)
+
+    def create_application(self, application_name: str, roles: List[str], application_path: Path) -> None:
         """
         Creates the application directory structure. Each application will consist of a manifest.json and two
         directories: application and config. In the directory application, the files network.json, application.json and
@@ -315,10 +339,6 @@ class LocalApi:
             DirectoryAlreadyExists: Raised when directory (or file) application_name already exists
         """
         application_name = application_name.lower()
-
-        # check if application path is already an existing dir/file
-        if application_path.exists():
-            raise DirectoryAlreadyExists('Application', str(application_path))
 
         # code to create the local application in root dir
         app_src_path = application_path / 'src'
@@ -359,12 +379,7 @@ class LocalApi:
                                                                 })
 
         # Manifest.json configuration
-        utils.write_json_file(application_path / 'manifest.json', {"application": {"name": f"{application_name}",
-                                                                                   "description": "add description",
-                                                                                   "author": "add your name",
-                                                                                   "email": "add@your.email",
-                                                                                   "multi_round": False},
-                                                                   "remote": {}})
+        utils.write_json_file(application_path / 'manifest.json', utils.get_default_manifest(application_name))
 
         self.__config_manager.add_application(application_name=application_name, application_path=application_path)
 
@@ -488,7 +503,7 @@ class LocalApi:
         return all_subdir_deleted and application_dir_deleted
 
     @staticmethod
-    def __validate_manifest_json(application_path: Path, error_dict: ErrorDictType) -> None:
+    def __is_manifest_valid_json(application_path: Path, error_dict: ErrorDictType) -> None:
         """
         This function validates if manifest.json contains valid json and if it passes schema validation.
 
@@ -528,9 +543,10 @@ class LocalApi:
         application_exists, _ = self.__config_manager.application_exists(application_name)
 
         if application_exists:
-            self.__validate_manifest_json(application_path, error_dict)
+            self.__is_manifest_valid_json(application_path, error_dict)
             self.__is_structure_valid(application_path, error_dict)
-            self.__is_config_valid(application_path, error_dict)
+            self.__is_application_config_valid(application_path, error_dict)
+            self.__is_config_valid_json(application_path, error_dict)
             self.__is_python_valid(application_path, error_dict)
             self.__is_result_config_valid(application_path, error_dict)
         else:
@@ -587,7 +603,7 @@ class LocalApi:
 
         return None
 
-    def __is_config_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
+    def __is_config_valid_json(self, application_path: Path, error_dict: ErrorDictType) -> None:
         # Validate if json string is correct and validate against json schema's
         app_schema_path = Path(BASE_DIR) / 'schema/applications'
         app_config_path = application_path / 'config'
@@ -605,6 +621,21 @@ class LocalApi:
     @staticmethod
     def __get_simulator_file_names() -> List[str]:
         return ['roles.yaml', 'network.yaml']
+
+    @staticmethod
+    def __get_application_role_names(app_config_path: Path) -> List[str]:
+        """
+        Get the roles used in this application/experiment from config/application.json
+        """
+        app_config_application: app_configApplicationType = utils.read_json_file(app_config_path / 'application.json')
+        roles = []
+
+        for input_template in app_config_application:
+            for role in input_template['roles']:
+                if role not in roles:
+                    roles.append(role)
+
+        return roles
 
     @staticmethod
     def __get_role_names(app_config_path: Path) -> List[str]:
@@ -631,6 +662,29 @@ class LocalApi:
         result = re.search('app_(.*).py', role_file)
         return result.group(1) if result else None
 
+    def __is_application_config_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
+        """
+        Only when network.json and application.json are valid check roles from application.json if they are
+        in network.json
+        """
+        app_config_path = application_path / 'config'
+
+        valid_network, _ = validate_json_file(app_config_path / 'network.json')
+        # if not valid network.json it will be reported in __is_config_valid_json
+        valid_application, _ = validate_json_file(app_config_path / 'application.json')
+        # if not valid application.json it will be reported in __is_config_valid_json
+        if valid_network and valid_application:
+            application_roles = self.__get_application_role_names(app_config_path)
+            network_roles = self.__get_role_names(app_config_path)
+
+            # Check if the roles in the config/application.json match as roles in the config/network.json
+            application_files_not_in_network = [role for role in application_roles if role not in network_roles]
+            for application_role_name in application_files_not_in_network:
+                error_dict["error"].append(
+                    f"The application role '{application_role_name}' in "
+                    f"'{app_config_path / 'application.json'}' not found in "
+                    f"'{app_config_path / 'network.json'}'")
+
     def __is_structure_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
         app_config_path = application_path / 'config'
         app_src_path = application_path / 'src'
@@ -644,20 +698,19 @@ class LocalApi:
             error_dict["error"].append(f"{application_path} should contain a 'config' directory")
 
         if app_src_path.is_dir():
-            valid, _ = validate_json_file(app_config_path / 'application.json')
-            # if not valid json it will be reported in __is_config_valid
+            valid, _ = validate_json_file(app_config_path / 'network.json')
+            # if not valid network.json it will be reported in __is_config_valid_json
             if valid:
                 application_file_names = self.__get_role_file_names(app_config_path)
-
                 # Get all the files in the src directory
                 src_dir_files = os.listdir(app_src_path)
 
-                # Check if the roles in the config/application.json match as file names in the src directory
+                # Check if the roles in the config/network.json match as file names in the src directory
                 application_files_not_in_src = [role for role in application_file_names if role not in src_dir_files]
                 for application_file_name in application_files_not_in_src:
                     error_dict["error"].append(
                         f"The application file '{application_file_name}' for the corresponding role in "
-                        f"'{app_config_path / 'application.json'}' not found in '{app_src_path}'")
+                        f"'{app_config_path / 'network.json'}' not found in '{app_src_path}'")
         else:
             error_dict["error"].append(f"{application_path} should contain a 'src' directory")
 
@@ -723,7 +776,7 @@ class LocalApi:
 
         Args:
             application_path: Path of where the application is located
-            role: Name of the role for which inputs are needed
+            role: Lower case name of the role for which inputs are needed
 
         Returns:
             A List containing inputs available for the role
@@ -1632,7 +1685,7 @@ class LocalApi:
         param_templates = self._get_templates()
         param_max_min_dict = self._get_template_params_max_min_range()
 
-        for param in entity_params: # pylint: disable=R1702 too-many-nested-blocks
+        for param in entity_params:  # pylint: disable=R1702 too-many-nested-blocks
             if param["slug"] in param_templates:
                 for value in param["values"]:
                     if value["name"] in param_max_min_dict[param["slug"]]:
@@ -1684,7 +1737,7 @@ class LocalApi:
         for role, node in experiment_roles.items():
             if node not in network_nodes:
                 error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': Node '{node}' used for"
-                    f" role '{role}' is not valid for the application")
+                                           f" role '{role}' is not valid for the application")
             if nodes_used.count(node) > 1:
                 duplicate_nodes.append(node)
 

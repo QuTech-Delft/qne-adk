@@ -15,8 +15,8 @@ from adk.api.local_api import LocalApi
 from adk.api.remote_api import RemoteApi
 from adk.command_processor import CommandProcessor
 from adk.decorators import catch_qne_adk_exceptions
-from adk.exceptions import NotEnoughRoles, RolesNotUnique, CommandNotImplemented, ExperimentDirectoryNotValid, \
-                           ApplicationNotFound
+from adk.exceptions import (ApplicationAlreadyExists, ApplicationNotFound, ExperimentDirectoryNotValid,
+                            NotEnoughRoles, RolesNotUnique)
 from adk.managers.config_manager import ConfigManager
 from adk.settings import Settings
 from adk.type_aliases import ErrorDictType
@@ -69,36 +69,6 @@ def logout(host: Optional[str] = typer.Argument(None)) -> None:
         typer.echo("Not logged in to a host")
 
 
-@applications_app.command("create")
-@catch_qne_adk_exceptions
-def applications_create(
-    application_name: str = typer.Argument(..., help="Name of the application"),
-    roles: List[str] = typer.Argument(..., help="Names of the roles to be created"),
-) -> None:
-    """
-    Create new application.
-
-    For example: qne application create my_application Alice Bob
-    """
-
-    # Check roles
-    if len(roles) <= 1:
-        raise NotEnoughRoles()
-    # Lower case roles for testing for the same role
-    lower_case_roles = [role.lower() for role in roles]
-    if not all(lower_case_roles.count(role) == 1 for role in lower_case_roles):
-        raise RolesNotUnique()
-
-    validate_path_name("Application", application_name)
-    for role in roles:
-        validate_path_name("Role", role)
-
-    cwd = Path.cwd()
-    application_path = cwd / application_name
-    processor.applications_create(application_name=application_name, roles=roles, application_path=application_path)
-    typer.echo(f"Application '{application_name}' created successfully in directory '{str(cwd)}'")
-
-
 def retrieve_application_name_and_path(application_name: Optional[str]) -> Tuple[Path, str]:
     """
     For local applications only
@@ -121,13 +91,95 @@ def retrieve_application_name_and_path(application_name: Optional[str]) -> Tuple
     return application_path, application_name
 
 
-@applications_app.command("init")
+def show_validation_messages(validation_dict: ErrorDictType) -> None:
+    """
+    Show the error, warnings and info messages collected during validation.
+    """
+    for key in validation_dict:
+        if validation_dict[key]:
+            for item in validation_dict[key]:
+                typer.echo(f"{key.upper()}: {item}")
+
+
+@applications_app.command("create")
 @catch_qne_adk_exceptions
-def applications_init() -> None:
+def applications_create(
+    application_name: str = typer.Argument(..., help="Name of the application"),
+    roles: List[str] = typer.Argument(..., help="Names of the roles to be created"),
+) -> None:
     """
-    Initialize an existing application.
+    Create new application.
+
+    For example: qne application create my_application Alice Bob
     """
-    raise CommandNotImplemented
+
+    # Check roles
+    if len(roles) <= 1:
+        raise NotEnoughRoles()
+    # Lower case roles for testing for the same role
+    lower_case_roles = [role.lower() for role in roles]
+    if not all(lower_case_roles.count(role) == 1 for role in lower_case_roles):
+        raise RolesNotUnique()
+
+    validate_path_name("Application", application_name)
+
+    application_exists, existing_application_path = config_manager.application_exists(application_name)
+    if application_exists:
+        raise ApplicationAlreadyExists(application_name, existing_application_path)
+
+    for role in roles:
+        validate_path_name("Role", role)
+
+    cwd = Path.cwd()
+    application_path = cwd / application_name
+    processor.applications_create(application_name=application_name, roles=roles, application_path=application_path)
+    typer.echo(f"Application '{application_name}' created successfully in directory '{str(application_path)}'")
+
+
+@applications_app.command("clone")
+@catch_qne_adk_exceptions
+def applications_clone(
+    application_name: str = typer.Argument(..., help="Name of the application to clone"),
+    remote: Optional[bool] = typer.Option(False, "--remote", help="Clone remote application"),
+    new_application_name: Optional[str] = typer.Argument(None, help="New name for the cloned application"),
+) -> None:
+    """
+    Clone an existing remote or local application.
+
+    For example: qne application clone existing_application new_application
+    """
+    local = not remote
+    if new_application_name is None:
+        if local:
+            typer.echo("Cloning a local application requires a new application name")
+            return
+        new_application_name = application_name
+
+    cwd = Path.cwd()
+    new_application_path = cwd / new_application_name
+
+    # check for existence
+    validate_path_name("Application", new_application_name)
+
+    application_exists, existing_application_path = config_manager.application_exists(new_application_name)
+    if application_exists:
+        raise ApplicationAlreadyExists(new_application_name, existing_application_path)
+
+    if local:
+        application_path, application_name = retrieve_application_name_and_path(application_name=application_name)
+        validate_dict = processor.applications_validate(application_name=application_name,
+                                                        application_path=application_path)
+        if validate_dict["error"] or validate_dict["warning"]:
+            show_validation_messages(validate_dict)
+            typer.echo(f"Local application '{application_name}' is invalid. Application not cloned")
+            return
+
+    processor.applications_clone(application_name=application_name,
+                                 local=local,
+                                 new_application_name=new_application_name,
+                                 new_application_path=new_application_path)
+
+    typer.echo(f"Application '{new_application_name}' cloned successfully in directory '{str(new_application_path)}'")
 
 
 @applications_app.command("delete")
@@ -253,16 +305,6 @@ def applications_list(
             typer.echo(f'{len(applications["remote"])} remote application(s)')
 
 
-def show_validation_messages(validation_dict: ErrorDictType) -> None:
-    """
-    Show the error, warnings and info messages collected during validation.
-    """
-    for key in validation_dict:
-        if validation_dict[key]:
-            for item in validation_dict[key]:
-                typer.echo(f"{key.upper()}: {item}")
-
-
 @applications_app.command("validate")
 @catch_qne_adk_exceptions
 def applications_validate(
@@ -384,7 +426,8 @@ def experiments_delete(
         else:
             deleted_completely = processor.experiments_delete_remote_only(experiment_name_or_id)
             if deleted_completely:
-                typer.echo(f"Remote experiment with experiment id {experiment_name_or_id} deleted successfully")
+                typer.echo(f"Remote experiment with experiment name or id '{experiment_name_or_id}' deleted "
+                           f"successfully")
             else:
                 typer.echo("Remote experiment not deleted. No valid experiment id given")
     else:
