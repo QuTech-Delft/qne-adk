@@ -53,11 +53,37 @@ Example:
 ```
 </details>
 
+<!--- QNE APPLICATION INIT --->
+<details closed>
+<summary><b>qne application init</b></summary>
+Initialize an existing application in the current path which is not already registered to QNE-ADK.
+This is needed for applications not created with QNE-ADK, for example when the files come from a
+repository or are directly copied to the file system.
+Two subdirectories <b>src</b> and <b>config</b> will be created when not already there.
+When application files are in the root directory, but belong to one of the subdirectories, they are moved.
+<br></br>
+
+```
+qne application init [OPTIONS] APPLICATION_NAME
+
+  ./application_name is taken as application directory
+
+Arguments:
+  APPLICATION_NAME  Name of the application  [required]
+
+Options:
+  --help    Show this message and exit.
+
+Example:
+  qne application init application_name
+```
+</details>
+
 <!--- QNE APPLICATION CREATE --->
 <details closed>
 <summary><b>qne application create</b></summary>
 Create a new application in your current directory containing all the files that are needed to write your application.
-The application directory name will be based on the value given to <b>application</b>.
+The application directory name will be based on the value given to <b>application_name</b>.
 Two subdirectories <b>src</b> and <b>config</b> will be created, along with the default files.
 <br></br>
 

@@ -1,10 +1,10 @@
 from pathlib import Path
 import os
 import tarfile
-from typing import cast, Tuple
+from typing import cast, Tuple, List
 
 from adk.api.qne_client import QneFrontendClient
-from adk.type_aliases import app_configNetworkType, ApplicationDataType, AppSourceType
+from adk.type_aliases import ApplicationDataType, AppSourceType
 
 
 class ResourceManager:
@@ -16,7 +16,7 @@ class ResourceManager:
     """
     @staticmethod
     def prepare_resources(application_data: ApplicationDataType, application_path: Path,
-                          app_config: app_configNetworkType) -> Tuple[str, str]:
+                          files_list: List[str]) -> Tuple[str, str]:
         """ The app-files needed for running the application are in the src directory. For each role a
         source file is expected and added to the tarball.
 
@@ -25,7 +25,7 @@ class ResourceManager:
         Args:
             application_data: application data from manifest.json
             application_path: path to application files (local)
-            app_config: app_config data for this application
+            files_list: list of application files for this application
 
         Returns:
             the full path to the tarball and the file name of the tarball
@@ -34,8 +34,7 @@ class ResourceManager:
         app_file_name = (application_data["remote"]["slug"] + ".tar.gz")
         app_file_path = app_src_path / app_file_name
         with tarfile.open(app_file_path, "w:gz") as tar:
-            for role in app_config["roles"]:
-                arc_name = f'app_{role.lower()}.py'
+            for arc_name in files_list:
                 file_name = app_src_path / arc_name
                 tar.add(name=file_name, arcname=arc_name, recursive=False)
         return str(app_file_path), app_file_name

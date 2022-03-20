@@ -331,6 +331,84 @@ class ApplicationValidate(AppValidate):
             read_json_file_mock.side_effect = JsonFileNotFound("networks/networks.json")
             self.assertRaises(PackageNotComplete, LocalApi, self.config_manager)
 
+    def test_init_application_new_manifest(self):
+        with patch('adk.api.local_api.Path.mkdir') as mock_mkdir, \
+             patch("adk.api.local_api.Path.is_file") as mock_is_file, \
+             patch("adk.api.local_api.Path.exists") as mock_path_exists, \
+             patch("adk.api.local_api.utils.move_files") as move_files_mock, \
+             patch("adk.api.local_api.utils.get_default_manifest") as get_default_manifest_mock, \
+             patch.object(self.local_api, 'get_application_data') as get_application_data_mock, \
+             patch.object(self.local_api, 'set_application_data') as set_application_data_mock, \
+             patch.object(self.local_api, 'get_application_file_names') as get_application_file_names_mock, \
+             patch.object(self.config_manager, 'add_application') as add_application_mock:
+
+            mock_path_exists.side_effect = [False, False]
+            mock_is_file.return_value = False
+            get_default_manifest_mock.return_value = {"application": {"name": self.application},
+                                                      "remote": {}}
+            get_application_data_mock.return_value = self.mock_app_manifest
+            get_application_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "lib.py"]
+
+            self.local_api.init_application(self.application, self.path)
+
+            move_files_calls = [call(self.path, self.path / 'config',
+                                     files_list=['application.json', 'network.json', 'result.json']),
+                                call(self.path, self.path / 'src',
+                                     files_list=["app_role1.py", "app_role2.py", "lib.py"])]
+            move_files_mock.assert_has_calls(move_files_calls, any_order=True)
+            get_default_manifest_mock.assert_called_once_with(self.application)
+            self.assertEqual(mock_mkdir.call_count, 2)
+            expected_manifest = {
+                "application": {
+                    "name": "test_application",
+                },
+                "remote": {}
+            }
+            set_application_data_mock.assert_called_once_with(self.path, expected_manifest)
+            add_application_mock.assert_called_once_with(application_name="test_application",
+                                                         application_path=self.path)
+
+    def test_init_application_manifest_exists(self):
+        with patch('adk.api.local_api.Path.mkdir') as mock_mkdir, \
+             patch("adk.api.local_api.Path.is_file") as mock_is_file, \
+             patch("adk.api.local_api.Path.exists") as mock_path_exists, \
+             patch("adk.api.local_api.utils.move_files") as move_files_mock, \
+             patch("adk.api.local_api.utils.get_default_manifest") as get_default_manifest_mock, \
+             patch.object(self.local_api, 'get_application_data') as get_application_data_mock, \
+             patch.object(self.local_api, 'set_application_data') as set_application_data_mock, \
+             patch.object(self.local_api, 'get_application_file_names') as get_application_file_names_mock, \
+             patch.object(self.config_manager, 'add_application') as add_application_mock:
+
+            mock_path_exists.side_effect = [True, True]
+            mock_is_file.return_value = True
+            get_default_manifest_mock.return_value = {"application": {"name": self.application},
+                                                      "remote": {}}
+            get_application_data_mock.return_value = self.mock_app_manifest
+            get_application_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "lib.py"]
+
+            self.local_api.init_application(self.application, self.path)
+
+            move_files_calls = [call(self.path, self.path / 'config',
+                                     files_list=['application.json', 'network.json', 'result.json']),
+                                call(self.path, self.path / 'src',
+                                     files_list=["app_role1.py", "app_role2.py", "lib.py"])]
+            move_files_mock.assert_has_calls(move_files_calls, any_order=True)
+            get_default_manifest_mock.assert_not_called()
+            mock_mkdir.assert_not_called()
+            expected_manifest = {
+                "application": {
+                    "name": "test_application",
+                    "description": "add description",
+                    "author": "add your name",
+                    "email": "add@your.email",
+                    "multi_round": False
+                },
+                "remote": {}
+            }
+            set_application_data_mock.assert_called_once_with(self.path, expected_manifest)
+            add_application_mock.assert_called_once_with(application_name="test_application",
+                                                         application_path=self.path)
+
     def test_create_application(self):
         with patch('adk.api.local_api.Path.mkdir') as mock_mkdir, \
              patch("adk.api.local_api.Path.exists") as mock_path_exists, \
@@ -366,12 +444,12 @@ class ApplicationValidate(AppValidate):
              patch("adk.api.local_api.utils.copy_files") as copy_files_mock, \
              patch.object(self.local_api, 'get_application_data') as get_application_data_mock, \
              patch.object(self.local_api, 'set_application_data') as set_application_data_mock, \
-             patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
+             patch.object(self.local_api, 'get_application_file_names') as get_application_file_names_mock, \
              patch.object(self.config_manager, 'get_application_path') as get_application_path_mock, \
              patch.object(self.config_manager, 'add_application') as add_application_mock:
 
             get_application_path_mock.return_value = self.path / 'old'
-            get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "app_role3.py"]
+            get_application_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "app_role3.py", "lib.py"]
             get_application_data_mock.return_value = self.mock_app_manifest
             self.local_api.clone_application(self.application, "New_App", self.path)
 
@@ -380,7 +458,7 @@ class ApplicationValidate(AppValidate):
                                 call(self.path / 'old' / 'config', self.path / 'config',
                                      files_list=['application.json', 'network.json', 'result.json']),
                                 call(self.path / 'old' / 'src', self.path / 'src',
-                                     files_list=["app_role1.py", "app_role2.py", "app_role3.py"])]
+                                     files_list=["app_role1.py", "app_role2.py", "app_role3.py", "lib.py"])]
             copy_files_mock.assert_has_calls(copy_files_calls)
 
             self.assertEqual(mock_mkdir.call_count, 2)
@@ -403,7 +481,6 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__is_structure_valid") as is_structure_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_application_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_config_valid_json") as is_config_valid_json_mock, \
-             patch.object(LocalApi, "_LocalApi__is_python_valid") as is_python_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid") as is_result_valid_mock, \
              patch.object(LocalApi, "_LocalApi__is_python_valid") as is_python_valid_mock:
 
@@ -436,20 +513,23 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__is_application_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
+             patch.object(self.local_api, 'get_application_file_names') as get_application_file_names_mock, \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
              patch.object(LocalApi, "_LocalApi__is_valid_input_params_for_role") as is_valid_param_role, \
              patch("adk.api.local_api.utils.check_python_syntax") as check_python_syntax:
 
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "app_role3.py"]
-            is_file_mock.side_effect = [True, True, True]
-            check_python_syntax.side_effect = [(True, 'ok'), (False, 'error'), (True, 'ok')]
+            get_application_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "app_role3.py", "lib.py"]
+            check_python_syntax.side_effect = [(True, 'ok'), (False, 'error'), (True, 'ok'), (True, 'ok')]
 
             self.local_api.validate_application(application_name=self.application, application_path=self.path)
             get_role_file_names_mock.assert_called_once_with(self.path / 'config')
+            get_application_file_names_mock.assert_called_once_with(self.path / 'src')
 
             check_python_syntax_call = [call(self.path / 'src' / 'app_role1.py'),
                                         call(self.path / 'src' / 'app_role2.py'),
-                                        call(self.path / 'src' / 'app_role3.py')]
+                                        call(self.path / 'src' / 'app_role3.py'),
+                                        call(self.path / 'src' / 'lib.py')]
             check_python_syntax.assert_has_calls(check_python_syntax_call)
             self.assertEqual(is_valid_param_role.call_count, 2)
 
@@ -460,8 +540,9 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__is_application_config_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_structure_valid", return_value=True), \
              patch.object(LocalApi, "_LocalApi__is_result_config_valid"), \
-             patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_file", return_value=True), \
+             patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
+             patch.object(self.local_api, 'get_application_file_names') as get_application_file_names_mock, \
              patch.object(LocalApi, "_LocalApi__get_role_names", return_value=['Role1', 'Role2']), \
              patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
              patch("adk.api.local_api.utils.get_function_arguments") as get_function_arguments_mock, \
@@ -470,11 +551,14 @@ class ApplicationValidate(AppValidate):
             read_json_file_mock.return_value = self.mock_application_json
             check_python_syntax.return_value = (True, 'ok')
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "appIncorrect.py", "app_role3.py"]
+            get_application_file_names_mock.return_value = ["app_role1.py", "app_role2.py",
+                                                            "appIncorrect.py", "app_role3.py"]
             get_function_arguments_mock.side_effect = [['phi', 'x'], ['app_config', 'y'], None]
 
             error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
             get_role_file_names_mock.assert_called_once_with(self.path / 'config')
+            get_application_file_names_mock.assert_called_once_with(self.path / 'src')
             check_python_syntax_call = [call(self.path / 'src' / 'app_role1.py'),
                                         call(self.path / 'src' / 'app_role2.py'),
                                         call(self.path / 'src' / 'appIncorrect.py'),
@@ -617,7 +701,6 @@ class ApplicationValidate(AppValidate):
                           f"'{self.path / 'config' / 'network.json'}'",
                           error_dict["error"][0])
 
-
     def test__is_structure_valid_all_oke(self):
         with patch.object(self.config_manager, "application_exists", return_value=(True, None)), \
              patch.object(LocalApi, "_LocalApi__is_manifest_valid_json"), \
@@ -629,11 +712,11 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch("adk.api.local_api.os.listdir") as listdir_mock:
+             patch.object(self.local_api, 'get_application_file_names') as get_application_file_names_mock:
 
             is_dir_mock.side_effect = [True, True, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
-            listdir_mock.return_value = ["app_role1.py", "app_role2.py"]
+            get_application_file_names_mock.return_value = ["app_role1.py", "app_role2.py"]
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py"]
             validate_json_file_mock.return_value = (True, None)
             error_dict = self.local_api.validate_application(application_name=self.application,
@@ -641,7 +724,7 @@ class ApplicationValidate(AppValidate):
             self.assertEqual(is_dir_mock.call_count, 2)
             self.assertEqual(is_file_mock.call_count, 4)
             validate_json_file_mock.assert_called_once()
-            listdir_mock.assert_called_once()
+            get_application_file_names_mock.assert_called_once()
             self.assertEqual(0, len(error_dict["error"]))
             self.assertEqual(0, len(error_dict["warning"]))
 
@@ -656,11 +739,11 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch("adk.api.local_api.os.listdir") as listdir_mock:
+             patch.object(self.local_api, 'get_application_file_names') as get_application_file_names_mock:
 
             is_dir_mock.side_effect = [True, True, True, True]
             is_file_mock.side_effect = [True, True, True, True, True]
-            listdir_mock.return_value = ["app_role1.py", "app_role3.py", "app_role4.py"]
+            get_application_file_names_mock.return_value = ["app_role1.py", "app_role3.py", "app_role4.py"]
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py"]
             validate_json_file_mock.return_value = (True, None)
             error_dict = self.local_api.validate_application(application_name=self.application,
@@ -668,7 +751,7 @@ class ApplicationValidate(AppValidate):
             self.assertEqual(is_dir_mock.call_count, 2)
             self.assertEqual(is_file_mock.call_count, 4)
             validate_json_file_mock.assert_called_once()
-            listdir_mock.assert_called_once()
+            get_application_file_names_mock.assert_called_once()
             self.assertIn(f"The application file 'app_role2.py' for the corresponding role in "
                           f"'{self.path / 'config' / 'network.json'}' not found in '{self.path / 'src'}'",
                           error_dict["error"][0])
@@ -708,13 +791,13 @@ class ApplicationValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__get_role_file_names") as get_role_file_names_mock, \
              patch("adk.api.local_api.Path.is_dir", return_value=True) as is_dir_mock, \
              patch("adk.api.local_api.Path.is_file", return_value=True) as is_file_mock, \
-             patch("adk.api.local_api.os.listdir") as listdir_mock:
+             patch.object(self.local_api, 'get_application_file_names') as get_application_file_names_mock:
 
             # No files at all in the directories
             is_dir_mock.side_effect = [True, False]
             is_file_mock.side_effect = [False, False, False, False, False]
             validate_json_file_mock.return_value = (True, None)
-            listdir_mock.return_value = []
+            get_application_file_names_mock.return_value = ['__init__.py']
             get_role_file_names_mock.return_value = ["app_role1.py", "app_role2.py"]
             error_dict = self.local_api.validate_application(application_name=self.application,
                                                              application_path=self.path)
@@ -1458,7 +1541,7 @@ class ExperimentValidate(AppValidate):
              patch.object(LocalApi, "_LocalApi__check_all_experiment_input_files_exist") as check_all_input_files_mock,\
              patch.object(LocalApi, "_LocalApi__get_role_names") as get_roles_mock:
 
-            error_1 = f"In file '{self.path / 'experiment.json'}': Role 'role2' is not valid for the application"
+            error_1 = f"In file '{self.path / 'experiment.json'}': role 'role2' is not valid for the application"
             error_dict_expected = {'error': [error_1], 'warning': [], 'info': []}
 
             is_dir_mock.return_value = True
@@ -1658,9 +1741,9 @@ class ExperimentValidate(AppValidate):
             }
             get_experiment_data_mock.reset_mock()
             get_experiment_data_mock.return_value = experiment_data_incorrect_channel_nodes
-            error_1 = f"In file '{self.path / 'experiment.json'}': Value 'n' of Node 'node1' in channel 'n1-n2' " \
+            error_1 = f"In file '{self.path / 'experiment.json'}': value 'n' of node 'node1' in channel 'n1-n2' " \
                       "does not exist or is not a valid node for the channel"
-            error_2 = f"In file '{self.path / 'experiment.json'}': Value 'n' of Node 'node2' in channel 'n1-n2' " \
+            error_2 = f"In file '{self.path / 'experiment.json'}': value 'n' of node 'node2' in channel 'n1-n2' " \
                       "does not exist or is not a valid node for the channel"
             error_dict = {'error': [error_1, error_2], 'warning': [], 'info': []}
             self.local_api.validate_experiment(self.path)
@@ -1700,11 +1783,11 @@ class ExperimentValidate(AppValidate):
             mock_exp_data_for_roles = self.mock_experiment_data
             mock_exp_data_for_roles["asset"]["network"]["roles"] = {"role1": "n1", "role2": "n1"}
             get_experiment_data_mock.return_value = mock_exp_data_for_roles
-            error_1 = f"In file '{self.path / 'experiment.json'}': Node 'n1' used for role 'role1' is not valid " \
+            error_1 = f"In file '{self.path / 'experiment.json'}': node 'n1' used for role 'role1' is not valid " \
                       "for the application"
-            error_2 = f"In file '{self.path / 'experiment.json'}': Node 'n1' used for role 'role2' is not valid " \
+            error_2 = f"In file '{self.path / 'experiment.json'}': node 'n1' used for role 'role2' is not valid " \
                       "for the application"
-            error_3 = f"In file '{self.path / 'experiment.json'}': Node 'n1' is used for multiple roles"
+            error_3 = f"In file '{self.path / 'experiment.json'}': node 'n1' is used for multiple roles"
             error_dict = {'error': [error_1, error_2, error_3], 'warning': [], 'info': []}
             self.local_api.validate_experiment(self.path)
             validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, error_dict=error_dict)
@@ -1802,12 +1885,12 @@ class ExperimentValidate(AppValidate):
                     't2': {'maximum_value': 1000, 'minimum_value': 0}
                 }
             }
-            error_1 = f"In file '{self.path / 'experiment.json'}': Value '12344.0' of param " \
+            error_1 = f"In file '{self.path / 'experiment.json'}': value '12344.0' of param " \
                       "'elementary-link-fidelity' -> 'fidelity' in channel 'n1-n2' is not within the allowed range " \
                       "of minimum (0.5) and maximum (1.0)"
-            error_2 = f"In file '{self.path / 'experiment.json'}': Value 'string_value' of param " \
+            error_2 = f"In file '{self.path / 'experiment.json'}': value 'string_value' of param " \
                       "'relaxation-time' -> 't1' in channel 'n1-n2' is not of the required type (integer or float)"
-            error_3 = f"In file '{self.path / 'experiment.json'}': Parameter 'unknown_param' in channel 'n2-n3' " \
+            error_3 = f"In file '{self.path / 'experiment.json'}': parameter 'unknown_param' in channel 'n2-n3' " \
                       "does not exist"
             error_4 = f"In file '{self.path / 'experiment.json'}': 'incorrect_name' is not valid for param " \
                       "'relaxation-time' in channel 'n2-n3'"

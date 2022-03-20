@@ -4,7 +4,8 @@ from typing import Any, cast, Dict, List, Optional
 from adk.api.local_api import LocalApi
 from adk.api.remote_api import RemoteApi
 from adk.decorators import log_function
-from adk.exceptions import (AppConfigNotFound, ApplicationNotComplete, ApplicationNotFound, DirectoryAlreadyExists,
+from adk.exceptions import (AppConfigNotFound, ApplicationDoesNotExist, ApplicationNotComplete, ApplicationNotFound,
+                            DirectoryAlreadyExists,
                             ExperimentNotRun, NetworkNotAvailableForApplication, ResultDirectoryNotAvailable)
 from adk.type_aliases import ApplicationType, ExperimentType, ErrorDictType, ResultType
 from adk import utils
@@ -45,6 +46,20 @@ class CommandProcessor:
             host: host to log out from
         """
         return self.__remote.logout(host=host)
+
+    @log_function
+    def applications_init(self, application_name: str, application_path: Path) -> None:
+        """
+        Initializes an existing application and adds it.
+
+        Args:
+            application_name: application name
+            application_path: location of application files
+
+        """
+        if not application_path.exists() or not application_path.is_dir():
+            raise ApplicationDoesNotExist(str(application_path))
+        self.__local.init_application(application_name, application_path)
 
     @log_function
     def applications_create(self, application_name: str, roles: List[str], application_path: Path) -> None:
@@ -101,16 +116,19 @@ class CommandProcessor:
         Returns:
             True when uploaded successfully, otherwise False
         """
-        app_config = self.__local.get_application_config(application_name)
-        if app_config:
+        application_config = self.__local.get_application_config(application_name)
+        if application_config:
             application_data = self.__local.get_application_data(application_path)
-            app_result = self.__local.get_application_result(application_name)
-            if app_result is not None:
+            application_result = self.__local.get_application_result(application_name)
+            if application_result is not None:
                 try:
+                    app_src_path = application_path / 'src'
+                    application_source = self.__local.get_application_file_names(app_src_path)
                     application_data = self.__remote.upload_application(application_path=application_path,
                                                                         application_data=application_data,
-                                                                        application_config=app_config,
-                                                                        application_result=app_result)
+                                                                        application_config=application_config,
+                                                                        application_result=application_result,
+                                                                        application_source=application_source)
                 except Exception as e:
                     # Something went wrong
                     # write the application_data we have until now and rethrow exception

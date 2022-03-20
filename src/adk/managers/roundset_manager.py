@@ -28,7 +28,7 @@ class RoundSetManager:
         self.__output_dir = "LAST"
         self.__fully_connected_network_generator = FullyConnectedNetworkGenerator()
         self.__input_parser = InputParser(
-            input_dir=str(experiment_path / "input"),
+            input_dir=self.__input_dir,
             network_generator=self.__fully_connected_network_generator
         )
         self.__output_converter = OutputConverter(
@@ -92,7 +92,7 @@ class RoundSetManager:
         os.makedirs(self.__input_dir)
 
     def terminate(self) -> None:
-        """Clean up everything that the InputParser/RoundsetManager has created."""
+        """Clean up everything that the InputParser/RoundSetManager has created."""
         self.__clean()
 
     def _run_application(self) -> None:

@@ -108,6 +108,28 @@ For listing remote applications, the user must be logged in.
     Example:
       qne application list --remote
 
+application init
+^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne application init [OPTIONS] APPLICATION_NAME
+
+Initialize an existing application in the current path which is not already registered to QNE-ADK.
+This is needed for applications not created with QNE-ADK, for example when the files come from a
+repository or are directly copied to the file system.
+Two subdirectories `src` and `config` will be created when not already there.
+When application files are in the root directory, but belong to one of the subdirectories, they are moved.
+
+    Arguments:
+      APPLICATION_NAME  Name of the application [required]
+
+    Options:
+      --help   Show this message and exit.
+
+    Example:
+      qne application init application_name
+
 application create
 ^^^^^^^^^^^^^^^^^^
 
@@ -116,7 +138,7 @@ application create
     qne application create [OPTIONS] APPLICATION_NAME ROLES...
 
 Create a new application in your current directory containing all the files that are needed to write your application.
-The application directory name will be based on the value given to `application`.
+The application directory name will be based on the value given to `application_name`.
 Two subdirectories `src` and `config` will be created, along with the default files.
 
     Arguments:

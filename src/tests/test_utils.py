@@ -4,7 +4,7 @@ from unittest.mock import call, patch, mock_open
 import unittest
 
 from adk.exceptions import InvalidPathName, JsonFileNotFound, MalformedJsonFile
-from adk.utils import check_python_syntax, copy_files, get_dummy_application, get_function_arguments, \
+from adk.utils import check_python_syntax, copy_files, move_files, get_dummy_application, get_function_arguments, \
     get_function_return_variables, get_py_dummy, read_json_file, reorder_data, write_json_file, write_file, \
     validate_path_name
 
@@ -99,6 +99,38 @@ class TestUtils(unittest.TestCase):
             join_mock.assert_has_calls(join_calls)
             copy_calls = [call("file1_path", Path("dest")), call("file2_path", Path("dest"))]
             copy_mock.assert_has_calls(copy_calls)
+
+    def test_move_files(self):
+        with patch("adk.utils.os.path.isfile") as isfile_mock, \
+             patch("adk.utils.shutil.move") as move_mock, \
+             patch("adk.utils.os.path.join") as join_mock:
+
+            isfile_mock.side_effect = [True, False, True, False]
+            join_mock.side_effect = ['file1_src_path', 'file1_dst_path', 'file2_src_path', 'file2_dst_path']
+
+            move_files(Path("source"), Path("dest"), ['file1', 'file2'])
+
+            join_calls = [call(Path("source"), 'file1'), call(Path("dest"), 'file1'),
+                          call(Path("source"), 'file2'), call(Path("dest"), 'file2')]
+            join_mock.assert_has_calls(join_calls)
+            move_calls = [call("file1_src_path", Path("dest")),
+                          call("file2_src_path", Path("dest"))]
+            move_mock.assert_has_calls(move_calls)
+
+    def test_do_not_move_existing_files(self):
+        with patch("adk.utils.os.path.isfile") as isfile_mock, \
+             patch("adk.utils.shutil.move") as move_mock, \
+             patch("adk.utils.os.path.join") as join_mock:
+
+            isfile_mock.side_effect = [False, False]
+            join_mock.side_effect = ['file1_src_path', 'file1_dst_path', 'file2_src_path', 'file2_dst_path']
+
+            move_files(Path("source"), Path("dest"), ['file1', 'file2'])
+
+            join_calls = [call(Path("source"), 'file1'), call(Path("dest"), 'file1'),
+                          call(Path("source"), 'file2'), call(Path("dest"), 'file2')]
+            join_mock.assert_has_calls(join_calls)
+            move_mock.assert_not_called()
 
     def test_check_python_syntax(self):
         valid_python_code = 'def main(app_config=None):\n    # Put your code here\n    return {}\n\n\n' \

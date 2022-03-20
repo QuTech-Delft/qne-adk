@@ -1,3 +1,4 @@
+import fnmatch
 import os
 from pathlib import Path
 import re
@@ -277,15 +278,64 @@ class LocalApi:
         application_data = utils.read_json_file(manifest_json_file)
         return cast(ApplicationDataType, application_data)
 
+    def init_application(self, application_name: str, application_path: Path) -> None:
+        """
+        Initializes the application directory structure for an existing set of files. The files are moved to the right
+        directory when needed. The files are not created if they do not exist (we have application create command for
+        that). Only manifest.json is created when it doesn't exist or adjusted when it exists. The application name
+        is written/updated to it. The application is added to the application configuration.
+
+        Args:
+            application_name: name of the application
+            application_path: the path where the application is stored
+
+        Raises:
+            DirectoryAlreadyExists: Raised when directory (or file) application_name already exists
+        """
+        application_name = application_name.lower()
+
+        # init the config files
+        app_config_path = application_path / 'config'
+        if not app_config_path.exists():
+            # create config directory and move all config-files to config
+            app_config_path.mkdir(parents=True, exist_ok=True)
+
+        # Move the config files to the config directory
+        utils.move_files(application_path, app_config_path,
+                         files_list=self.__get_config_file_names())
+
+        app_src_path = application_path / 'src'
+        if not app_src_path.exists():
+            # create src and move all python files to src
+            app_src_path.mkdir(parents=True, exist_ok=True)
+
+        # Move all python files to the src directory
+        python_files = self.get_application_file_names(application_path)
+        utils.move_files(application_path, app_src_path,
+                         files_list=python_files)
+
+        # prepare manifest
+        if not (application_path / 'manifest.json').is_file():
+            application_data = utils.get_default_manifest(application_name)
+        else:
+            application_data = self.get_application_data(application_path)
+            application_data["application"]["name"] = application_name
+        # write manifest
+        self.set_application_data(application_path, application_data)
+
+        # add application to the administration
+        self.__config_manager.add_application(application_name=application_name,
+                                              application_path=application_path)
+
     def clone_application(self, application_name: str, new_application_name: str,
                           new_application_path: Path) -> None:
         """
         Clone the application by copying the required files in the local application structure.
 
         Creates the application directory structure and copies the necessary files from the source application.
-        Each application will consist of a manifest.json and two directories: application and config.
-        In the directory application, the files network.json, application.json and
-        result.json will be copied. In the directory config, python files will be copied according to the value of
+        Each application will consist of a manifest.json and two directories: src and config.
+        In the directory config, the files network.json, application.json and
+        result.json will be copied. In the directory src, python files will be copied according to the value of
         the roles in the source application.
 
         Args:
@@ -312,7 +362,7 @@ class LocalApi:
         utils.copy_files(source_app_path / 'config', dest_app_config_path,
                          files_list=self.__get_config_file_names())
         utils.copy_files(source_app_path / 'src', dest_app_src_path,
-                         files_list=self.__get_role_file_names(app_config_path=source_app_path / 'config'))
+                         files_list=self.get_application_file_names(app_src_path=source_app_path))
         application_data = self.get_application_data(source_app_path)
         # only fill the fields that change with a new application
         application_data["application"]["name"] = new_application_name
@@ -326,8 +376,8 @@ class LocalApi:
     def create_application(self, application_name: str, roles: List[str], application_path: Path) -> None:
         """
         Creates the application directory structure. Each application will consist of a manifest.json and two
-        directories: application and config. In the directory application, the files network.json, application.json and
-        result.json will be generated. In the directory config, python files will be generated according to the value of
+        directories: src and config. In the directory config, the files network.json, application.json and
+        result.json will be generated. In the directory src, python files will be generated according to the value of
         the list roles.
 
         Args:
@@ -395,7 +445,7 @@ class LocalApi:
 
     def _delete_src(self, application_path: Path) -> bool:
         """
-        Delete src directory containing source files
+        Delete src directory containing source files, we don't delete *.py here, only app_<role>.py
 
         Args:
             application_path: the path where the application is stored
@@ -662,6 +712,15 @@ class LocalApi:
         result = re.search('app_(.*).py', role_file)
         return result.group(1) if result else None
 
+    @staticmethod
+    def get_application_file_names(app_src_path: Path) -> List[str]:
+        """
+        Given that the source files provided by the application developer can have any format (not just app_*.py, but
+        also *.py) get the application python files (*.py) for the given directory
+        """
+        application_file_names = fnmatch.filter(os.listdir(app_src_path), '*.py')
+        return application_file_names
+
     def __is_application_config_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
         """
         Only when network.json and application.json are valid check roles from application.json if they are
@@ -701,15 +760,15 @@ class LocalApi:
             valid, _ = validate_json_file(app_config_path / 'network.json')
             # if not valid network.json it will be reported in __is_config_valid_json
             if valid:
-                application_file_names = self.__get_role_file_names(app_config_path)
+                role_file_names = self.__get_role_file_names(app_config_path)
                 # Get all the files in the src directory
-                src_dir_files = os.listdir(app_src_path)
+                src_dir_files = self.get_application_file_names(app_src_path)
 
                 # Check if the roles in the config/network.json match as file names in the src directory
-                application_files_not_in_src = [role for role in application_file_names if role not in src_dir_files]
-                for application_file_name in application_files_not_in_src:
+                role_files_not_in_src = [role for role in role_file_names if role not in src_dir_files]
+                for role_file_name in role_files_not_in_src:
                     error_dict["error"].append(
-                        f"The application file '{application_file_name}' for the corresponding role in "
+                        f"The application file '{role_file_name}' for the corresponding role in "
                         f"'{app_config_path / 'network.json'}' not found in '{app_src_path}'")
         else:
             error_dict["error"].append(f"{application_path} should contain a 'src' directory")
@@ -720,7 +779,7 @@ class LocalApi:
 
     def __is_python_valid(self, application_path: Path, error_dict: ErrorDictType) -> None:
         """
-        Validate if the python code in app_{role}.py has valid syntax
+        Validate if the python code in src/*.py has valid syntax
 
         Args:
             application_path: Path of where the application is located
@@ -731,15 +790,15 @@ class LocalApi:
         app_src_path = application_path / 'src'
 
         role_file_names = self.__get_role_file_names(app_config_path)
-        for role_file in role_file_names:
-            if (app_src_path / role_file).is_file():
-                valid, validation_message = utils.check_python_syntax(app_src_path / role_file)
-                if not valid:
-                    error_dict["error"].append(f"The application source file {role_file} has syntax errors"
-                                               f"\n {validation_message}")
-                else:
-                    # The syntax is valid. So we can now check for the input params to the main()
-                    self.__is_valid_input_params_for_role(application_path, role_file, error_dict)
+        src_dir_files = self.get_application_file_names(app_src_path)
+        for python_file in src_dir_files:
+            valid, validation_message = utils.check_python_syntax(app_src_path / python_file)
+            if not valid:
+                error_dict["error"].append(f"The application source file {python_file} has syntax errors"
+                                           f"\n {validation_message}")
+            elif python_file in role_file_names:
+                # The syntax is valid. For role app-files we can now check for the input params to the main()
+                self.__is_valid_input_params_for_role(application_path, python_file, error_dict)
 
     def __is_valid_input_params_for_role(self, application_path: Path, role_file: str, error_dict: ErrorDictType) \
             -> None:
@@ -1080,7 +1139,7 @@ class LocalApi:
             app_path = Path(app_path)
             utils.copy_files(app_path / 'config', input_directory, files_list=self.__get_config_file_names())
             utils.copy_files(app_path / 'src', input_directory,
-                             files_list=self.__get_role_file_names(app_config_path=app_path / 'config'))
+                             files_list=self.get_application_file_names(app_src_path=app_path / 'src'))
 
     def is_network_available(self, network_name: str, app_config: AppConfigType) -> bool:
         """
@@ -1519,13 +1578,13 @@ class LocalApi:
             self._validate_experiment_application(experiment_path, experiment_data, error_dict)
 
     def __check_experiment_input_role_files(self, experiment_input_path: Path, error_dict: ErrorDictType) -> None:
-        # Check if the app files for the roles from network.json exist in the
+        # Check if the app_<role>.py files for the roles from network.json exist in the
         # experiment/input directory
-        application_file_names = self.__get_role_file_names(experiment_input_path)
-        for application_file_name in application_file_names:
-            if not (experiment_input_path / application_file_name).is_file():
+        role_file_names = self.__get_role_file_names(experiment_input_path)
+        for role_file_name in role_file_names:
+            if not (experiment_input_path / role_file_name).is_file():
                 error_dict["error"].append(f"'{experiment_input_path}' is missing the file: "
-                                           f"'{application_file_name}'")
+                                           f"'{role_file_name}'")
 
     def __check_all_experiment_input_files_exist(self, experiment_input_path: Path, error_dict: ErrorDictType) -> None:
         for file in self.__get_config_file_names():
@@ -1575,7 +1634,7 @@ class LocalApi:
 
         for role, _ in experiment_roles.items():
             if role not in application_roles:
-                error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': Role '{role}' is not"
+                error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': role '{role}' is not"
                                            f" valid for the application")
 
     def _validate_experiment_nodes(self, experiment_file_path: Path, experiment_data: Dict[str, Any], error_dict:
@@ -1658,7 +1717,7 @@ class LocalApi:
                     for node in ["node1", "node2"]:
                         if expected_channel_info and channel[node] != expected_channel_info[node]:
                             error_dict["error"].append(
-                                f"In file '{experiment_file_path}': Value '{channel[node]}' of Node '{node}' in channel"
+                                f"In file '{experiment_file_path}': value '{channel[node]}' of node '{node}' in channel"
                                 f" '{channel['slug']}' does not exist or is not a valid node for the channel")
                     # check parameters in channel are valid and their value is within max and min range
                     self._validate_template_parameters(entity="channel", entity_slug=channel["slug"],
@@ -1695,12 +1754,12 @@ class LocalApi:
                         if isinstance(val, (int, float)):
                             if val < min_val or val > max_val:
                                 error_dict["error"].append(
-                                    f"In file '{experiment_file_path}': Value '{val}' of param"
+                                    f"In file '{experiment_file_path}': value '{val}' of param"
                                     f" '{param['slug']}' -> '{value['name']}' in {entity} '{entity_slug}'"
                                     f" is not within the allowed range of minimum ({min_val}) and maximum ({max_val})")
                         else:
                             error_dict["error"].append(
-                                f"In file '{experiment_file_path}': Value '{val}' of param"
+                                f"In file '{experiment_file_path}': value '{val}' of param"
                                 f" '{param['slug']}' -> '{value['name']}' in {entity} '{entity_slug}'"
                                 f" is not of the required type (integer or float)")
 
@@ -1710,7 +1769,7 @@ class LocalApi:
                             f" '{param['slug']}' in {entity} '{entity_slug}'")
             else:
                 error_dict["error"].append(
-                    f"In file '{experiment_file_path}': Parameter '{param['slug']}' in {entity}"
+                    f"In file '{experiment_file_path}': parameter '{param['slug']}' in {entity}"
                     f" '{entity_slug}' does not exist")
 
     def _validate_experiment_roles(self, experiment_path: Path, experiment_data: Dict[str, Any],
@@ -1736,13 +1795,13 @@ class LocalApi:
 
         for role, node in experiment_roles.items():
             if node not in network_nodes:
-                error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': Node '{node}' used for"
+                error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': node '{node}' used for"
                                            f" role '{role}' is not valid for the application")
             if nodes_used.count(node) > 1:
                 duplicate_nodes.append(node)
 
         for item in set(duplicate_nodes):
-            error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': Node '{item}' is used for"
+            error_dict["error"].append(f"In file '{experiment_path / 'experiment.json'}': node '{item}' is used for"
                                        f" multiple roles")
 
     @staticmethod
