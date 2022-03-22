@@ -1514,7 +1514,7 @@ class LocalApi:
 
     def __prepare_input_files(self, experiment_path: Path) -> None:
         """
-        The application input files are copied for each experiment run, they may have changed
+        The application config and src files are copied for each experiment run, they may have changed
         - Refresh ["asset"]["application"] in experiment.json when application.json changed
 
         Args:
