@@ -187,12 +187,30 @@ def copy_files(source_dir: Path, destination_dir: Path, files_list: Optional[Lis
         files_list: A list of file names which need to be copied. If None, all files in directory are copied.
 
     """
-    if not files_list:
+    if files_list is None:
         files_list = os.listdir(source_dir)
     for file_name in files_list:
         full_file_name = os.path.join(source_dir, file_name)
         if os.path.isfile(full_file_name):
             shutil.copy(full_file_name, destination_dir)
+
+
+def move_files(source_dir: Path, destination_dir: Path, files_list: List[str]) -> None:
+    """
+    Move files from source directory to destination directory.
+    No sub directories are copied. Existing files will not be overwritten
+
+    Args:
+        source_dir: directory from where files need to be moved
+        destination_dir: directory where files need to be moved to
+        files_list: A list of file names which need to be moved.
+
+    """
+    for file_name in files_list:
+        full_file_name = os.path.join(source_dir, file_name)
+        dest_file_name = os.path.join(destination_dir, file_name)
+        if os.path.isfile(full_file_name) and not os.path.isfile(dest_file_name):
+            shutil.move(full_file_name, destination_dir)
 
 
 def check_python_syntax(source_file: Path) -> Tuple[bool, str]:

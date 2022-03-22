@@ -12,8 +12,7 @@ from adk.generators.result_generator import ResultGenerator
 from adk.managers.config_manager import ConfigManager
 from adk.managers.auth_manager import AuthManager
 from adk.managers.resource_manager import ResourceManager
-from adk.type_aliases import (AppConfigType, app_configNetworkType, AppResultType, AppSourceFilesType, AppSourceType,
-                              AppVersionType,
+from adk.type_aliases import (AppConfigType, AppResultType, AppSourceFilesType, AppSourceType, AppVersionType,
                               ApplicationType, ApplicationDataType, AssetType, assetNetworkType, ErrorDictType,
                               ExperimentType, FinalResultType, GenericNetworkData, ExperimentDataType, ResultType,
                               RoundSetType, round_resultType, cumulative_resultType, instructionsType, ChannelType,
@@ -160,7 +159,7 @@ class RemoteApi:
                                })
 
         app_source = self.__qne_client.app_source_application(str(application["url"]))
-        # Create app_*.py files
+        # Create python files from tarball
         self.__resource_manager.generate_resources(self.__qne_client, app_source, new_application_path)
 
         # Manifest.json configuration
@@ -207,7 +206,8 @@ class RemoteApi:
                            application_path: Path,
                            application_data: ApplicationDataType,
                            application_config: AppConfigType,
-                           application_result: AppResultType) -> ApplicationDataType:
+                           application_result: AppResultType,
+                           application_source: List[str]) -> ApplicationDataType:
         """
         Upload the application to the remote server.
 
@@ -216,6 +216,7 @@ class RemoteApi:
             application_data: application data from manifest.json
             application_config: application configuration structure
             application_result: application result structure
+            application_source: source files for application
 
         Returns:
             True when uploaded successfully, otherwise False
@@ -284,7 +285,7 @@ class RemoteApi:
             if not application_data["remote"]["app_version"]["app_source"]:
                 # create AppSource
                 app_source = self.__create_app_source(application_data, app_version,
-                                                      application_config, application_path)
+                                                      application_source, application_path)
                 application_data["remote"]["app_version"]["app_source"] = app_source["url"]
 
             # Update application when AppVersion and its components is uploaded
@@ -390,14 +391,13 @@ class RemoteApi:
         return app_result
 
     def __create_app_source(self, application_data: ApplicationDataType, app_version: AppVersionType,
-                            app_config: AppConfigType, application_path: Path) -> AppSourceType:
+                            application_source: List[str], application_path: Path) -> AppSourceType:
         """
         Create and send an AppSource object to api-router
         """
-        app_config_network: app_configNetworkType = cast(app_configNetworkType, app_config["network"])
         # create the resource
         resource_path, resource_file = self.__resource_manager.prepare_resources(application_data, application_path,
-                                                                                 app_config_network)
+                                                                                 application_source)
         # send the resource
         with open(resource_path, 'rb') as tarball:
             app_source_files: AppSourceFilesType = {

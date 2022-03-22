@@ -220,6 +220,7 @@ class TestRemoteApiApplication(TestRemoteApi):
     def test_upload_application_new_app_successful(self):
         application_data = self.application_data
         application_config = {"application": self.application_config, "network": self.network_config}
+        application_source = ["application_source"]
 
         self.remote_api._RemoteApi__resource_manager.prepare_resources.return_value = self.app_path, 'tarball'
         self.remote_api._RemoteApi__resource_manager.delete_resources.return_value = None
@@ -233,24 +234,28 @@ class TestRemoteApiApplication(TestRemoteApi):
             app_data_actual = self.remote_api.upload_application(self.app_path,
                                                                  application_data,
                                                                  application_config,
-                                                                 self.result)
+                                                                 self.result,
+                                                                 application_source)
 
         self.assertDictEqual(app_data_actual, self.application_data_uploaded)
 
     def test_upload_application_new_app_creation_fails(self):
         application_data = self.application_data
         application_config = {"application": self.application_config, "network": self.network_config}
+        application_source = ["application_source"]
         application_result = self.result
 
         self.remote_api._RemoteApi__qne_client.create_application.side_effect = ApiClientError("Error: creating app")
         self.assertRaises(ApiClientError, self.remote_api.upload_application, self.app_path,
                           application_data,
                           application_config,
-                          application_result)
+                          application_result,
+                          application_source)
 
     def test_upload_application_new_appversion_creation_fails(self):
         application_data = self.application_data
         application_config = {"application": self.application_config, "network": self.network_config}
+        application_source = ["application_source"]
         application_result = self.result
         application = {
             "id": 42,
@@ -268,7 +273,8 @@ class TestRemoteApiApplication(TestRemoteApi):
         self.assertRaises(ApiClientError, self.remote_api.upload_application, self.app_path,
                           application_data,
                           application_config,
-                          application_result)
+                          application_result,
+                          application_source)
 
     def test_upload_application_appversion_exists_but_not_complete_succeeds(self):
         application_data = self.application_data_uploaded
@@ -278,6 +284,7 @@ class TestRemoteApiApplication(TestRemoteApi):
         application_data["remote"]["app_version"]["app_source"] = ''
 
         application_config = {"application": self.application_config, "network": self.network_config}
+        application_source = ["application_source"]
         application_result = self.result
 
         self.remote_api._RemoteApi__resource_manager.prepare_resources.return_value = self.app_path, 'tarball'
@@ -294,7 +301,8 @@ class TestRemoteApiApplication(TestRemoteApi):
             app_data_actual = self.remote_api.upload_application(self.app_path,
                                                                  application_data,
                                                                  application_config,
-                                                                 application_result)
+                                                                 application_result,
+                                                                 application_source)
 
         self.assertDictEqual(app_data_actual, self.application_data_uploaded)
 
@@ -306,6 +314,7 @@ class TestRemoteApiApplication(TestRemoteApi):
         application_data["remote"]["app_version"]["app_source"] = ''
 
         application_config = {"application": self.application_config, "network": self.network_config}
+        application_source = ["application_source"]
         application_result = self.result
 
         self.remote_api._RemoteApi__resource_manager.prepare_resources.return_value = self.app_path, 'tarball'
@@ -322,7 +331,8 @@ class TestRemoteApiApplication(TestRemoteApi):
         self.assertRaises(ApiClientError, self.remote_api.upload_application, self.app_path,
                           application_data,
                           application_config,
-                          application_result)
+                          application_result,
+                          application_source)
 
         self.remote_api._RemoteApi__qne_client.create_app_result.side_effect = None
         self.remote_api._RemoteApi__qne_client.create_app_result.return_value = self.app_result
@@ -331,13 +341,15 @@ class TestRemoteApiApplication(TestRemoteApi):
             app_data_actual = self.remote_api.upload_application(self.app_path,
                                                                  application_data,
                                                                  application_config,
-                                                                 application_result)
+                                                                 application_result,
+                                                                 application_source)
 
         self.assertDictEqual(app_data_actual, self.application_data_uploaded)
 
     def test_upload_existing_application_appversion_new_version(self):
         application_data = self.application_data_uploaded
         application_config = {"application": self.application_config, "network": self.network_config}
+        application_source = ["application_source"]
         self.next_app_version = {
             "id": 43,
             "url": f"{self.host}app_version/43",
@@ -381,7 +393,8 @@ class TestRemoteApiApplication(TestRemoteApi):
             app_data_actual = self.remote_api.upload_application(self.app_path,
                                                                  application_data,
                                                                  application_config,
-                                                                 self.result)
+                                                                 self.result,
+                                                                 application_source)
 
         self.assertEqual(app_data_actual["remote"]["application"], f'{self.host}application/42')
         self.assertEqual(app_data_actual["remote"]["application_id"], 42)

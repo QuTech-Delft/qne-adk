@@ -3,8 +3,8 @@ from unittest.mock import patch, MagicMock
 import unittest
 
 from adk.command_processor import CommandProcessor
-from adk.exceptions import (ApiClientError, AppConfigNotFound, ApplicationNotComplete, ApplicationNotFound,
-                            DirectoryAlreadyExists, NetworkNotAvailableForApplication)
+from adk.exceptions import (ApiClientError, AppConfigNotFound, ApplicationDoesNotExist, ApplicationNotComplete,
+                            ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication)
 
 
 class TestCommandProcessor(unittest.TestCase):
@@ -32,6 +32,24 @@ class TestCommandProcessor(unittest.TestCase):
     def test_logout(self):
         self.processor.logout(host=self.host)
         self.remote_api.logout.assert_called_once_with(host=self.host)
+
+    def test_applications_init(self):
+        with patch("adk.command_processor.Path.exists") as mock_path_exists, \
+             patch("adk.command_processor.Path.is_dir") as mock_path_is_dir:
+
+            mock_path_exists.return_value = True
+            mock_path_is_dir.return_value = True
+            self.processor.applications_init(application_name=self.application,
+                                             application_path=self.path)
+            self.local_api.init_application.assert_called_once_with(self.application, self.path)
+
+    def test_applications_init_fails(self):
+        with patch("adk.command_processor.Path.exists") as mock_path_exists, \
+             patch("adk.command_processor.Path.is_dir") as mock_path_is_dir:
+
+            mock_path_exists.return_value = False
+            mock_path_is_dir.return_value = True
+            self.assertRaises(ApplicationDoesNotExist, self.processor.applications_init, self.application, self.path)
 
     def test_applications_create(self):
         with patch("adk.command_processor.Path.exists") as mock_path_exists:
@@ -74,6 +92,7 @@ class TestCommandProcessor(unittest.TestCase):
         self.local_api.get_application_config.return_value = "app_config"
         self.local_api.get_application_data.return_value = "application_data"
         self.local_api.get_application_result.return_value = "app_result"
+        self.local_api.get_application_file_names.return_value = ["application_source"]
         self.remote_api.upload_application.return_value = "application_data_result"
 
         return_value = self.processor.applications_upload(application_name=self.application, application_path=self.path)
@@ -83,7 +102,8 @@ class TestCommandProcessor(unittest.TestCase):
         self.remote_api.upload_application.assert_called_once_with(application_path=self.path,
                                                                    application_data="application_data",
                                                                    application_config="app_config",
-                                                                   application_result="app_result")
+                                                                   application_result="app_result",
+                                                                   application_source=["application_source"])
         self.local_api.set_application_data.assert_called_once_with(self.path,
                                                                     "application_data_result")
         self.assertTrue(return_value)
@@ -92,6 +112,7 @@ class TestCommandProcessor(unittest.TestCase):
         self.local_api.get_application_config.return_value = "app_config"
         self.local_api.get_application_data.return_value = "application_data"
         self.local_api.get_application_result.return_value = "app_result"
+        self.local_api.get_application_file_names.return_value = ["application_source"]
         self.remote_api.upload_application.side_effect = ApiClientError("Error: app_config creation error")
         self.assertRaises(ApiClientError, self.processor.applications_upload, self.application, self.path)
         self.local_api.set_application_data.assert_called_once_with(self.path, "application_data")

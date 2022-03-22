@@ -54,6 +54,38 @@ class TestCommandList(unittest.TestCase):
             logout_output = self.runner.invoke(app, ['logout', host])
             self.assertIn('Not logged in to a host', logout_output.stdout)
 
+    def test_applications_init_success(self):
+        with patch("adk.command_list.Path.cwd", return_value=self.path) as mock_cwd, \
+             patch.object(ConfigManager, "application_exists") as application_exists_mock, \
+             patch.object(CommandProcessor, 'applications_init') as application_init_mock:
+
+            application_exists_mock.return_value = False, ""
+            application_init_output = self.runner.invoke(applications_app,
+                                                         ['init', self.application])
+            mock_cwd.assert_called_once()
+            application_init_mock.assert_called_once_with(application_name=self.application,
+                                                          application_path=self.path / self.application)
+            self.assertEqual(application_init_output.exit_code, 0)
+            self.assertIn(f"Application '{self.application}' initialized successfully in directory "
+                          f"'{self.path / self.application}'",
+                          application_init_output.stdout)
+
+    def test_applications_init_exceptions(self):
+        with patch("adk.command_list.Path.cwd", return_value=self.path) as mock_cwd, \
+             patch.object(ConfigManager, "application_exists") as application_exists_mock, \
+             patch.object(CommandProcessor, 'applications_init') as application_init_mock:
+
+            # Raise ApplicationAlreadyExists
+            application_exists_mock.return_value = True, "the_path"
+            application_init_output = self.runner.invoke(applications_app,
+                                                         ['init', self.application])
+            self.assertIn(f"Application '{self.application}' already exists. Application location: 'the_path'",
+                          application_init_output.stdout)
+
+            application_init_output = self.runner.invoke(applications_app, ['init', 'test*application'])
+            self.assertIn('Error: Application name can\'t contain any of the following characters: [\'/\', \'\\\', '
+                          '\'*\', \':\', \'?\', \'"\', \'<\', \'>\', \'|\']', application_init_output.stdout)
+
     def test_applications_create_success(self):
         with patch("adk.command_list.Path.cwd", return_value=self.path) as mock_cwd, \
              patch.object(ConfigManager, "application_exists") as application_exists_mock, \
@@ -155,7 +187,7 @@ class TestCommandList(unittest.TestCase):
                                                             new_application_name='new_app',
                                                             new_application_path=self.path / 'new_app')
             self.assertEqual(application_clone_output.exit_code, 0)
-            self.assertIn(f"Application 'new_app' cloned successfully in directory "
+            self.assertIn(f"Application '{self.application}' cloned successfully in directory "
                           f"'{self.path / 'new_app'}'",
                           application_clone_output.stdout)
 

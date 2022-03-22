@@ -101,6 +101,32 @@ def show_validation_messages(validation_dict: ErrorDictType) -> None:
                 typer.echo(f"{key.upper()}: {item}")
 
 
+@applications_app.command("init")
+@catch_qne_adk_exceptions
+def applications_init(
+    application_name: str = typer.Argument(..., help="Name of the application to initialize")
+) -> None:
+    """
+    Initialize an existing application in the current path which is not already registered to QNE-ADK.
+    This is needed for applications not created with QNE-ADK, for example when the files come from a
+    repository or are directly copied to the file system.
+
+    ./application_name is taken as application directory
+
+    For example: qne application init application_name
+    """
+    validate_path_name("Application", application_name)
+
+    application_exists, existing_application_path = config_manager.application_exists(application_name)
+    if application_exists:
+        raise ApplicationAlreadyExists(application_name, existing_application_path)
+
+    cwd = Path.cwd()
+    application_path = cwd / application_name
+    processor.applications_init(application_name=application_name, application_path=application_path)
+    typer.echo(f"Application '{application_name}' initialized successfully in directory '{str(application_path)}'")
+
+
 @applications_app.command("create")
 @catch_qne_adk_exceptions
 def applications_create(
@@ -110,7 +136,7 @@ def applications_create(
     """
     Create new application.
 
-    For example: qne application create my_application Alice Bob
+    For example: qne application create application_name Alice Bob
     """
 
     # Check roles
@@ -179,7 +205,7 @@ def applications_clone(
                                  new_application_name=new_application_name,
                                  new_application_path=new_application_path)
 
-    typer.echo(f"Application '{new_application_name}' cloned successfully in directory '{str(new_application_path)}'")
+    typer.echo(f"Application '{application_name}' cloned successfully in directory '{str(new_application_path)}'")
 
 
 @applications_app.command("delete")
