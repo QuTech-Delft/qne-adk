@@ -53,6 +53,28 @@ class AppValidate(unittest.TestCase):
             },
             "remote": {}
         }
+        self.mock_app_manifest_remote = {
+            "application": {
+                "name": "remote_app",
+                "description": "add description",
+                "author": "add your name",
+                "email": "add@your.email",
+                "multi_round": False
+            },
+            "remote": {
+                "application": "https://fake.url/applications/20/",
+                "application_id": 20,
+                "slug": "remote_app",
+                "app_version": {
+                    "enabled": False,
+                    "version": 1,
+                    "app_version": "https://fake.url/app-versions/49/",
+                    "app_config": "https://fake.url/app-configs/48/",
+                    "app_result": "https://fake.url/app-results/47/",
+                    "app_source": "https://fake.url/app-sources/44/"
+                }
+            }
+        }
         self.mock_app_config = {"application": [
             {
                 "title": "Qubit state of Sender",
@@ -383,7 +405,7 @@ class ApplicationValidate(AppValidate):
             mock_is_file.return_value = True
             get_default_manifest_mock.return_value = {"application": {"name": self.application},
                                                       "remote": {}}
-            get_application_data_mock.return_value = self.mock_app_manifest
+            get_application_data_mock.return_value = self.mock_app_manifest_remote
             get_application_file_names_mock.return_value = ["app_role1.py", "app_role2.py", "lib.py"]
 
             self.local_api.init_application(self.application, self.path)

@@ -320,6 +320,8 @@ class LocalApi:
         else:
             application_data = self.get_application_data(application_path)
             application_data["application"]["name"] = application_name
+            # reset remote
+            application_data["remote"] = {}
         # write manifest
         self.set_application_data(application_path, application_data)
 
