@@ -1,3 +1,4 @@
+import filecmp
 import fnmatch
 import os
 from pathlib import Path
@@ -1129,10 +1130,10 @@ class LocalApi:
 
     def __copy_input_files_from_application(self, application_name: str, input_directory: Path) -> None:
         """
-        Copy the input/source files of the 'application' to the 'input_directory'
+        Copy the config and src files of the 'application' to the 'input_directory'
 
         Args:
-            application_name: The application name for which the input files need to be copied
+            application_name: The application name for which the config and source files need to be copied
             input_directory: The destination where application files need to be stored
 
         """
@@ -1351,6 +1352,20 @@ class LocalApi:
         experiment_data["meta"]["round_set"] = round_set_url
         utils.write_json_file(experiment_json_file, experiment_data)
 
+    @staticmethod
+    def set_experiment_asset_application(asset_application: assetApplicationType, experiment_path: Path) -> None:
+        """
+        Store the asset application to experiment.json
+
+        Args:
+            asset_application: the asset application data
+            experiment_path: The location of the experiment
+        """
+        experiment_json_file = experiment_path / 'experiment.json'
+        experiment_data = utils.read_json_file(experiment_json_file)
+        experiment_data["asset"]["application"] = asset_application
+        utils.write_json_file(experiment_json_file, experiment_data)
+
     def _delete_input(self, experiment_input_path: Path) -> bool:
         """
         Input directory contains inputs from the application and input created for the simulator
@@ -1479,7 +1494,10 @@ class LocalApi:
 
     def run_experiment(self, experiment_path: Path) -> List[ResultType]:
         """
-        An experiment is run on the backend. For this the round set manager is setup and called to process the asset
+        An experiment is run on the backend.
+        The application input files are copied for each run, they may have changed
+        - Refresh ["asset"]["application"] when application.json changed
+        Then the round set manager is setup and called to process the asset
 
         Args:
             experiment_path: The location of the experiment
@@ -1487,11 +1505,37 @@ class LocalApi:
         Returns:
             A list containing the results of the run
         """
+        self.__prepare_input_files(experiment_path)
         local_round_set: RoundSetType = {"url": "local"}
         round_set_manager = RoundSetManager(round_set=local_round_set, asset=self.get_experiment_asset(experiment_path),
                                             experiment_path=experiment_path)
         results = round_set_manager.process()
         return results
+
+    def __prepare_input_files(self, experiment_path: Path) -> None:
+        """
+        The application config and src files are copied for each experiment run, they may have changed
+        - Refresh ["asset"]["application"] in experiment.json when application.json changed
+
+        Args:
+            experiment_path: The location of the experiment
+
+        """
+        application_name = self.get_experiment_application(experiment_path)
+        _, app_path = self.__config_manager.application_exists(application_name=application_name)
+        experiment_input_path = experiment_path / 'input'
+        application_app = Path(app_path) / 'config' / 'application.json'
+        application_exp = experiment_input_path / 'application.json'
+        if application_app.exists() and application_exp.exists():
+            application_changed = not filecmp.cmp(str(application_app),
+                                                  str(application_exp),
+                                                  shallow=False)
+            if application_changed:
+                application_config = self.get_application_config(application_name)
+                if application_config:
+                    asset_application = self.__create_asset_application(application_config)
+                    self.set_experiment_asset_application(asset_application, experiment_path)
+        self.__copy_input_files_from_application(application_name, experiment_input_path)
 
     @staticmethod
     def get_results(experiment_path: Path) -> List[ResultType]:

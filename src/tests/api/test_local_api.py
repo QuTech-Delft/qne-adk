@@ -1921,7 +1921,6 @@ class ExperimentValidate(AppValidate):
             get_channels_for_network_mock.assert_called_once_with(network_slug='randstad')
             validate_experiment_input_mock.assert_called_once_with(experiment_path=self.path, error_dict=error_dict)
 
-
     def test_validate_experiment_application(self):
         with patch.object(LocalApi, "_validate_experiment_input") as validate_experiment_input_mock, \
              patch("adk.api.local_api.utils.read_json_file") as read_json_file_mock, \
@@ -1992,13 +1991,90 @@ class ExperimentValidate(AppValidate):
             read_json_file_mock.assert_called_with(self.path / "input/network.json")
             self.assertEqual(read_json_file_mock.call_count, 1)
 
-    def test_run_experiment(self):
-        with patch.object(LocalApi, "get_experiment_asset") as get_asset_mock, \
+    def test_run_experiment_application_not_changed(self):
+        with patch.object(self.config_manager, "application_exists") as application_exists_mock, \
+             patch("adk.api.local_api.Path.exists") as mock_path_exists, \
+             patch("adk.api.local_api.filecmp.cmp") as mock_filecmp_cmp, \
+             patch.object(LocalApi, "get_application_config") as get_application_config_mock, \
+             patch.object(LocalApi, "get_experiment_asset") as get_experiment_asset_mock, \
+             patch.object(LocalApi, "get_experiment_application") as get_experiment_application_mock, \
+             patch.object(LocalApi, "set_experiment_asset_application") as set_experiment_asset_application_mock, \
+             patch.object(LocalApi, "_LocalApi__copy_input_files_from_application") as copy_files_mock, \
              patch.object(RoundSetManager, "process") as process_mock:
 
-            self.local_api.run_experiment(Path('dummy'))
-            get_asset_mock.assert_called_once()
+            app_path = self.path
+            get_experiment_application_mock.return_value = "the_app"
+            experiment_path = Path('dummy')
+            experiment_input_path = experiment_path / 'input'
+            application_exp = experiment_input_path / 'application.json'
+            application_app = Path(app_path) / 'config' / 'application.json'
+
+            application_exists_mock.return_value = True, str(app_path)
+            mock_path_exists.side_effect = [True, True]
+            mock_filecmp_cmp.return_value = True
+            get_application_config_mock.return_value = self.mock_app_config
+            self.local_api.run_experiment(experiment_path)
             process_mock.assert_called_once()
+            mock_filecmp_cmp.assert_called_once_with(str(application_app), str(application_exp), shallow=False)
+            get_application_config_mock.assert_not_called()
+            get_experiment_asset_mock.assert_called_once()
+            set_experiment_asset_application_mock.assert_not_called()
+            copy_files_mock.assert_called_once_with("the_app", experiment_input_path)
+
+    def test_run_experiment_application_config_file_not_found(self):
+        with patch.object(self.config_manager, "application_exists") as application_exists_mock, \
+             patch("adk.api.local_api.Path.exists") as mock_path_exists, \
+             patch("adk.api.local_api.filecmp.cmp") as mock_filecmp_cmp, \
+             patch.object(LocalApi, "get_application_config") as get_application_config_mock, \
+             patch.object(LocalApi, "get_experiment_asset") as get_experiment_asset_mock, \
+             patch.object(LocalApi, "get_experiment_application") as get_experiment_application_mock, \
+             patch.object(LocalApi, "set_experiment_asset_application") as set_experiment_asset_application_mock, \
+             patch.object(LocalApi, "_LocalApi__copy_input_files_from_application") as copy_files_mock, \
+             patch.object(RoundSetManager, "process") as process_mock:
+
+            get_experiment_application_mock.return_value = "the_app"
+            experiment_path = Path('dummy')
+            experiment_input_path = experiment_path / 'input'
+            application_exists_mock.return_value = True, str(self.path)
+            mock_path_exists.side_effect = [False, True]
+            mock_filecmp_cmp.return_value = True
+            get_application_config_mock.return_value = self.mock_app_config
+            self.local_api.run_experiment(experiment_path)
+            process_mock.assert_called_once()
+            mock_filecmp_cmp.assert_not_called()
+            get_application_config_mock.assert_not_called()
+            get_experiment_asset_mock.assert_called_once()
+            set_experiment_asset_application_mock.assert_not_called()
+            copy_files_mock.assert_called_once_with("the_app", experiment_input_path)
+
+    def test_run_experiment_application_changed(self):
+        with patch.object(self.config_manager, "application_exists") as application_exists_mock, \
+             patch("adk.api.local_api.Path.exists") as mock_path_exists, \
+             patch("adk.api.local_api.filecmp.cmp") as mock_filecmp_cmp, \
+             patch.object(LocalApi, "get_application_config") as get_application_config_mock, \
+             patch.object(LocalApi, "get_experiment_asset") as get_experiment_asset_mock, \
+             patch.object(LocalApi, "get_experiment_application") as get_experiment_application_mock, \
+             patch.object(LocalApi, "set_experiment_asset_application") as set_experiment_asset_application_mock, \
+             patch.object(LocalApi, "_LocalApi__copy_input_files_from_application") as copy_files_mock, \
+             patch.object(RoundSetManager, "process") as process_mock:
+
+            get_experiment_application_mock.return_value = "the_app"
+            experiment_path = Path('dummy')
+            experiment_input_path = experiment_path / 'input'
+            application_exists_mock.return_value = True, str(self.path)
+            mock_path_exists.side_effect = [True, True]
+            mock_filecmp_cmp.return_value = False
+            get_application_config_mock.return_value = self.mock_app_config
+            self.local_api.run_experiment(experiment_path)
+            get_experiment_asset_mock.assert_called_once()
+            process_mock.assert_called_once()
+            expected_asset_application = [{'roles': ['Sender'],
+                                          'values': [{'name': 'phi', 'value': 0.0, 'scale_value': 'pi'},
+                                                     {'name': 'theta', 'value': 0.0, 'scale_value': 2.0}
+                                                     ]
+                                          }]
+            set_experiment_asset_application_mock.assert_called_once_with(expected_asset_application, experiment_path)
+            copy_files_mock.assert_called_once_with("the_app", experiment_input_path)
 
     def test_get_results(self):
         with patch.object(OutputConverter, "convert") as convert_mock:
