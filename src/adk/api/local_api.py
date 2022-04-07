@@ -1492,7 +1492,7 @@ class LocalApi:
 
         return all_subdir_deleted and experiment_dir_deleted
 
-    def run_experiment(self, experiment_path: Path) -> List[ResultType]:
+    def run_experiment(self, experiment_path: Path, timeout: Optional[int] = None) -> List[ResultType]:
         """
         An experiment is run on the backend.
         The application input files are copied for each run, they may have changed
@@ -1501,6 +1501,7 @@ class LocalApi:
 
         Args:
             experiment_path: The location of the experiment
+            timeout: Limit the wait for result
 
         Returns:
             A list containing the results of the run
@@ -1509,7 +1510,7 @@ class LocalApi:
         local_round_set: RoundSetType = {"url": "local"}
         round_set_manager = RoundSetManager(round_set=local_round_set, asset=self.get_experiment_asset(experiment_path),
                                             experiment_path=experiment_path)
-        results = round_set_manager.process()
+        results = round_set_manager.process(timeout)
         return results
 
     def __prepare_input_files(self, experiment_path: Path) -> None:

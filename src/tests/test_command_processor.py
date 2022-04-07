@@ -5,6 +5,7 @@ import unittest
 from adk.command_processor import CommandProcessor
 from adk.exceptions import (ApiClientError, AppConfigNotFound, ApplicationDoesNotExist, ApplicationNotComplete,
                             ApplicationNotFound, DirectoryAlreadyExists, NetworkNotAvailableForApplication)
+from adk import utils
 
 
 class TestCommandProcessor(unittest.TestCase):
@@ -311,22 +312,57 @@ class TestCommandProcessor(unittest.TestCase):
         self.local_api.validate_experiment.assert_called_once_with(self.path)
 
     def test_experiments_run(self):
-        with patch('adk.command_processor.Path.mkdir'), \
-             patch("adk.command_processor.utils.write_json_file"):
+        with patch('adk.command_processor.Path.mkdir') as mkdir_mock, \
+             patch("adk.command_processor.utils.write_json_file") as write_json_mock:
 
+            # local
+            results = ['foo']
             self.local_api.is_experiment_local.return_value = True
-            self.local_api.run_experiment.return_value = ['foo']
-            self.processor.experiments_run(self.path, True)
+            self.local_api.run_experiment.return_value = results
+            self.processor.experiments_run(self.path, True, None)
 
             self.local_api.is_experiment_local.assert_called_once_with(experiment_path=self.path)
-            self.local_api.run_experiment.assert_called_once_with(self.path)
+            self.local_api.run_experiment.assert_called_once_with(self.path, None)
+            mkdir_mock.assert_called_once_with(parents=True)
+            write_json_mock.assert_called_once_with(self.path / 'results' / 'processed.json', results,
+                                                    encoder_cls=utils.ComplexEncoder)
 
+            mkdir_mock.reset_mock()
+            write_json_mock.reset_mock()
             self.local_api.is_experiment_local.reset_mock()
+            self.local_api.is_experiment_local.return_value = True
             self.local_api.run_experiment.reset_mock()
             self.local_api.run_experiment.return_value = None
-            self.processor.experiments_run(self.path, True)
+            self.processor.experiments_run(self.path, True, 30)
             self.local_api.is_experiment_local.assert_called_once_with(experiment_path=self.path)
-            self.local_api.run_experiment.assert_called_once_with(self.path)
+            self.local_api.run_experiment.assert_called_once_with(self.path, 30)
+            mkdir_mock.assert_not_called()
+            write_json_mock.assert_not_called()
+
+            # remote
+            mkdir_mock.reset_mock()
+            write_json_mock.reset_mock()
+            self.local_api.is_experiment_local.reset_mock()
+            self.local_api.is_experiment_local.return_value = False
+            self.local_api.run_experiment.reset_mock()
+            results = ['foo']
+            experiment_data = {"test": 1}
+            round_set = {"fake_roundset_id": 1}
+            self.remote_api.get_results.return_value = results
+            self.local_api.get_experiment_data.return_value = experiment_data
+            self.remote_api.run_experiment.return_value = (round_set, 12)
+            return_value = self.processor.experiments_run(self.path, True, 30)
+
+            self.local_api.get_experiment_data.assert_called_once_with(self.path)
+            self.remote_api.run_experiment.assert_called_once_with(experiment_data)
+            self.local_api.set_experiment_id.assert_called_once_with(12, self.path)
+            self.local_api.set_experiment_round_set.assert_called_once_with(round_set, self.path)
+            self.remote_api.get_results.assert_called_once_with(round_set, True, 30)
+            mkdir_mock.assert_called_once_with(parents=True)
+
+            write_json_mock.assert_called_once_with(self.path / 'results' / 'processed.json', results,
+                                                    encoder_cls=utils.ComplexEncoder)
+            self.assertEqual(return_value, results)
 
     def test_experiments_result(self):
         with patch("adk.command_processor.Path.exists") as exists_mock, \

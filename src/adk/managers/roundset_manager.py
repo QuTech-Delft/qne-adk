@@ -38,9 +38,12 @@ class RoundSetManager:
             instruction_converter=self.__fully_connected_network_generator
         )
 
-    def process(self) -> List[ResultType]:
+    def process(self, timeout: Optional[int] = None) -> List[ResultType]:
         """
         Process a round by running the application on simulator.
+
+        Args:
+            timeout: Limit the wait for result
 
         Returns:
             The result of the application run
@@ -54,7 +57,7 @@ class RoundSetManager:
         message: str = ""
         trace: Optional[str] = None
         try:
-            self._run_application()
+            self._run_application(timeout)
         except CalledProcessError as exc:
             exception_type = type(exc).__name__
             message = f"NetQASM returned with exit status {exc.returncode}."
@@ -95,11 +98,14 @@ class RoundSetManager:
         """Clean up everything that the InputParser/RoundSetManager has created."""
         self.__clean()
 
-    def _run_application(self) -> None:
+    def _run_application(self, timeout: Optional[int] = None) -> None:
         """Execute the subprocess that runs the application on squidasm.
 
         Squidasm reads the directory that contains both the source and configuration files for an application. This
         method will trigger a subprocess running squidasm with a prepared directory containing these files.
+
+        Args:
+            timeout: Limit the wait for result
 
         Raises:
             CalledProcessError: If the application has failed, an exception is raised.
@@ -111,5 +117,5 @@ class RoundSetManager:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
             check=True,
-            timeout=60
+            timeout=timeout
         )

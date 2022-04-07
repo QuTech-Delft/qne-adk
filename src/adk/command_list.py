@@ -475,13 +475,19 @@ def experiments_delete(
 @catch_qne_adk_exceptions
 def experiments_run(
     experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment"),
-    block: bool = typer.Option(False, "--block", help="Wait for the result to be returned")
+    block: bool = typer.Option(False, "--block", help="Wait for the (remote) experiment to finish"),
+    timeout: Optional[int] = typer.Option(None, "--timeout", help="Limit the wait for the experiment to finish")
 ) -> None:
     """
     Run an experiment.
 
     When experiment_name is given ./experiment_name is taken as experiment directory. When experiment_name is not
     given, the current directory is taken as experiment directory.
+    Block (remote only) waits for the experiment to finish before returning (and results are available). Local
+    experiment runs are blocked by default.
+    Timeout (optional) limits the wait (in seconds) for a blocked experiment to finish. In case of a local experiment,
+    a timeout will cancel the experiment run. A remote experiment is not canceled after a timeout and results can be
+    fetched at a later moment.
     """
     experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
     # Validate the experiment before executing the run command
@@ -491,11 +497,13 @@ def experiments_run(
         show_validation_messages(validate_dict)
         typer.echo("Experiment is invalid. Please resolve the issues and then run the experiment.")
     else:
+        local = local_api.is_experiment_local(experiment_path=experiment_path)
+        if local:
+            block = True
         if block:
-            local = local_api.is_experiment_local(experiment_path=experiment_path)
             typer.echo(f"Experiment is sent to the {'local' if local else 'remote'} server. "
                        f"Please wait until the results are received...")
-        results = processor.experiments_run(experiment_path=experiment_path, block=block)
+        results = processor.experiments_run(experiment_path=experiment_path, block=block, timeout=timeout)
         if results is not None:
             if results and "error" in results[0]["round_result"]:
                 typer.echo("Error encountered while running the experiment")
