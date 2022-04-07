@@ -682,7 +682,7 @@ class RemoteApi:
 
         return str(round_set["url"]), str(experiment["id"])
 
-    def get_results(self, round_set_url: str, block: bool = False, timeout: int = 30,
+    def get_results(self, round_set_url: str, block: bool = False, timeout: Optional[int] = None,
                     wait: int = 2) -> Optional[List[ResultType]]:
         """
         For a job running, get the results. When block is True, block the call for 'timeout' seconds until the result
@@ -691,7 +691,7 @@ class RemoteApi:
         Args:
             round_set_url: which holds the results and status of the run of the remote experiment
             block: When True retry for a number of seconds
-            timeout: retry for this number of seconds to get the result
+            timeout: retry for this number of seconds to get the result (None = no timeout)
             wait: number of seconds to wait between calls to api router for the results
         """
         start_time = time.time()

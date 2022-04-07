@@ -319,7 +319,8 @@ class CommandProcessor:
         return deleted_completely_local and deleted_remote
 
     @log_function
-    def experiments_run(self, experiment_path: Path, block: bool = True) -> Optional[List[ResultType]]:
+    def experiments_run(self, experiment_path: Path, block: bool = True,
+                        timeout: Optional[int] = None) -> Optional[List[ResultType]]:
         """ Run the experiment and get the results. When running a remote experiment depending on the parameter block
         we wait for the results, otherwise None is returned (results not yet available).
         With qne experiment results a next try can be done to get the results
@@ -327,6 +328,7 @@ class CommandProcessor:
         Args:
             experiment_path: location of experiment files
             block: do we wait for the result or not
+            timeout: Limit the wait for result
 
         Returns:
             None if remote results are not yet available, otherwise True
@@ -334,13 +336,13 @@ class CommandProcessor:
         results: Optional[List[ResultType]]
         local = self.__local.is_experiment_local(experiment_path=experiment_path)
         if local:
-            results = self.__local.run_experiment(experiment_path)
+            results = self.__local.run_experiment(experiment_path, timeout)
         else:
             experiment_data = self.__local.get_experiment_data(experiment_path)
             round_set, experiment_id = self.__remote.run_experiment(experiment_data)
             self.__local.set_experiment_id(experiment_id, experiment_path)
             self.__local.set_experiment_round_set(round_set, experiment_path)
-            results = self.__remote.get_results(round_set, block)
+            results = self.__remote.get_results(round_set, block, timeout)
 
         if results is not None:
             self.__store_results(results, experiment_path)

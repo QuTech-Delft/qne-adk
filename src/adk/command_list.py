@@ -475,7 +475,8 @@ def experiments_delete(
 @catch_qne_adk_exceptions
 def experiments_run(
     experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment"),
-    block: bool = typer.Option(False, "--block", help="Wait for the result to be returned")
+    block: bool = typer.Option(False, "--block", help="Wait for the result to be returned"),
+    timeout: Optional[int] = typer.Option(None, "--timeout", help="Limit the wait for result (in seconds)")
 ) -> None:
     """
     Run an experiment.
@@ -495,7 +496,7 @@ def experiments_run(
             local = local_api.is_experiment_local(experiment_path=experiment_path)
             typer.echo(f"Experiment is sent to the {'local' if local else 'remote'} server. "
                        f"Please wait until the results are received...")
-        results = processor.experiments_run(experiment_path=experiment_path, block=block)
+        results = processor.experiments_run(experiment_path=experiment_path, block=block, timeout=timeout)
         if results is not None:
             if results and "error" in results[0]["round_result"]:
                 typer.echo("Error encountered while running the experiment")
