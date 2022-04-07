@@ -490,9 +490,6 @@ def experiments_run(
     fetched at a later moment.
     """
     experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)
-    local = local_api.is_experiment_local(experiment_path=experiment_path)
-    if local:
-        block = True
     # Validate the experiment before executing the run command
     validate_dict = processor.experiments_validate(experiment_path=experiment_path)
 
@@ -500,6 +497,9 @@ def experiments_run(
         show_validation_messages(validate_dict)
         typer.echo("Experiment is invalid. Please resolve the issues and then run the experiment.")
     else:
+        local = local_api.is_experiment_local(experiment_path=experiment_path)
+        if local:
+            block = True
         if block:
             typer.echo(f"Experiment is sent to the {'local' if local else 'remote'} server. "
                        f"Please wait until the results are received...")
