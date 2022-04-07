@@ -2014,7 +2014,7 @@ class ExperimentValidate(AppValidate):
             mock_filecmp_cmp.return_value = True
             get_application_config_mock.return_value = self.mock_app_config
             self.local_api.run_experiment(experiment_path)
-            process_mock.assert_called_once()
+            process_mock.assert_called_once_with(None)
             mock_filecmp_cmp.assert_called_once_with(str(application_app), str(application_exp), shallow=False)
             get_application_config_mock.assert_not_called()
             get_experiment_asset_mock.assert_called_once()
@@ -2039,8 +2039,8 @@ class ExperimentValidate(AppValidate):
             mock_path_exists.side_effect = [False, True]
             mock_filecmp_cmp.return_value = True
             get_application_config_mock.return_value = self.mock_app_config
-            self.local_api.run_experiment(experiment_path)
-            process_mock.assert_called_once()
+            self.local_api.run_experiment(experiment_path, 30)
+            process_mock.assert_called_once_with(30)
             mock_filecmp_cmp.assert_not_called()
             get_application_config_mock.assert_not_called()
             get_experiment_asset_mock.assert_called_once()
@@ -2067,7 +2067,7 @@ class ExperimentValidate(AppValidate):
             get_application_config_mock.return_value = self.mock_app_config
             self.local_api.run_experiment(experiment_path)
             get_experiment_asset_mock.assert_called_once()
-            process_mock.assert_called_once()
+            process_mock.assert_called_once_with(None)
             expected_asset_application = [{'roles': ['Sender'],
                                           'values': [{'name': 'phi', 'value': 0.0, 'scale_value': 'pi'},
                                                      {'name': 'theta', 'value': 0.0, 'scale_value': 2.0}

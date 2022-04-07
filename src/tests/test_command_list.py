@@ -716,23 +716,45 @@ class TestCommandList(unittest.TestCase):
     def test_experiment_run(self):
         with patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock, \
              patch.object(CommandProcessor, 'experiments_run') as exp_run_mock, \
-             patch.object(LocalApi, "is_experiment_local", return_value=True), \
+             patch.object(LocalApi, "is_experiment_local") as exp_local_mock, \
              patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
 
             retrieve_expname_and_path_mock.return_value = self.path, None
+            exp_local_mock.return_value = True
             exp_validate_mock.return_value = {"error": [], "warning": [], "info": []}
             exp_run_output = self.runner.invoke(experiments_app, ['run'])
             exp_validate_mock.assert_called_once_with(experiment_path=self.path)
             retrieve_expname_and_path_mock.assert_called_once()
-            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=False)
+            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=True, timeout=None)
             self.assertEqual(exp_run_output.exit_code, 0)
+            self.assertIn("Experiment is sent to the local server. Please wait until the results are received...",
+                          exp_run_output.stdout)
+            self.assertIn("Experiment run successfully. Check the results using command 'experiment results'",
+                          exp_run_output.stdout)
 
+            exp_local_mock.return_value = False
             retrieve_expname_and_path_mock.reset_mock()
             exp_run_mock.reset_mock()
-            exp_run_output = self.runner.invoke(experiments_app, ['run', '--block'])
-            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=True)
+            exp_run_output = self.runner.invoke(experiments_app, ['run', '--block', '--timeout=30'])
+            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=True, timeout=30)
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_run_output.exit_code, 0)
+            self.assertIn("Experiment is sent to the remote server. Please wait until the results are received...",
+                          exp_run_output.stdout)
+            self.assertIn("Experiment run successfully. Check the results using command 'experiment results'",
+                          exp_run_output.stdout)
+
+            exp_local_mock.return_value = False
+            retrieve_expname_and_path_mock.reset_mock()
+            exp_run_mock.reset_mock()
+            exp_run_output = self.runner.invoke(experiments_app, ['run', '--timeout=30'])
+            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=False, timeout=30)
+            retrieve_expname_and_path_mock.assert_called_once()
+            self.assertEqual(exp_run_output.exit_code, 0)
+            self.assertNotIn("Experiment is sent to the remote server. Please wait until the results are received...",
+                             exp_run_output.stdout)
+            self.assertIn("Experiment run successfully. Check the results using command 'experiment results'",
+                          exp_run_output.stdout)
 
     def test_experiment_results(self):
         with patch.object(CommandProcessor, 'experiments_results') as exp_results_mock, \

@@ -378,19 +378,26 @@ experiment run
 
 This command will parse all experiment files and run them on the NetSquid simulator.
 
-When experiment_name is given ./experiment_name is taken as experiment directory.
-When experiment_name is not given, the current directory is taken as experiment
-directory.
+  When experiment_name is given ./experiment_name is taken as experiment directory.
+  When experiment_name is not given, the current directory is taken as experiment
+  directory.
+  Block (remote only) waits for the experiment to finish before returning (and
+  results are available). Local experiment runs are blocked by default.
+  Timeout (optional) limits the wait (in seconds) for a blocked experiment to finish.
+  In case of a local experiment, a timeout will cancel the experiment run. A remote
+  experiment is not canceled after a timeout and results can be fetched at a later
+  moment.
 
     Arguments:
       [EXPERIMENT_NAME]  Name of the experiment
 
     Options:
-      --block  Wait for the result to be returned.  [default: False]
+      --block  Wait for the (remote) experiment to finish.  [default: False]
+      --timeout  Limit the wait for a blocked experiment to finish (in seconds).  [default: no timeout]
       --help   Show this message and exit.
 
     Example:
-      qne experiment run --block experiment_name
+      qne experiment run --block --timeout=30 experiment_name
 
 experiment results
 ^^^^^^^^^^^^^^^^^^
