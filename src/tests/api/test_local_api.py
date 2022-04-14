@@ -1452,6 +1452,35 @@ class ExperimentValidate(AppValidate):
             validate_experiment_application_mock.assert_called_once_with(self.path, self.mock_experiment_data,
                                                                          error_dict)
 
+    def test_validate_experiment_json_non_required_values(self):
+        # test get_experiment_round_set and get_experiment_id
+        with patch.object(LocalApi, "is_experiment_local", return_value=False) as is_experiment_local_mock, \
+             patch.object(LocalApi, "get_experiment_data",
+                          return_value=self.mock_experiment_data) as get_experiment_data_mock:
+
+            return_value = self.local_api.get_experiment_id(self.path)
+            is_experiment_local_mock.assert_called_once()
+            self.assertIsNone(return_value)
+
+            is_experiment_local_mock.reset_mock()
+            return_value = self.local_api.get_experiment_round_set(self.path)
+            is_experiment_local_mock.assert_called_once()
+            self.assertIsNone(return_value)
+
+            # add data coming from experiment run
+            self.mock_experiment_data["meta"]["experiment_id"] = 3
+            self.mock_experiment_data["meta"]["round_set"] = 'fake_url'
+
+            is_experiment_local_mock.reset_mock()
+            return_value = self.local_api.get_experiment_id(self.path)
+            is_experiment_local_mock.assert_called_once()
+            self.assertEqual(return_value, '3')
+
+            is_experiment_local_mock.reset_mock()
+            return_value = self.local_api.get_experiment_round_set(self.path)
+            is_experiment_local_mock.assert_called_once()
+            self.assertEqual(return_value, 'fake_url')
+
     def test_validate_experiment_input_all_ok(self):
         with patch("adk.api.local_api.Path.is_dir") as is_dir_mock, \
              patch.object(LocalApi, "_validate_experiment_json") as validate_experiment_json_mock, \
