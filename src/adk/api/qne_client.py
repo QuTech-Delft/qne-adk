@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import re
 from pathlib import Path
 from typing import Any, cast, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit, parse_qs
 
 import jwt
 import requests
@@ -255,9 +255,34 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         response = self._action('retrieveMeAPIUser')
         return cast(UserType, response)
 
+    @staticmethod
+    def __get_query_params(url):
+        """
+        Given a URL, get limit and offset parameters of the URL, and return them.
+        """
+        limit = ''
+        offset = ''
+        (scheme, netloc, path, query, fragment) = urlsplit(url)
+        query_dict = parse_qs(query, keep_blank_values=True)
+        if "limit" in query_dict:
+            limit = query_dict["limit"][0]
+        if "offset" in query_dict:
+            offset = query_dict["offset"][0]
+
+        return limit, offset
+
     def list_applications(self) -> List[ApplicationType]:
-        response = self._action('listApplications')
-        return cast(List[ApplicationType], response)
+        """ Get the applications, instead of the default limit 9, use limit 25 to lessen the number of calls """
+        application_list: List[ApplicationType] = []
+        response = self._action('listApplications', limit=25)
+        application_list.extend(response['applications'])
+        while response['next'] is not None:
+            limit, offset = self.__get_query_params(response['next'])
+            response = self._action('listApplications', limit=limit, offset=offset)
+            application_list.extend(response['applications'])
+
+        assert len(application_list) == response['total_applications']
+        return application_list
 
     def retrieve_application(self, application_url: str) -> ApplicationType:
         _, application_id = QneClient.parse_url(application_url)
