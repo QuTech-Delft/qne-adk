@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import re
 from pathlib import Path
-from typing import Any, cast, Dict, List, Optional, Tuple
+from typing import Any, cast, Dict, List, Optional, Tuple, Union
 from urllib.parse import urljoin, urlsplit, urlunsplit, parse_qs
 
 import jwt
@@ -256,13 +256,13 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         return cast(UserType, response)
 
     @staticmethod
-    def __get_query_params(url):
+    def __get_query_params(url: str) -> Tuple[Union[str, Any], Union[str, Any]]:
         """
         Given a URL, get limit and offset parameters of the URL, and return them.
         """
         limit = ''
         offset = ''
-        (scheme, netloc, path, query, fragment) = urlsplit(url)
+        (_, _, _, query, _) = urlsplit(url)
         query_dict = parse_qs(query, keep_blank_values=True)
         if "limit" in query_dict:
             limit = query_dict["limit"][0]
