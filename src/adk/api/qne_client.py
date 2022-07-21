@@ -272,9 +272,15 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         return limit, offset
 
     def list_applications(self) -> List[ApplicationType]:
-        """ Get the applications, instead of the default limit 9, use limit 25 to lessen the number of calls """
+        """
+        Get the applications. Currently this method supports paginated and non paginated results to be backwards
+        compatible. The application data fields that are used in ADK is unchanged.
+        """
+        response = self._action('listApplications')
+        if isinstance(response, list):
+            return cast(List[ApplicationType], response)
+
         application_list: List[ApplicationType] = []
-        response = self._action('listApplications', limit=25)
         application_list.extend(response['applications'])
         while response['next'] is not None:
             limit, offset = self.__get_query_params(response['next'])

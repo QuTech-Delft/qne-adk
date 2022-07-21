@@ -98,6 +98,47 @@ class TestQneFrontendClient(unittest.TestCase):
                 'applications': [self.applications['applications'][4]]
             }
         ]
+        self.applications_unpaged = [
+        {
+            "id": 1,
+            "url": "https://api.quantum-network.com/applications/1/",
+            "name": "State Teleportation",
+            "slug": "state-teleportation",
+            "date": "2021-11-17",
+            "description": "Quantum teleportation is a process in which quantum information (e.g. the exact state of an atom or photon) can be transmitted (exactly, in principle) from one location to another, with the help of classical communication and previously shared quantum entanglement between the sending and receiving location.",
+            "author": "Axel Dahlberg",
+            "email": "a.dahlberg@tudelft.nl",
+            "is_draft": False,
+            "is_public": True,
+            "is_disabled": False
+        },
+        {
+            "id": 7,
+            "url": "https://api.quantum-network.com/applications/7/",
+            "name": "Distributed CNOT",
+            "slug": "distributed-cnot",
+            "date": "2021-11-17",
+            "description": "Performs a CNOT operation distributed over two nodes: Controller and Target. Controller owns the control qubit and Target the target qubit.",
+            "author": "Axel Dahlberg",
+            "email": "a.dahlberg@tudelft.nl",
+            "is_draft": False,
+            "is_public": True,
+            "is_disabled": False
+        },
+        {
+            "id": 5,
+            "url": "https://api.quantum-network.com/applications/5/",
+            "name": "QKD",
+            "slug": "qkd",
+            "date": "2021-11-17",
+            "description": "QKD is a quantum key distribution scheme developed by Charles Bennett and Gilles Brassard in 1984.",
+            "author": "Axel Dahlberg",
+            "email": "a.dahlberg@tudelft.nl",
+            "is_draft": False,
+            "is_public": True,
+            "is_disabled": False
+        }
+        ]
 
         with patch('adk.api.remote_api.AuthManager') as auth_manager, \
              patch('adk.api.qne_client.QneFrontendClient'):
@@ -106,7 +147,16 @@ class TestQneFrontendClient(unittest.TestCase):
 
 
 class TestApplications(TestQneFrontendClient):
-    def test_application_list_at_once(self):
+    def test_application_unpaged_list(self):
+        # test the backwards compatibility with the previous version of the applications endpoint
+        with patch.object(QneFrontendClient, "_action") as action_mock:
+
+            action_mock.return_value = self.applications_unpaged
+            application_list = self.qne_frontend_client.list_applications()
+            self.assertEqual(action_mock.call_count, 1)
+            self.assertListEqual(application_list, self.applications_unpaged)
+
+    def test_application_paged_list_at_once(self):
         with patch.object(QneFrontendClient, "_action") as action_mock:
 
             action_mock.return_value = self.applications
@@ -114,14 +164,14 @@ class TestApplications(TestQneFrontendClient):
             self.assertEqual(action_mock.call_count, 1)
             self.assertListEqual(application_list, self.applications["applications"])
 
-    def test_application_list_limited(self):
+    def test_application_paged_list_limited(self):
         with patch.object(QneFrontendClient, "_action") as action_mock:
 
             action_mock.side_effect = self.applications_limit_is_1
             application_list = self.qne_frontend_client.list_applications()
             self.assertEqual(action_mock.call_count, 5)
 
-            action_calls = [call('listApplications', limit=25),
+            action_calls = [call('listApplications'),
                             call('listApplications', limit='1', offset='1'),
                             call('listApplications', limit='1', offset='2'),
                             call('listApplications', limit='1', offset='3'),
