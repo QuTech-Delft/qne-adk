@@ -830,8 +830,8 @@ class RemoteApi:
         else:
             # overwrite if it existed, otherwise append
             found = False
-            for i, _ in enumerate(list_of_dict):
-                if list_of_dict[i]["slug"] == dict_item["slug"]:
+            for i, a_dict in enumerate(list_of_dict):
+                if a_dict["slug"] == dict_item["slug"]:
                     list_of_dict[i] = dict_item
                     found = True
                     break

@@ -158,7 +158,9 @@ def applications_create(
 
     cwd = Path.cwd()
     application_path = cwd / application_name
-    processor.applications_create(application_name=application_name, roles=roles, application_path=application_path)
+    processor.applications_create(application_name=application_name,
+                                  roles=list(roles),
+                                  application_path=application_path)
     typer.echo(f"Application '{application_name}' created successfully in directory '{str(application_path)}'")
 
 

@@ -1,3 +1,4 @@
+import copy
 import filecmp
 import fnmatch
 import os
@@ -913,7 +914,8 @@ class LocalApi:
 
         """
         network_data: assetNetworkType = self.get_network_data(network_name=network_name)
-        asset_network: assetNetworkType = self.create_asset_network(network_data=network_data,
+        copied_network_data = copy.deepcopy(network_data)
+        asset_network: assetNetworkType = self.create_asset_network(network_data=copied_network_data,
                                                                     app_config=app_config)
 
         self.__create_experiment(experiment_name=experiment_name, application_name=application_name,

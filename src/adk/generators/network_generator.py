@@ -141,8 +141,8 @@ class FullyConnectedNetworkGenerator:
 
     def convert(self, instructions: List[InstructionType]) -> None:
         """In-place update of channels entry to mapped channels."""
-        for idx, _ in enumerate(instructions):
-            if "channels" in instructions[idx]:
+        for idx, instruction in enumerate(instructions):
+            if "channels" in instruction:
                 instructions[idx]["channels"] = self.__channel_mapping[instructions[idx]["channels"][0]]
 
 

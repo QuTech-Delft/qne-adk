@@ -97,7 +97,7 @@ class TestCommandList(unittest.TestCase):
                                                            ['create', self.application, 'role1', 'role2'])
             mock_cwd.assert_called_once()
             self.assertEqual(mock_validate_path_name.call_count, 3)
-            application_create_mock.assert_called_once_with(application_name=self.application, roles=('role1', 'role2'),
+            application_create_mock.assert_called_once_with(application_name=self.application, roles=['role1', 'role2'],
                                                             application_path=self.path / self.application)
             self.assertEqual(application_create_output.exit_code, 0)
             self.assertIn(f"Application '{self.application}' created successfully in directory "
