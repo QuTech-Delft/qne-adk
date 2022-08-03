@@ -40,6 +40,7 @@ for application development.
 - NetQASM makes use of SquidASM for which you need credentials in order to use it. These credentials can be obtained by registering on the forum of [NetSquid](https://forum.netsquid.org/).
 
 ## Installation
+
 To install all the required packages, execute the following command:
 
 ```
@@ -53,6 +54,15 @@ pip install squidasm --extra-index-url=https://{netsquid-user-name}:{netsquid-pa
 ```
 
 Now everything should be setup and ready in order to create your own applications and experiments and run them on the simulator!
+
+### Troubleshooting
+
+If you have any issues installing SquidASM (e.g. it only seems to use version 0.0.1), check the following:
+
+- Make sure you're using the latest version of `pip` (run: `python -m pip install --upgrade pip`)
+- Check you're using a supported Python version [here](https://pypi.netsquid.org/netsquid/). In the wheel filenames, cpXX indicates the version - so if you have Python 3.10, but there is no cp310 wheel, it won't work. Check the OS is also compatible.
+- If `pydynaa` is failing, check the same as above [here](https://pypi.netsquid.org/pydynaa/).
+- For help with python versions, check out [pyenv](https://github.com/pyenv/pyenv). You should probably be using [virtualenv](https://virtualenv.pypa.io/en/latest/) or [venv](https://docs.python.org/3/library/venv.html) too.
 
 ## Commands
 The QNE-ADK uses various commands to create and run your applications and experiments. All the commands are listed below:
