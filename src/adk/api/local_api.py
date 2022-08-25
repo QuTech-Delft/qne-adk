@@ -1296,7 +1296,8 @@ class LocalApi:
         """
         if not self.is_experiment_local(experiment_path):
             experiment_data = self.get_experiment_data(experiment_path)
-            return cast(str, experiment_data["meta"]["round_set"])
+            if "round_set" in experiment_data["meta"]:
+                return cast(str, experiment_data["meta"]["round_set"])
         return None
 
     @staticmethod
