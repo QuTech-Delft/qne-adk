@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 import re
 from pathlib import Path
-from typing import Any, cast, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlsplit, urlunsplit
+from typing import Any, cast, Dict, List, Optional, Tuple, Union
+from urllib.parse import urljoin, urlsplit, urlunsplit, parse_qs
 
 import jwt
 import requests
@@ -255,9 +255,40 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         response = self._action('retrieveMeAPIUser')
         return cast(UserType, response)
 
+    @staticmethod
+    def __get_query_params(url: str) -> Tuple[Union[str, Any], Union[str, Any]]:
+        """
+        Given a URL, get limit and offset parameters of the URL, and return them.
+        """
+        limit = ''
+        offset = ''
+        (_, _, _, query, _) = urlsplit(url)
+        query_dict = parse_qs(query, keep_blank_values=True)
+        if "limit" in query_dict:
+            limit = query_dict["limit"][0]
+        if "offset" in query_dict:
+            offset = query_dict["offset"][0]
+
+        return limit, offset
+
     def list_applications(self) -> List[ApplicationType]:
+        """
+        Get the applications. Currently this method supports paginated and non paginated results to be backwards
+        compatible. The application data fields that are used in ADK is unchanged.
+        """
         response = self._action('listApplications')
-        return cast(List[ApplicationType], response)
+        if isinstance(response, list):
+            return cast(List[ApplicationType], response)
+
+        application_list: List[ApplicationType] = []
+        application_list.extend(response['applications'])
+        while response['next'] is not None:
+            limit, offset = self.__get_query_params(response['next'])
+            response = self._action('listApplications', limit=limit, offset=offset)
+            application_list.extend(response['applications'])
+
+        assert len(application_list) == response['total_applications']
+        return application_list
 
     def retrieve_application(self, application_url: str) -> ApplicationType:
         _, application_id = QneClient.parse_url(application_url)
