@@ -25,17 +25,17 @@ class CommandProcessor:
         self.__local = local_api
 
     @log_function
-    def login(self, host: str, username: str, password: str) -> None:
+    def login(self, host: str, email: str, password: str) -> None:
         """
         Redirects login to remote api.
 
         Args:
             host: host to log on to
-            username: the user
+            email: the user's email
             password: the password
 
         """
-        self.__remote.login(username=username, password=password, host=host)
+        self.__remote.login(email=email, password=password, host=host)
 
     @log_function
     def logout(self, host: Optional[str]) -> bool:

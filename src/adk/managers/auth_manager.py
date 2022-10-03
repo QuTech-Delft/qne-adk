@@ -27,26 +27,26 @@ class AuthManager:
         self.__logout_function = logout_function
         self.__active_host = self.__read_active_host()
 
-    def login(self, username: Optional[str], password: Optional[str], host: Optional[str]) -> None:
+    def login(self, email: Optional[str], password: Optional[str], host: Optional[str]) -> None:
         """
         When a token is not found it tries to login
         with basic authentication read from the environment variables QNE_EMAIL and QNE_PASSWORD. When the environment
         variables are not both set, email and password are read from standard input.
 
-        :param username: username (e-mail)
+        :param email: e-mail
         :param password: password
         :param host: the Quantum Network host for which we try to log in
 
         """
         if host is None:
             host = QNE_URL
-        if username is not None and password is not None and host is not None:
+        if email is not None and password is not None and host is not None:
             token = self.__fetch_token(self.__login_function,
-                                       {'username': username, 'password': password, 'host': host})
+                                       {'email': email, 'password': password, 'host': host})
         else:
             token = self.__fetch_token(self.__fallback_function, {'host': host})
 
-        self.__store_token(host, token, username, password)
+        self.__store_token(host, token, email, password)
         self.__set_active_host(host)
 
     def logout(self, host: Optional[str]) -> None:
@@ -82,14 +82,14 @@ class AuthManager:
         """
         return self.__get_item_from_host(host, "token")
 
-    def __store_token(self, host: str, token: str, username: Optional[str], password: Optional[str]) -> None:
+    def __store_token(self, host: str, token: str, email: Optional[str], password: Optional[str]) -> None:
         """Save the token for a host to a file. Currently allowing one login at a time.
 
         :param host: the Quantum Network host for which the token is saved.
         :param token: the Quantum Network token to save.
         """
         accounts = {}
-        accounts[host] = {"token": token, "username": username, "password": password}
+        accounts[host] = {"token": token, "email": email, "password": password}
         write_json_file(self.auth_config, accounts)
 
     def set_token(self, host: str, token: str) -> None:
@@ -143,11 +143,11 @@ class AuthManager:
         accounts: AuthType = read_json_file(self.auth_config)
 
         if host in accounts:
-            return accounts[host][item]
+            return accounts[host].get(item)
         return None
 
     def get_password(self, host: str) -> Optional[str]:
         return self.__get_item_from_host(host, "password")
 
-    def get_username(self, host: str) -> Optional[str]:
-        return self.__get_item_from_host(host, "username")
+    def get_email(self, host: str) -> Optional[str]:
+        return self.__get_item_from_host(host, "email")

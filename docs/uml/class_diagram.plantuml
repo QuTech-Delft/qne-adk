@@ -7,7 +7,7 @@ skinparam backgroundcolor transparent
 class CommandList {
     + app: Typer
     + processor: CommandProcessor
-    + login(host:str, username: str, password: str)
+    + login(host:str, email: str, password: str)
     + logout(host: str)
     + applications_create(application: str, roles: str[])
     + applications_init()
@@ -28,7 +28,7 @@ class CommandList {
 class CommandProcessor {
     - remote: RemoteApi
     - local: LocalApi
-    + login(host:str, username: str, password: str)
+    + login(host:str, email: str, password: str)
     + logout(host: str)
     + applications_create(application: str, roles: str[], path: str)
     + applications_init(path: str)
@@ -62,7 +62,7 @@ class AuthManager {
     - login_function: Callable
     - fallback_function: Callable
     + __init__(config_dir, login_function, fallback_function)
-    + login(username: str, password: str, host: str) -> None
+    + login(email: str, password: str, host: str) -> None
     + load_token() -> str
     - store_token(token: str) -> None
     - fetch_token(function: Callable, payload: Dict[str, Any]) -> str
@@ -93,8 +93,8 @@ class LocalApi {
 class RemoteApi {
     - config_manager: ConfigManager
     + __init__(config_manager: ConfigManager) -> None
-    + login(username: str, password: str, host: str) -> None
-    # login_user(username: str, password: str, host: str) -> str
+    + login(email: str, password: str, host: str) -> None
+    # login_user(email: str, password: str, host: str) -> str
     # login_anonymous() -> str
     + logout() -> None
     + list_applications() -> ApplicationType[]

@@ -13,7 +13,7 @@ class TestAuthManager(unittest.TestCase):
         self.fallback_function = Mock()
         self.path = Path('path/to/application')
         self.host = 'http://unittest_server/'
-        self.username = 'test_username'
+        self.email = 'test@email.com'
         self.password = 'test_password'
 
     def test_login(self):
@@ -29,10 +29,10 @@ class TestAuthManager(unittest.TestCase):
                                        fallback_function=self.fallback_function, logout_function=self.logout_function)
 
             fetch_token_mock.return_value = 'token'
-            auth_manager.login(username=self.username, password=self.password, host=self.host)
+            auth_manager.login(email=self.email, password=self.password, host=self.host)
             fetch_token_mock.assert_called_once_with(self.login_function,
-                                       {'username': self.username, 'password': self.password, 'host': self.host})
-            expected = {f"{self.host}": {"token": 'token', "username": self.username, "password": self.password}}
+                                       {'email': self.email, 'password': self.password, 'host': self.host})
+            expected = {f"{self.host}": {"token": 'token', "email": self.email, "password": self.password}}
             write_json_mock.assert_called_once_with(self.path / 'qnerc', expected)
             set_active_host_mock.assert_called_once_with(self.host)
 
@@ -49,9 +49,9 @@ class TestAuthManager(unittest.TestCase):
                                        fallback_function=self.fallback_function, logout_function=self.logout_function)
 
             fetch_token_mock.return_value = 'token'
-            auth_manager.login(username=None, password=None, host=None)
+            auth_manager.login(email=None, password=None, host=None)
             fetch_token_mock.assert_called_once_with(self.fallback_function, {'host': QNE_URL})
-            expected = {f"{QNE_URL}": {"token": 'token', "username": None, "password": None}}
+            expected = {f"{QNE_URL}": {"token": 'token', "email": None, "password": None}}
             write_json_mock.assert_called_once_with(self.path / 'qnerc', expected)
             set_active_host_mock.assert_called_once_with(QNE_URL)
 
@@ -68,7 +68,7 @@ class TestAuthManager(unittest.TestCase):
             auth_manager = AuthManager(config_dir=self.path, login_function=self.login_function,
                                        fallback_function=self.fallback_function, logout_function=self.logout_function)
             get_active_host_mock.return_value = self.host
-            auth_config = {f"{self.host}": {"token": 'token', "username": self.username, "password": self.password}}
+            auth_config = {f"{self.host}": {"token": 'token', "email": self.email, "password": self.password}}
             read_json_mock.return_value = auth_config
             auth_manager.logout(None)
             self.logout_function.assert_called_once_with(self.host)
@@ -85,7 +85,7 @@ class TestAuthManager(unittest.TestCase):
             auth_manager = AuthManager(config_dir=self.path, login_function=self.login_function,
                                        fallback_function=self.fallback_function, logout_function=self.logout_function)
             token_to_load = 'token_to_load'
-            auth_config = {f"{self.host}": {"token": token_to_load, "username": self.username,
+            auth_config = {f"{self.host}": {"token": token_to_load, "email": self.email,
                                             "password": self.password}}
             read_json_mock.return_value = auth_config
 
@@ -108,12 +108,12 @@ class TestAuthManager(unittest.TestCase):
             auth_manager = AuthManager(config_dir=self.path, login_function=self.login_function,
                                        fallback_function=self.fallback_function, logout_function=self.logout_function)
             token_to_set = 'token_to_set'
-            auth_config = {f"{self.host}": {"token": 'token', "username": self.username, "password": self.password}}
+            auth_config = {f"{self.host}": {"token": 'token', "email": self.email, "password": self.password}}
             read_json_mock.return_value = auth_config
 
             auth_manager.set_token(self.host, token_to_set)
 
-            expected_auth_config = {f"{self.host}": {"token": token_to_set, "username": self.username,
+            expected_auth_config = {f"{self.host}": {"token": token_to_set, "email": self.email,
                                                      "password": self.password}}
             write_json_mock.assert_called_once_with(self.path / 'qnerc', expected_auth_config)
 
@@ -127,7 +127,7 @@ class TestAuthManager(unittest.TestCase):
             auth_manager = AuthManager(config_dir=self.path, login_function=self.login_function,
                                        fallback_function=self.fallback_function, logout_function=self.logout_function)
             token = 'token'
-            auth_config = {f"{self.host}": {"token": token, "username": self.username, "password": self.password}}
+            auth_config = {f"{self.host}": {"token": token, "email": self.email, "password": self.password}}
             read_json_mock.return_value = auth_config
 
             the_host = auth_manager.get_host_from_token(token)
@@ -148,10 +148,10 @@ class TestAuthManager(unittest.TestCase):
                                        fallback_function=self.fallback_function, logout_function=self.logout_function)
             fetch_token_mock.return_value = 'token'
             new_active_host = 'new_active_host'
-            auth_manager.login(username=self.username, password=self.password, host=new_active_host)
+            auth_manager.login(email=self.email, password=self.password, host=new_active_host)
             active_host = auth_manager.get_active_host()
             self.assertEqual(active_host, new_active_host)
-            expected_auth_config = {f"{active_host}": {"token": 'token', "username": self.username,
+            expected_auth_config = {f"{active_host}": {"token": 'token', "email": self.email,
                                                        "password": self.password}}
             write_json_mock.assert_called_once_with(self.path / 'qnerc', expected_auth_config)
 
@@ -165,7 +165,7 @@ class TestAuthManager(unittest.TestCase):
             auth_manager = AuthManager(config_dir=self.path, login_function=self.login_function,
                                        fallback_function=self.fallback_function, logout_function=self.logout_function)
             password_to_get = 'password_to_get'
-            auth_config = {f"{self.host}": {"token": 'token', "username": self.username, "password": password_to_get}}
+            auth_config = {f"{self.host}": {"token": 'token', "email": self.email, "password": password_to_get}}
             read_json_mock.return_value = auth_config
 
             password = auth_manager.get_password(self.host)
@@ -176,7 +176,7 @@ class TestAuthManager(unittest.TestCase):
             password = auth_manager.get_password(self.host)
             self.assertIsNone(password)
 
-    def test_get_username(self):
+    def test_get_email(self):
         with patch("adk.managers.auth_manager.Path.is_file", return_value=True), \
              patch("adk.managers.auth_manager.os.path.isdir", return_value=True), \
              patch("adk.managers.auth_manager.Path.mkdir"), \
@@ -185,14 +185,14 @@ class TestAuthManager(unittest.TestCase):
 
             auth_manager = AuthManager(config_dir=self.path, login_function=self.login_function,
                                        fallback_function=self.fallback_function, logout_function=self.logout_function)
-            username_to_get = 'username_to_get'
-            auth_config = {f"{self.host}": {"token": 'token', "username": username_to_get, "password": self.password}}
+            email_to_get = 'get@email.com'
+            auth_config = {f"{self.host}": {"token": 'token', "email": email_to_get, "password": self.password}}
             read_json_mock.return_value = auth_config
 
-            username = auth_manager.get_username(self.host)
-            self.assertEqual(username, username_to_get)
+            email = auth_manager.get_email(self.host)
+            self.assertEqual(email, email_to_get)
 
             read_json_mock.return_value = {}
 
-            username = auth_manager.get_username(self.host)
-            self.assertIsNone(username)
+            email = auth_manager.get_email(self.host)
+            self.assertIsNone(email)

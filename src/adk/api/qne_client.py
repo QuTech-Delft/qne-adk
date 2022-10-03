@@ -56,7 +56,7 @@ class QneClient:
     def __init__(self, auth_manager: AuthManager) -> None:
         self.__auth_manager = auth_manager
         self.__base_uri = self.__auth_manager.get_active_host()
-        self.__username: Optional[str] = self.__auth_manager.get_username(self.__base_uri)
+        self.__email: Optional[str] = self.__auth_manager.get_email(self.__base_uri)
         self.__password: Optional[str] = self.__auth_manager.get_password(self.__base_uri)
         self.__refresh_token: Optional[str] = self.__auth_manager.load_token(self.__base_uri)
 
@@ -114,10 +114,10 @@ class QneClient:
             jwt_url = urljoin(jwt_url, 'refresh/')
             payload = {'refresh': self.__refresh_token}
         else:
-            assert self.__username is not None
+            assert self.__email is not None
             assert self.__password is not None
             payload = {
-                'username': self.__username,
+                'email': self.__email,
                 'password': self.__password
             }
 
@@ -137,10 +137,10 @@ class QneClient:
         auth_mech = TokenAuthentication(access_token, scheme="JWT")
         self._set_open_api_client(auth_mech)
 
-    def login(self, username: str, password: str, host: str) -> str:
+    def login(self, email: str, password: str, host: str) -> str:
         self.__refresh_token = None
         self.__base_uri = host
-        self.__username = username
+        self.__email = email
         self.__password = password
 
         self._authenticate()
@@ -150,12 +150,12 @@ class QneClient:
     def logout(self, host: str) -> None:
         self.__client = None
         self.__base_uri = self.__auth_manager.get_active_host()
-        self.__username = None
+        self.__email = None
         self.__password = None
 
     def is_logged_in(self) -> bool:
         if self.__client is None:
-            if self.__username is None or self.__password is None:
+            if self.__email is None or self.__password is None:
                 return False
         return True
 
@@ -175,7 +175,7 @@ class QneClient:
 
     def _action(self, operation_id: ActionsType, **params: ParametersType) -> Any:
         if self.__client is None:
-            if self.__username is not None and self.__password is not None:
+            if self.__email is not None and self.__password is not None:
                 self._authenticate()
             else:
                 raise NotLoggedIn()
@@ -217,8 +217,8 @@ class QneClient:
         return self.__base_uri
 
     @property
-    def username(self) -> Optional[str]:
-        return self.__username
+    def email(self) -> Optional[str]:
+        return self.__email
 
     @property
     def password(self) -> Optional[str]:
@@ -343,7 +343,7 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         the file that has to be uploaded.
         """
         app_source_url = urljoin(self.base_uri, 'app-sources/')
-        auth = HTTPBasicAuth(self.username, self.password)
+        auth = HTTPBasicAuth(self.email, self.password)
         response = self._client_post(url=app_source_url, files=app_source_files, auth=auth)
         return cast(AppSourceType, response.json())
 

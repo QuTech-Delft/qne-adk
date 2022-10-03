@@ -43,7 +43,7 @@ logging.basicConfig(level=logging.INFO)
 @catch_qne_adk_exceptions
 def login(
     host: str = typer.Argument(None),
-    username: str = typer.Option(..., prompt=True, help="Username of the remote user"),
+    email: str = typer.Option(..., prompt=True, help="Email of the remote user"),
     password: str = typer.Option(
         ..., prompt=True, hide_input=True, help="Password of the remote user"
     ),
@@ -51,9 +51,9 @@ def login(
     """
     Log in to a Quantum Network Explorer
     """
-    processor.login(host=host, username=username, password=password)
+    processor.login(host=host, email=email, password=password)
     host = remote_api.get_active_host()
-    typer.echo(f"Log in to '{host}' as user '{username}' succeeded")
+    typer.echo(f"Log in to '{host}' as user '{email}' succeeded")
 
 
 @app.command("logout")

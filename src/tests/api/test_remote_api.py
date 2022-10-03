@@ -12,7 +12,7 @@ class TestRemoteApi(unittest.TestCase):
         self.app_path = Path("path/to/application")
         self.base_uri = 'base_uri.com'
         self.host = 'http://unittest_server/'
-        self.username = 'username'
+        self.email = 'test@email.com'
         self.password = 'password'
         self.token = 'token'
         self.application_data = {
@@ -141,8 +141,8 @@ class TestRemoteApi(unittest.TestCase):
 
 class TestRemoteApiAuthentication(TestRemoteApi):
     def test_login(self):
-        self.remote_api.login(self.username, self.password, self.host)
-        self.remote_api.auth_manager.login.assert_called_once_with(self.username, self.password, self.host)
+        self.remote_api.login(self.email, self.password, self.host)
+        self.remote_api.auth_manager.login.assert_called_once_with(self.email, self.password, self.host)
 
     def test_logout(self):
         self.remote_api._RemoteApi__qne_client.is_logged_in.return_value = False

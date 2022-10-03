@@ -52,29 +52,29 @@ class RemoteApi:
 
         self.__qne_client = QneFrontendClient(self.auth_manager)
         self.__base_uri = self.auth_manager.get_active_host()
-        self.__username: Optional[str] = self.auth_manager.get_username(self.__base_uri)
+        self.__email: Optional[str] = self.auth_manager.get_email(self.__base_uri)
         self.__password: Optional[str] = self.auth_manager.get_password(self.__base_uri)
         self.__refresh_token: Optional[str] = self.auth_manager.load_token(self.__base_uri)
 
         self.__resource_manager = ResourceManager()
 
-    def __login_user(self, username: str, password: str, host: str) -> str:
+    def __login_user(self, email: str, password: str, host: str) -> str:
         self.__refresh_token = None
         self.__base_uri = host
-        self.__username = username
+        self.__email = email
         self.__password = password
 
-        self.__refresh_token = self.__qne_client.login(username, password, host)
+        self.__refresh_token = self.__qne_client.login(email, password, host)
         return self.__refresh_token
 
     def __login_anonymous(self) -> str:
         pass
 
-    def login(self, username: str, password: str, host: str) -> None:
+    def login(self, email: str, password: str, host: str) -> None:
         """
-        Login the user on host (uri) based upon the username/password values given
+        Login the user on host (uri) based upon the email/password values given
         """
-        self.auth_manager.login(username, password, host)
+        self.auth_manager.login(email, password, host)
 
     def __logout_user(self, host: str) -> None:
         self.__qne_client.logout(host)

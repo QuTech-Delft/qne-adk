@@ -437,12 +437,12 @@ Log in to a Quantum Network Explorer.
       [HOST]  Name of the host to log in to
 
     Options:
-      --username  TEXT Username of the remote user  [required]
+      --email  TEXT Email of the remote user  [required]
       --password  TEXT Password of the remote user  [required]
       --help  Show this message and exit.
 
     Example:
-      qne login --username=my_user_name --password=my_password https://api.quantum-network.com
+      qne login --email=myemail@email.com --password=my_password https://api.quantum-network.com
 
 logout
 ^^^^^^
