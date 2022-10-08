@@ -168,12 +168,14 @@ application clone
 
     qne application clone [OPTIONS] APPLICATION_NAME [NEW_APPLICATION_NAME]
 
-Clone an existing remote (--remote) or local application to the current directory.
+An application developer may clone an existing remote or local application and use it as a starting point for new
+application development.
+Cloning an existing remote (--remote) or local application will copy the application files to the current directory.
+The current public available version of the application are copied.
 When a new application name is not given (remote only) the application will have the same name as the cloned
-application. An application with the new application name may not already exist locally.
-A local application must be valid before it can be cloned. For cloning a remote application the user must be logged in.
-Cloning remote applications is limited to publicly available applications and applications of which the user is the
-author.
+application. An application with the new application name may not exist locally.
+A local application must be valid before it can be cloned.
+For cloning a remote application the user must be logged in.
 
     Arguments:
       APPLICATION_NAME  Name of the application to clone [required]
@@ -189,6 +191,28 @@ Example:
 .. code-block:: console
 
     qne application clone existing_application new_application
+
+application fetch
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne application fetch [OPTIONS] APPLICATION_NAME
+
+Fetching an existing remote application will copy the application files to the current directory.
+The highest version of the application files are copied which may not be the current public version.
+Fetching remote applications is limited to applications for which the user is the author. For example to
+develop or publish a new version when the files were deleted locally.
+For fetching a remote application the user must be logged in.
+
+    Arguments:
+      APPLICATION_NAME  Name of the application to clone [required]
+
+    Options:
+      --help  Show this message and exit.
+
+    Example:
+      qne application fetch existing_application
 
 application delete
 ^^^^^^^^^^^^^^^^^^

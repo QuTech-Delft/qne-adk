@@ -389,6 +389,11 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         response = self._action('appResultAppVersion', id=appversion_id)
         return cast(AppResultType, response)
 
+    def app_source_appversion(self, appversion_url: str) -> AppSourceType:
+        _, appversion_id = QneClient.parse_url(appversion_url)
+        response = self._action('appSourceAppVersion', id=appversion_id)
+        return cast(AppSourceType, response)
+
     def retrieve_appconfig(self, appconfig_url: str) -> AppConfigType:
         _, appconfig_id = QneClient.parse_url(appconfig_url)
         response = self._action('retrieveAppConfig', id=appconfig_id)

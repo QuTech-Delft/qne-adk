@@ -19,6 +19,13 @@ class AppConfigNotFound(QneAdkException):
         super().__init__(f"Application configuration for application '{application_name}' was not found or invalid")
 
 
+class ApplicationError(QneAdkException):
+    """Raised when the application or app versions is not valid"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(f"{message}")
+
+
 class ApplicationAlreadyExists(QneAdkException):
     """Raised when application name is not unique and already exists in .qne/application.json"""
 
@@ -46,6 +53,13 @@ class ApplicationNotFound(QneAdkException):
 
     def __init__(self, application_name: str) -> None:
         super().__init__(f"Application '{application_name}' was not found")
+
+
+class ApplicationValueError(QneAdkException):
+    """Raised when a value in the application is not valid"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(f"{message}")
 
 
 class AuthenticationError(QneAdkException):

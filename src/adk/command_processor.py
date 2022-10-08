@@ -79,6 +79,27 @@ class CommandProcessor:
         self.__local.create_application(application_name, roles, application_path)
 
     @log_function
+    def applications_fetch(self, application_name: str, new_application_path: Path) -> None:
+        """
+        Fetch the remote application by copying the required files in the local application structure and
+        generating the application data.
+
+        Args:
+            application_name: name of the application to be fetched
+            new_application_path: location of application files
+
+        """
+        # check if application path is already an existing dir/file
+        if new_application_path.exists():
+            raise DirectoryAlreadyExists('Application', str(new_application_path))
+
+        application_data = utils.get_default_manifest(application_name)
+        self.__remote.fetch_application(application_name=application_name,
+                                        new_application_path=new_application_path,
+                                        application_data=application_data)
+        self.__local.set_application_data(new_application_path, application_data)
+
+    @log_function
     def applications_clone(self, application_name: str, local: bool, new_application_name: str,
                            new_application_path: Path) -> None:
         """
@@ -96,13 +117,16 @@ class CommandProcessor:
             raise DirectoryAlreadyExists('Application', str(new_application_path))
 
         if local:
-            return self.__local.clone_application(application_name=application_name,
-                                                  new_application_name=new_application_name,
-                                                  new_application_path=new_application_path)
-
-        return self.__remote.clone_application(application_name=application_name,
-                                               new_application_name=new_application_name,
-                                               new_application_path=new_application_path)
+            self.__local.clone_application(application_name=application_name,
+                                           new_application_name=new_application_name,
+                                           new_application_path=new_application_path)
+        else:
+            application_data = utils.get_default_manifest(new_application_name)
+            self.__remote.clone_application(application_name=application_name,
+                                            new_application_name=new_application_name,
+                                            new_application_path=new_application_path,
+                                            application_data=application_data)
+            self.__local.set_application_data(new_application_path, application_data)
 
     @log_function
     def applications_upload(self, application_name: str, application_path: Path) -> bool:
@@ -250,7 +274,7 @@ class CommandProcessor:
         if local:
             app_config = self.__local.get_application_config(application_name)
         else:
-            app_config = self.__remote.get_application_config(application_name)
+            app_config = self.__remote.get_application_config_for_highest_appversion(application_name)
 
         if app_config:
             if self.__local.is_network_available(network_name, app_config):
