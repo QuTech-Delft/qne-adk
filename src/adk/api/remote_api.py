@@ -41,6 +41,8 @@ QNE_JOB_SUCCESS_STATES = (
 )
 
 
+# pylint: disable=R0904
+# Too many public methods
 class RemoteApi:
     """
     Defines the methods used for remote communication with api-router
@@ -140,8 +142,6 @@ class RemoteApi:
             application_data: application data for manifest.json
 
         """
-        assert (app_version["application"] == application["url"])
-
         local_app_src_path = new_application_path / 'src'
         local_app_config_path = new_application_path / 'config'
         local_app_src_path.mkdir(parents=True, exist_ok=True)
@@ -161,7 +161,6 @@ class RemoteApi:
         app_source = self.__qne_client.app_source_appversion(str(app_version["url"]))
         # Create python files from tarball
         self.__resource_manager.generate_resources(self.__qne_client, app_source, new_application_path)
-        assert(app_source["app_version"] == app_result["app_version"] == app_config["app_version"])
 
         # update all application info
         application_data["application"]["name"] = application["name"]
@@ -638,7 +637,7 @@ class RemoteApi:
         Returns:
             App config
         """
-        application, highest_app_version = self.__get_highest_application_version(application_slug)
+        _, highest_app_version = self.__get_highest_application_version(application_slug)
         highest_app_version_url = str(highest_app_version["url"])
         app_config = self.get_application_config(highest_app_version_url)
         if app_config is None:
