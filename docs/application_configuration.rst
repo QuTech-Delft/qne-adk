@@ -47,7 +47,7 @@ The src directory consists of a number of python files. These are the actual app
 in the application a python file is created. The file names of these application files are based on the role names you
 specified while creating the application.
 
-The file ``manifest.json`` contains meta data for the application as application name, description, author etc.
+The file ``manifest.json`` contains metadata for the application as application name, description etc.
 
 To make sure that your application has all the necessary and the correct structure, you can validate it with the
 following command:
@@ -150,8 +150,8 @@ if the JSON files contain valid JSON.*
 manifest.json
 _____________
 
-The file ``manifest.json`` contains meta data for the application as application name, description, author, e-mail
-address and if the application need to run multiple times to come to an result. When the application is uploaded to
+The file ``manifest.json`` contains metadata for the application as application name, description
+and if the application need to run multiple times to come to an result. When the application is uploaded to
 Quantum Network Explorer, this file also contains remote data to be able to link the local application to the remote
 application.
 

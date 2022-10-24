@@ -6,7 +6,7 @@ import unittest
 from adk.exceptions import InvalidPathName, JsonFileNotFound, MalformedJsonFile
 from adk.utils import check_python_syntax, copy_files, move_files, get_dummy_application, get_function_arguments, \
     get_function_return_variables, get_py_dummy, read_json_file, reorder_data, write_json_file, write_file, \
-    validate_path_name
+    validate_path_name, get_default_manifest
 
 
 class TestUtils(unittest.TestCase):
@@ -78,7 +78,17 @@ class TestUtils(unittest.TestCase):
         get_dummy_application(self.roles)
 
     def test_get_py_dummy(self):
-        get_py_dummy()
+        py_dummy = get_py_dummy()
+        self.assertIn('def main(app_config=None, x=0, y=0):', py_dummy)
+        self.assertIn('if __name__ == "__main__":', py_dummy)
+
+    def test_get_default_manifest(self):
+        default_manifest = get_default_manifest('my_app')
+        self.assertDictEqual({"application": {"name": "my_app",
+                                              "description": "add description",
+                                              "multi_round": False},
+                              "remote": {}}, default_manifest)
+
 
     def test_validate_path_name(self):
         self.assertRaises(InvalidPathName, validate_path_name, "object", self.invalid_name)

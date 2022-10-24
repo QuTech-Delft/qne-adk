@@ -58,6 +58,7 @@ class QneClient:
         self.__base_uri = self.__auth_manager.get_active_host()
         self.__email: Optional[str] = self.__auth_manager.get_email(self.__base_uri)
         self.__password: Optional[str] = self.__auth_manager.get_password(self.__base_uri)
+        self.__use_username: Optional[bool] = self.__auth_manager.get_use_username(self.__base_uri)
         self.__refresh_token: Optional[str] = self.__auth_manager.load_token(self.__base_uri)
 
         self._headers: Dict[str, str] = {}
@@ -116,10 +117,16 @@ class QneClient:
         else:
             assert self.__email is not None
             assert self.__password is not None
-            payload = {
-                'email': self.__email,
-                'password': self.__password
-            }
+            if self.__use_username:
+                payload = {
+                    'username': self.__email,
+                    'password': self.__password
+                }
+            else:
+                payload = {
+                    'email': self.__email,
+                    'password': self.__password
+                }
 
         response = self._client_post(jwt_url, data=payload).json()
         self.__refresh_token = response.get("refresh", self.__refresh_token)
@@ -137,11 +144,12 @@ class QneClient:
         auth_mech = TokenAuthentication(access_token, scheme="JWT")
         self._set_open_api_client(auth_mech)
 
-    def login(self, email: str, password: str, host: str) -> str:
+    def login(self, email: str, password: str, host: str, use_username: bool) -> str:
         self.__refresh_token = None
         self.__base_uri = host
         self.__email = email
         self.__password = password
+        self.__use_username = use_username
 
         self._authenticate()
         assert self.__refresh_token is not None
@@ -152,6 +160,7 @@ class QneClient:
         self.__base_uri = self.__auth_manager.get_active_host()
         self.__email = None
         self.__password = None
+        self.__use_username = None
 
     def is_logged_in(self) -> bool:
         if self.__client is None:
@@ -301,9 +310,7 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
     def partial_update_application(self, application_id: str, application: ApplicationType) -> ApplicationType:
         params = self._cast_parameter_type({
             'name': application['name'],
-            'description': application['description'],
-            'author': application['author'],
-            'email': application['email']
+            'description': application['description']
         })
         response = self._action('partialUpdateApplication', id=application_id, application=params)
         return cast(ApplicationType, response)

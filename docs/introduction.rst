@@ -10,7 +10,7 @@ experiment. When configuring an application, you specify the different roles and
 application uses. In addition, you write the functionality of your application using the NetQASM library.
 
 After creating and configuring an application, you can create an experiment for it using the ``qne experiment create``
-command. Also here an experiment directory is generated with all necessary files. When configuring your experiment
+command. An experiment directory is generated with all necessary files. When configuring your experiment
 you can give values to the inputs that were specified when creating your application. You also choose which channels
 and nodes you use in your network and which role is linked to which node. A network consists of channels and each
 channel consists of two nodes. The nodes can communicate with each other using the channel between them.
@@ -22,7 +22,7 @@ directory will be generated in which all the results of your experiment are stor
 
 Prerequisites
 -------------
-* A modern Linux or MacOS (10 or 11) 64-bit (x86_64) operating system. If you don't have Linux or MacOS you could run
+* A modern Linux or macOS (10 or 11) 64-bit (x86_64) operating system. If you don't have Linux or macOS you could run
   it via virtualization, e.g. using VirtualBox. If you have Windows 10 or 11 you can also use
   the `Bash on Ubuntu <https://docs.microsoft.com/en-us/windows/wsl/>`_ subsystem.
 * A `virtual environment <https://docs.python.org/3/library/venv.html>`_ should be created and activated before
@@ -87,7 +87,7 @@ The documentation is then build in 'docs/_build/html' and can be viewed `here <i
 
 Commands
 --------
-The QNE-ADK uses various commands to create and run your applications and experiments. All of the commands are
+The QNE-ADK uses various commands to create and run your applications and experiments. All the commands are
 listed below:
 
 application list
@@ -105,8 +105,11 @@ For listing remote applications, the user must be logged in.
       --local   List local applications  [default: False].
       --help   Show this message and exit.
 
-    Example:
-      qne application list --remote
+Example:
+
+.. code-block:: console
+
+    qne application list --remote
 
 application init
 ^^^^^^^^^^^^^^^^
@@ -127,8 +130,11 @@ When application files are in the root directory, but belong to one of the subdi
     Options:
       --help   Show this message and exit.
 
-    Example:
-      qne application init application_name
+Example:
+
+.. code-block:: console
+
+    qne application init application_name
 
 application create
 ^^^^^^^^^^^^^^^^^^
@@ -149,8 +155,11 @@ Two subdirectories `src` and `config` will be created, along with the default fi
     Options:
       --help  Show this message and exit.
 
-    Example:
-      qne application create my_application Alice Bob
+Example:
+
+.. code-block:: console
+
+    qne application create my_application Alice Bob
 
 application clone
 ^^^^^^^^^^^^^^^^^
@@ -175,8 +184,11 @@ author.
       --remote  Clone remote application  [default: False]
       --help  Show this message and exit.
 
-    Example:
-      qne application clone existing_application new_application
+Example:
+
+.. code-block:: console
+
+    qne application clone existing_application new_application
 
 application delete
 ^^^^^^^^^^^^^^^^^^
@@ -201,8 +213,11 @@ application directory.
     Options:
       --help  Show this message and exit.
 
-    Example:
-      qne application delete application_name
+Example:
+
+.. code-block:: console
+
+    qne application delete application_name
 
 application validate
 ^^^^^^^^^^^^^^^^^^^^
@@ -222,8 +237,11 @@ application directory.
     Options:
       --help  Show this message and exit.
 
-    Example:
-      qne application validate
+Example:
+
+.. code-block:: console
+
+    qne application validate
 
 application upload
 ^^^^^^^^^^^^^^^^^^
@@ -247,8 +265,11 @@ application directory.
     Options:
       --help   Show this message and exit.
 
-    Example:
-      qne application upload application_name
+Example:
+
+.. code-block:: console
+
+    qne application upload application_name
 
 application publish
 ^^^^^^^^^^^^^^^^^^^
@@ -275,8 +296,11 @@ application directory.
     Options:
       --help   Show this message and exit.
 
-    Example:
-      qne application publish application_name
+Example:
+
+.. code-block:: console
+
+    qne application publish application_name
 
 experiment list
 ^^^^^^^^^^^^^^^
@@ -291,8 +315,11 @@ For listing remote experiments, the user must be logged in.
     Options:
       --help   Show this message and exit.
 
-    Example:
-      qne experiment list
+Example:
+
+.. code-block:: console
+
+    qne experiment list
 
 experiment create
 ^^^^^^^^^^^^^^^^^
@@ -315,8 +342,11 @@ When the experiment is created for a remote application the user must be logged 
       --remote  Use remote application configuration [default: False]
       --help   Show this message and exit.
 
-    Example:
-      qne experiment create experiment_name application_name europe
+Example:
+
+.. code-block:: console
+
+    qne experiment create experiment_name application_name europe
 
 experiment delete
 ^^^^^^^^^^^^^^^^^
@@ -344,8 +374,11 @@ delete. No local files are deleted.
       --remote  Delete a remote experiment  [default: False]
       --help  Show this message and exit.
 
-    Example:
-      qne experiment delete experiment_name
+Example:
+
+.. code-block:: console
+
+    qne experiment delete experiment_name
 
 experiment validate
 ^^^^^^^^^^^^^^^^^^^
@@ -366,8 +399,11 @@ directory.
     Options:
       --help  Show this message and exit.
 
-    Example:
-      qne experiment validate experiment_name
+Example:
+
+.. code-block:: console
+
+    qne experiment validate experiment_name
 
 experiment run
 ^^^^^^^^^^^^^^
@@ -396,8 +432,11 @@ This command will parse all experiment files and run them on the NetSquid simula
       --timeout  Limit the wait for a blocked experiment to finish (in seconds).  [default: no timeout]
       --help   Show this message and exit.
 
-    Example:
-      qne experiment run --block --timeout=30 experiment_name
+Example:
+
+.. code-block:: console
+
+    qne experiment run --block --timeout=30 experiment_name
 
 experiment results
 ^^^^^^^^^^^^^^^^^^
@@ -421,8 +460,11 @@ directory.
               False]
       --help  Show this message and exit.
 
-    Example:
-      qne experiment results experiment_name
+Example:
+
+.. code-block:: console
+
+    qne experiment results experiment_name
 
 login
 ^^^^^
@@ -431,7 +473,7 @@ login
 
     qne login [OPTIONS] [HOST]
 
-Log in to a Quantum Network Explorer.
+Log in to a Quantum Network Explorer. For backwards compatibility reasons, email can be sent as username to log in.
 
     Arguments:
       [HOST]  Name of the host to log in to
@@ -439,10 +481,15 @@ Log in to a Quantum Network Explorer.
     Options:
       --email  TEXT Email of the remote user  [required]
       --password  TEXT Password of the remote user  [required]
+      --username  Send email as username to log in [optional] [default:
+                  False]
       --help  Show this message and exit.
 
-    Example:
-      qne login --email=myemail@email.com --password=my_password https://api.quantum-network.com
+Example:
+
+.. code-block:: console
+
+    qne login --email=myemail@email.com --password=my_password --username https://api.quantum-network.com
 
 logout
 ^^^^^^
@@ -459,8 +506,11 @@ Log out from Quantum Network Explorer.
     Options:
       --help  Show this message and exit.
 
-    Example:
-      qne logout https://api.quantum-network.com
+Example:
+
+.. code-block:: console
+
+    qne logout https://api.quantum-network.com
 
 network list
 ^^^^^^^^^^^^
@@ -476,8 +526,11 @@ List available networks. For listing remote networks, the user must be logged in
       --local   List local networks  [default: True]
       --help  Show this message and exit.
 
-    Example:
-      qne network list --remote
+Example:
+
+.. code-block:: console
+
+    qne network list --remote
 
 network update
 ^^^^^^^^^^^^^^
@@ -493,8 +546,11 @@ For updating local networks, the user must be logged in.
       --overwrite  Overwrite local networks  [default: False]
       --help  Show this message and exit.
 
-    Example:
-      qne network update --overwrite
+Example:
+
+.. code-block:: console
+
+    qne network update --overwrite
 
 More documentation
 ------------------

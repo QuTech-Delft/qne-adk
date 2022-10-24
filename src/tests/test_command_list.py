@@ -35,8 +35,19 @@ class TestCommandList(unittest.TestCase):
             get_active_host_mock.return_value = 'test_host'
             login_output = self.runner.invoke(app, ['login', '--email=test@email.com',
                                                     '--password=test_password', 'test_host'])
-            login_mock.assert_called_once_with(host='test_host', email='test@email.com', password='test_password')
+            login_mock.assert_called_once_with(host='test_host', email='test@email.com',
+                                               password='test_password', use_username=False)
             self.assertIn("Log in to 'test_host' as user 'test@email.com' succeeded", login_output.stdout)
+
+    def test_login_email_as_username(self):
+        with patch.object(CommandProcessor, "login") as login_mock, \
+             patch.object(RemoteApi, 'get_active_host') as get_active_host_mock:
+
+            get_active_host_mock.return_value = 'test_host'
+            login_output = self.runner.invoke(app, ['login', '--email=test@email.com',
+                                                    '--password=test_password', '--username', 'test_host'])
+            login_mock.assert_called_once_with(host='test_host', email='test@email.com',
+                                               password='test_password', use_username=True)
 
     def test_logout(self):
         with patch.object(CommandProcessor, "logout") as logout_mock:

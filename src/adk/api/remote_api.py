@@ -54,27 +54,29 @@ class RemoteApi:
         self.__base_uri = self.auth_manager.get_active_host()
         self.__email: Optional[str] = self.auth_manager.get_email(self.__base_uri)
         self.__password: Optional[str] = self.auth_manager.get_password(self.__base_uri)
+        self.__use_username: Optional[bool] = self.auth_manager.get_use_username(self.__base_uri)
         self.__refresh_token: Optional[str] = self.auth_manager.load_token(self.__base_uri)
 
         self.__resource_manager = ResourceManager()
 
-    def __login_user(self, email: str, password: str, host: str) -> str:
+    def __login_user(self, email: str, password: str, host: str, use_username: bool) -> str:
         self.__refresh_token = None
         self.__base_uri = host
         self.__email = email
         self.__password = password
+        self.__use_username = use_username
 
-        self.__refresh_token = self.__qne_client.login(email, password, host)
+        self.__refresh_token = self.__qne_client.login(email, password, host, use_username)
         return self.__refresh_token
 
     def __login_anonymous(self) -> str:
         pass
 
-    def login(self, email: str, password: str, host: str) -> None:
+    def login(self, email: str, password: str, host: str, use_username: bool) -> None:
         """
         Login the user on host (uri) based upon the email/password values given
         """
-        self.auth_manager.login(email, password, host)
+        self.auth_manager.login(email, password, host, use_username)
 
     def __logout_user(self, host: str) -> None:
         self.__qne_client.logout(host)
@@ -318,16 +320,10 @@ class RemoteApi:
         application_name = application_data["application"]["name"] if "name" in application_data["application"] else ""
         application_description =\
             application_data["application"]["description"] if "description" in application_data["application"] else ""
-        application_author =\
-            application_data["application"]["author"] if "author" in application_data["application"] else ""
-        application_email =\
-            application_data["application"]["email"] if "email" in application_data["application"] else ""
 
         application: ApplicationType = {
             "name": application_name,
-            "description": application_description,
-            "author": application_author,
-            "email": application_email
+            "description": application_description
         }
         return application
 
@@ -503,7 +499,7 @@ class RemoteApi:
     def get_application_config(self, application_slug: str) -> Optional[AppConfigType]:
         """
         Get the app config for the relevant app_version from api-router for this remote application.
-        For the author of the application this is the app_config linked to the highest numbered app_version (which can
+        For the owner of the application this is the app_config linked to the highest numbered app_version (which can
         be disabled, because it is not yet published),
         For all the other users this will be the highest versioned enabled app_version
 

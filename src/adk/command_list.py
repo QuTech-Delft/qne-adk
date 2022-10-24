@@ -44,14 +44,13 @@ logging.basicConfig(level=logging.INFO)
 def login(
     host: str = typer.Argument(None),
     email: str = typer.Option(..., prompt=True, help="Email of the remote user"),
-    password: str = typer.Option(
-        ..., prompt=True, hide_input=True, help="Password of the remote user"
-    ),
+    password: str = typer.Option(..., prompt=True, hide_input=True, help="Password of the remote user"),
+    username: Optional[bool] = typer.Option(False, "--username", help="Email is sent as username to login"),
 ) -> None:
     """
     Log in to a Quantum Network Explorer
     """
-    processor.login(host=host, email=email, password=password)
+    processor.login(host=host, email=email, password=password, use_username=username)
     host = remote_api.get_active_host()
     typer.echo(f"Log in to '{host}' as user '{email}' succeeded")
 

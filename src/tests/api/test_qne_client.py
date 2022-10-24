@@ -13,11 +13,11 @@ class TestQneFrontendClient(unittest.TestCase):
                                  {
                                      'id': 90, 'url': 'http://127.0.0.1:8000/applications/90/',
                                      'name': 'killer_app', 'slug': 'killer_app', 'date': '2022-03-07',
-                                     'description': 'add description', 'author': 'add your name',
-                                     'email': 'add@your.email', 'is_draft': False, 'is_public': True,
+                                     'description': 'add description',
+                                     'is_draft': False, 'is_public': True,
                                      'is_disabled': False,
                                      'owner': {
-                                         'id': 2, 'bio': '', 'avatar': None, 'slack_handle': '', 'nickname': 'user_2'
+                                         'id': 2, 'bio': '', 'avatar': None, 'slack_handle': '', 'username': 'user_2'
                                      },
                                      'number_of_successful_runs': 2
                                  },
@@ -26,7 +26,6 @@ class TestQneFrontendClient(unittest.TestCase):
                                      'name': 'QKD', 'slug': 'qkd', 'date': '2021-09-20',
                                      'description': 'QKD is a quantum key distribution scheme developed by '
                                                     'Charles Bennett and Gilles Brassard in 1984.',
-                                     'author': 'Axel Dahlberg', 'email': 'a.dahlberg@tudelft.nl',
                                      'is_draft': False, 'is_public': True, 'is_disabled': False,
                                      'owner': None, 'number_of_successful_runs': 1
                                  },
@@ -35,7 +34,6 @@ class TestQneFrontendClient(unittest.TestCase):
                                      'name': 'Blind computation', 'slug': 'blind-computation', 'date': '2022-01-13',
                                      'description': 'This example demonstrates the quantum blind '
                                                     'computation application.',
-                                     'author': 'Bart van der Vecht', 'email': 'B.vanderVecht@tudelft.nl',
                                      'is_draft': False, 'is_public': True, 'is_disabled': False, 'owner': None,
                                      'number_of_successful_runs': 1
                                  },
@@ -45,22 +43,21 @@ class TestQneFrontendClient(unittest.TestCase):
                                      'slug': 'distributed-cnot', 'date': '2021-09-20',
                                      'description': 'Performs a CNOT operation distributed over two nodes: Controller '
                                                     'and Target. Controller owns the control qubit and Target the '
-                                                    'target qubit.', 'author': 'Axel Dahlberg',
-                                     'email': 'a.dahlberg@tudelft.nl', 'is_draft': False, 'is_public': True,
+                                                    'target qubit.',
+                                     'is_draft': False, 'is_public': True,
                                      'is_disabled': False,
                                      'owner': {
                                          'id': 1, 'bio': 'This is my bio', 'avatar': None,
-                                         'slack_handle': 'This is my slack_handle', 'nickname': 'user_1'
+                                         'slack_handle': 'This is my slack_handle', 'username': 'user_1'
                                      },
                                      'number_of_successful_runs': 0
                                  },
                                  {
                                      'id': 92, 'url': 'http://127.0.0.1:8000/applications/92/', 'name': 'local_app',
                                      'slug': 'local_app', 'date': '2022-07-18', 'description': 'add description',
-                                     'author': 'add your name', 'email': 'add@your.email', 'is_draft': False,
-                                     'is_public': True, 'is_disabled': False,
+                                     'is_draft': False, 'is_public': True, 'is_disabled': False,
                                      'owner': {
-                                         'id': 2, 'bio': '', 'avatar': None, 'slack_handle': '', 'nickname': 'user_2'
+                                         'id': 2, 'bio': '', 'avatar': None, 'slack_handle': '', 'username': 'user_2'
                                      },
                                      'number_of_successful_runs': 0
                                  }
@@ -106,8 +103,6 @@ class TestQneFrontendClient(unittest.TestCase):
             "slug": "state-teleportation",
             "date": "2021-11-17",
             "description": "Quantum teleportation is a process in which quantum information (e.g. the exact state of an atom or photon) can be transmitted (exactly, in principle) from one location to another, with the help of classical communication and previously shared quantum entanglement between the sending and receiving location.",
-            "author": "Axel Dahlberg",
-            "email": "a.dahlberg@tudelft.nl",
             "is_draft": False,
             "is_public": True,
             "is_disabled": False
@@ -119,8 +114,6 @@ class TestQneFrontendClient(unittest.TestCase):
             "slug": "distributed-cnot",
             "date": "2021-11-17",
             "description": "Performs a CNOT operation distributed over two nodes: Controller and Target. Controller owns the control qubit and Target the target qubit.",
-            "author": "Axel Dahlberg",
-            "email": "a.dahlberg@tudelft.nl",
             "is_draft": False,
             "is_public": True,
             "is_disabled": False
@@ -132,8 +125,6 @@ class TestQneFrontendClient(unittest.TestCase):
             "slug": "qkd",
             "date": "2021-11-17",
             "description": "QKD is a quantum key distribution scheme developed by Charles Bennett and Gilles Brassard in 1984.",
-            "author": "Axel Dahlberg",
-            "email": "a.dahlberg@tudelft.nl",
             "is_draft": False,
             "is_public": True,
             "is_disabled": False

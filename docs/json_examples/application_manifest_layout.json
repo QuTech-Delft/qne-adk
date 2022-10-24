@@ -2,8 +2,6 @@
   "application": {
     "name": "app_name",
     "description": "add description",
-    "author": "developer name",
-    "email": "here@your.email",
     "multi_round": false
   },
   "remote": {

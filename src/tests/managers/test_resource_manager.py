@@ -11,8 +11,6 @@ class TestResourceManager(unittest.TestCase):
             "application": {
                 "name": "test_app",
                 "description": "test_app description",
-                "author": "my name",
-                "email": "me@my.email",
                 "multi_round": False
             },
             "remote": {
