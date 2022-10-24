@@ -68,7 +68,7 @@ GenericNetworkData = Dict[str, Any]
 
 AuthType = Dict[str, Dict[str, str]]
 
-LoginFunctionType = Callable[[str, str, str], str]
+LoginFunctionType = Callable[[str, str, str, bool], str]
 LogoutFunctionType = Callable[[str], None]
 FallbackFunctionType = Callable[[], str]
 TokenFetchFunctionType = Union[LoginFunctionType, FallbackFunctionType]
