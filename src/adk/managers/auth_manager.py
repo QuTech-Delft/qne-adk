@@ -162,4 +162,4 @@ class AuthManager:
 
     def get_use_username(self, host: str) -> Optional[bool]:
         use_username = self.__get_item_from_host(host, "use_username")
-        return None if use_username is None else True if use_username == '1' else False
+        return None if use_username is None else use_username == '1'
