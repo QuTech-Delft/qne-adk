@@ -1,6 +1,6 @@
 import os.path
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from adk.exceptions import DirectoryIsFile
 from adk.type_aliases import (AuthType, FallbackFunctionType, LoginFunctionType, LogoutFunctionType,
@@ -83,7 +83,7 @@ class AuthManager:
         :return:
             The Quantum Network token for this host or None when no token is found or token is empty.
         """
-        return self.__get_item_from_host(host, "token")
+        return str(self.__get_item_from_host(host, "token"))
 
     def __store_token(self, host: str, token: str, email: Optional[str], password: Optional[str],
                       use_username: Optional[bool]) -> None:
@@ -97,7 +97,7 @@ class AuthManager:
         """
         accounts = {}
         accounts[host] = {"token": token, "email": email, "password": password,
-                          "use_username": None if use_username is None else '1' if use_username else '0'}
+                          "use_username": None if use_username is None else use_username}
         write_json_file(self.auth_config, accounts)
 
     def set_token(self, host: str, token: str) -> None:
@@ -147,7 +147,7 @@ class AuthManager:
         """Get the active host"""
         return self.__active_host
 
-    def __get_item_from_host(self, host: str, item: str) -> Optional[str]:
+    def __get_item_from_host(self, host: str, item: str) -> Optional[Union[str, bool]]:
         accounts: AuthType = read_json_file(self.auth_config)
 
         if host in accounts:
@@ -155,11 +155,11 @@ class AuthManager:
         return None
 
     def get_password(self, host: str) -> Optional[str]:
-        return self.__get_item_from_host(host, "password")
+        return str(self.__get_item_from_host(host, "password"))
 
     def get_email(self, host: str) -> Optional[str]:
-        return self.__get_item_from_host(host, "email")
+        return str(self.__get_item_from_host(host, "email"))
 
     def get_use_username(self, host: str) -> Optional[bool]:
-        use_username = self.__get_item_from_host(host, "use_username")
-        return None if use_username is None else use_username == '1'
+        use_username = bool(self.__get_item_from_host(host, "use_username"))
+        return None if use_username is None else use_username

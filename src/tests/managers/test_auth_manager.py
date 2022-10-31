@@ -35,7 +35,7 @@ class TestAuthManager(unittest.TestCase):
                                        {'email': self.email, 'password': self.password,
                                         'host': self.host, 'use_username': self.use_username})
             expected = {f"{self.host}": {"token": 'token', "email": self.email,
-                                         "password": self.password, 'use_username': '1' if self.use_username else '0'}}
+                                         "password": self.password, 'use_username': self.use_username}}
             write_json_mock.assert_called_once_with(self.path / 'qnerc', expected)
             set_active_host_mock.assert_called_once_with(self.host)
 
@@ -158,7 +158,7 @@ class TestAuthManager(unittest.TestCase):
             expected_auth_config = {f"{active_host}": {"token": 'token',
                                                        "email": self.email,
                                                        "password": self.password,
-                                                       'use_username': '1' if self.use_username else '0'}}
+                                                       'use_username': self.use_username}}
             write_json_mock.assert_called_once_with(self.path / 'qnerc', expected_auth_config)
 
     def test_get_password(self):
@@ -214,7 +214,7 @@ class TestAuthManager(unittest.TestCase):
 
             auth_manager = AuthManager(config_dir=self.path, login_function=self.login_function,
                                        fallback_function=self.fallback_function, logout_function=self.logout_function)
-            use_username_to_get = '1'
+            use_username_to_get = True
             auth_config = {f"{self.host}": {"token": 'token', "email": self.email, "password": self.password,
                                             "use_username": use_username_to_get}}
             read_json_mock.return_value = auth_config
@@ -222,7 +222,7 @@ class TestAuthManager(unittest.TestCase):
             use_username = auth_manager.get_use_username(self.host)
             self.assertEqual(use_username, True)
 
-            use_username_to_get = '0'
+            use_username_to_get = False
             auth_config = {f"{self.host}": {"token": 'token', "email": self.email, "password": self.password,
                                             "use_username": use_username_to_get}}
             read_json_mock.return_value = auth_config
