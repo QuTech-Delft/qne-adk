@@ -227,8 +227,8 @@ class RemoteApi:
 
         self.__get_remote_application(application, latest_app_version, new_application_path, application_data)
         application_data["application"]["name"] = new_application_name
-        application_data["application"]["author"] = ""
-        application_data["application"]["email"] = ""
+        application_data["application"]["author"] = "add your name"
+        application_data["application"]["email"] = "add@your.email"
         application_data["remote"] = {}
 
         # add application to the local administration
