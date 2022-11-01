@@ -163,6 +163,35 @@ def applications_create(
     typer.echo(f"Application '{application_name}' created successfully in directory '{str(application_path)}'")
 
 
+@applications_app.command("fetch")
+@catch_qne_adk_exceptions
+def applications_fetch(
+    application_name: str = typer.Argument(..., help="Name of the application to fetch"),
+) -> None:
+    """
+    An application developer can fetch an existing remote application.
+    This command only makes sense for the original developer of the application to do additional development when
+    the files were deleted locally.
+
+    For example: qne application fetch existing_remote_application
+    """
+
+    cwd = Path.cwd()
+    new_application_path = cwd / application_name
+
+    # check for existence
+    validate_path_name("Application", application_name)
+
+    application_exists, existing_application_path = config_manager.application_exists(application_name)
+    if application_exists:
+        raise ApplicationAlreadyExists(application_name, existing_application_path)
+
+    processor.applications_fetch(application_name=application_name,
+                                 new_application_path=new_application_path)
+
+    typer.echo(f"Application '{application_name}' fetched successfully in directory '{str(new_application_path)}'")
+
+
 @applications_app.command("clone")
 @catch_qne_adk_exceptions
 def applications_clone(
@@ -171,7 +200,8 @@ def applications_clone(
     new_application_name: Optional[str] = typer.Argument(None, help="New name for the cloned application"),
 ) -> None:
     """
-    Clone an existing remote or local application.
+    An application developer can clone an existing remote or local application and use it as a starting point for new
+    application development.
 
     For example: qne application clone existing_application new_application
     """
@@ -215,7 +245,8 @@ def applications_delete(
     application_name: Optional[str] = typer.Argument(None, help="Name of the application")
 ) -> None:
     """
-    Delete application files from application directory.
+    Delete application files from the local application directory and delete the remote application under construction.
+    A published application cannot be deleted remotely.
 
     When application_name is given ./application_name is taken as application directory, when this directory does not
     contain an application the application directory is fetched from the application configuration.
@@ -240,7 +271,8 @@ def applications_upload(
     application_name: Optional[str] = typer.Argument(None, help="Name of the application")
 ) -> None:
     """
-    Create or update a remote application.
+    Request the application to be uploaded remote for testing purposes. Only when one or more successful experiment
+    runs are done for this application, it can be published.
 
     When application_name is given ./application_name is taken as application directory, when this directory does not
     contain an application the application directory is fetched from the application configuration.
@@ -267,7 +299,8 @@ def applications_publish(
     application_name: Optional[str] = typer.Argument(None, help="Name of the application")
 ) -> None:
     """
-    Request the application to be published online.
+    Request the application to be published remote. When published successfully, the application can be run by other
+    users.
 
     When application_name is given ./application_name is taken as application directory, when this directory does not
     contain an application the application directory is fetched from the application configuration.

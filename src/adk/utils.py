@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import traceback
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from adk.exceptions import JsonFileNotFound, MalformedJsonFile, InvalidPathName
 from adk.type_aliases import ErrorDictType
@@ -158,13 +158,32 @@ def get_py_dummy() -> str:
 
 
 def get_default_manifest(application_name: str) -> Dict[str, Dict[str, Any]]:
-    """ Default (minimal) manifest structure is returned, that can be used for a (local) application.
+    """
+    Returns a default structure for the application manifest file.
+    To get default values for the remote key in this structure, use get_default_remote_data
     """
     default_manifest: Dict[str, Dict[str, Any]] = {"application": {"name": f"{application_name}",
                                                                    "description": "add description",
                                                                    "multi_round": False},
                                                    "remote": {}}
     return default_manifest
+
+
+def get_default_remote_data() -> Dict[str, Union[str, int, Dict[str, Any]]]:
+    """ Returns a default, empty structure for the dictionary in the remote key in manifest.
+    """
+    default_remote: Dict[str, Union[str, int, Dict[str, Any]]] = {"application": "",
+                                                                  "application_id": 0,
+                                                                  "slug": "",
+                                                                  "app_version": {
+                                                                      "enabled": False,
+                                                                      "version": 0,
+                                                                      "app_version": "",
+                                                                      "app_config": "",
+                                                                      "app_result": "",
+                                                                      "app_source": ""
+                                                                  }}
+    return default_remote
 
 
 def validate_path_name(obj: str, name: str) -> None:

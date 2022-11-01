@@ -178,6 +178,12 @@ class TestAuthManager(unittest.TestCase):
             password = auth_manager.get_password(self.host)
             self.assertEqual(password, password_to_get)
 
+            auth_config = {f"{self.host}": {"token": 'token', "email": self.email}}
+            read_json_mock.return_value = auth_config
+
+            password = auth_manager.get_password(self.host)
+            self.assertIsNone(password)
+
             read_json_mock.return_value = {}
 
             password = auth_manager.get_password(self.host)
@@ -199,6 +205,12 @@ class TestAuthManager(unittest.TestCase):
 
             email = auth_manager.get_email(self.host)
             self.assertEqual(email, email_to_get)
+
+            auth_config = {f"{self.host}": {"token": 'token', "username": "not_an_email", "password": self.password}}
+            read_json_mock.return_value = auth_config
+
+            email = auth_manager.get_email(self.host)
+            self.assertIsNone(email)
 
             read_json_mock.return_value = {}
 

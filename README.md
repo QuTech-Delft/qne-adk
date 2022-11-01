@@ -1,19 +1,40 @@
 # Quantum Network Explorer ADK
+
 The QNE-ADK is a Quantum Network Explorer - Application Development Kit that allows you to create your own applications and experiments and run them on a simulator.
 
-With the ADK you can create your own application using the ``qne application create`` command (see Commands below). An application directory is generated for you with all the necessary files for you to configure and prepare for an experiment. When configuring an application, you specify the different roles and what types of inputs your application uses. In addition, you write the functionality of your application using the NetQASM library.
+## Local development
 
-After creating and configuring an application, you can create an experiment for it using the ``qne experiment create`` command. An experiment directory is generated with all necessary files. When configuring your experiment you can give values to the inputs that were specified when creating your application. You also choose which channels and nodes you use in your network and which role is linked to which node. A network consists of channels and each channel consists of two nodes. The nodes can communicate with each other using the channel between them.
+With the ADK you can create your own application from scratch using the ``qne application create`` command
+(see Commands below). An application directory is created with all the necessary files for you to configure.
+When configuring an application, you specify the different roles and what types of inputs your
+application uses. In addition, you write the functionality of your application using the NetQASM library.
 
-Once your experiment is configured you are ready to run it using the ``qne experiment run`` command. Your experiment is parsed and sent to the NetSquid simulator. After some time your experiment run will be finished and a results directory will be generated in which all the results of your experiment are stored.
+After creating and configuring an application, you can create an experiment for it using the ``qne experiment create``
+command. A separate experiment directory is created with all the necessary files. When configuring your experiment
+you can give values to the inputs that were specified when creating your application. You also choose which channels
+and nodes you use in your network and which role is linked to which node. A network consists of channels and each
+channel consists of two nodes. The nodes can communicate with each other using the channel between them.
 
+Once your experiment is configured you are ready to run it using the ``qne experiment run`` command. Your experiment
+is parsed and sent to the NetSquid simulator. After some time your experiment run will be finished and a results
+directory will be generated in which all the results of your experiment are stored. An alternative is to use the
+``qne experiment results`` command to show the results on screen.
+
+## Remote development
+
+Instead of starting from scratch an existing application can be cloned using the ``qne application clone`` command.
+A copy of a working application is made to your application directory and can be used as starting point
+for application development.
+
+A tested application can be uploaded and published after which it can be selected by other users on the QNE
+website. After uploading the application ``qne application upload`` a remote experiment must be created and run on the
+QNE backends successfully before the application can be published ``qne application publish``.
 
 ## Prerequisites
 - A modern Linux or macOS (10 or 11) 64-bit (x86_64) operating system. If you don’t have Linux or macOS you could run it via virtualization, e.g. using VirtualBox. If you have Windows 10 or 11 you can also use the [Bash on Ubuntu](https://docs.microsoft.com/en-us/windows/wsl/) subsystem.
 - A [virtual environment](https://docs.python.org/3/library/venv.html) should be created and activated before creating an application.
 - Python version 3.7 or higher and pip version 19 or higher.
 - NetQASM makes use of SquidASM for which you need credentials in order to use it. These credentials can be obtained by registering on the forum of [NetSquid](https://forum.netsquid.org/).
-
 
 ## Installation
 To install all the required packages, execute the following command:
@@ -105,12 +126,12 @@ Example:
 <!--- QNE APPLICATION CLONE --->
 <details closed>
 <summary><b>qne application clone</b></summary>
-Clone an existing remote (--remote) or local application to the current directory.
-When a new application name is not given (remote only) the application will have the same name as the cloned
-application. An application with the new application name may not exist locally.
+Clone an existing remote or local application and use it as a starting point for new application development.
+Cloning an application will copy the application files to the current directory.
+The public available (or latest) version of the application is copied.
+When a new application name is not given as an argument (remote only) the application will have the same name as
+the cloned application. An application with the new application name may not already exist locally.
 A local application must be valid before it can be cloned. For cloning a remote application the user must be logged in.
-Cloning remote applications is limited to publicly available applications and applications of which the user is the
-author.
 <br></br>
 
 ```
@@ -120,13 +141,35 @@ Arguments:
   APPLICATION_NAME        Name of the application to clone  [required]
   [NEW_APPLICATION_NAME]  New name for the cloned application
 
-
 Options:
   --remote  Clone remote application  [default: False]
   --help    Show this message and exit.
 
 Example:
   qne application clone existing_application new_application
+```
+</details>
+
+<!--- QNE APPLICATION FETCH --->
+<details closed>
+<summary><b>qne application fetch</b></summary>
+Fetching an existing remote application will copy the application files to the current directory.
+The highest version of the application files are copied which may not be the current public version but a draft version.
+Fetching applications is limited to the applications for which the user is the author.
+For fetching a remote application the user must be logged in.
+<br></br>
+
+```
+qne application fetch [OPTIONS] APPLICATION_NAME
+
+Arguments:
+  APPLICATION_NAME        Name of the application to fetch  [required]
+
+Options:
+  --help    Show this message and exit.
+
+Example:
+  qne application fetch existing_application
 ```
 </details>
 

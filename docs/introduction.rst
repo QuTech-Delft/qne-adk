@@ -4,21 +4,35 @@ Introduction
 The QNE-ADK is a Quantum Network Explorer - Application Development Kit that allows you to create your own applications
 and experiments and run them on a simulator.
 
-With the ADK you can create your own application using the ``qne application create`` command (see Commands below).
-An application directory is generated for you with all the necessary files for you to configure and prepare for an
-experiment. When configuring an application, you specify the different roles and what types of inputs your
+Local development
+-----------------
+
+With the ADK you can create your own application from scratch using the ``qne application create`` command
+(see Commands below). An application directory is created with all the necessary files for you to configure.
+When configuring an application, you specify the different roles and what types of inputs your
 application uses. In addition, you write the functionality of your application using the NetQASM library.
 
 After creating and configuring an application, you can create an experiment for it using the ``qne experiment create``
-command. An experiment directory is generated with all necessary files. When configuring your experiment
+command. A separate experiment directory is created with all the necessary files. When configuring your experiment
 you can give values to the inputs that were specified when creating your application. You also choose which channels
 and nodes you use in your network and which role is linked to which node. A network consists of channels and each
 channel consists of two nodes. The nodes can communicate with each other using the channel between them.
 
 Once your experiment is configured you are ready to run it using the ``qne experiment run`` command. Your experiment
 is parsed and sent to the NetSquid simulator. After some time your experiment run will be finished and a results
-directory will be generated in which all the results of your experiment are stored.
+directory will be generated in which all the results of your experiment are stored. An alternative is to use the
+``qne experiment results`` command to show the results on screen.
 
+Remote development
+------------------
+
+Instead of starting from scratch an existing application can be cloned using the ``qne application clone`` command.
+A copy of a working application is made to your application directory and can be used as starting point
+for application development.
+
+A tested application can be uploaded and published after which it can be selected by other users on the QNE
+website. After uploading the application ``qne application upload`` a remote experiment must be created and run on the
+QNE backends successfully before the application can be published ``qne application publish``.
 
 Prerequisites
 -------------
@@ -168,12 +182,12 @@ application clone
 
     qne application clone [OPTIONS] APPLICATION_NAME [NEW_APPLICATION_NAME]
 
-Clone an existing remote (--remote) or local application to the current directory.
-When a new application name is not given (remote only) the application will have the same name as the cloned
-application. An application with the new application name may not already exist locally.
+Clone an existing remote or local application and use it as a starting point for new application development.
+Cloning an application will copy the application files to the current directory.
+The public available (or latest) version of the application is copied.
+When a new application name is not given as an argument (remote only) the application will have the same name as
+the cloned application. An application with the new application name may not already exist locally.
 A local application must be valid before it can be cloned. For cloning a remote application the user must be logged in.
-Cloning remote applications is limited to publicly available applications and applications of which the user is the
-author.
 
     Arguments:
       APPLICATION_NAME  Name of the application to clone [required]
@@ -189,6 +203,27 @@ Example:
 .. code-block:: console
 
     qne application clone existing_application new_application
+
+application fetch
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    qne application fetch [OPTIONS] APPLICATION_NAME
+
+Fetching an existing remote application will copy the application files to the current directory.
+The highest version of the application files are copied which may not be the current public version but a draft version.
+Fetching applications is limited to the applications for which the user is the author.
+For fetching a remote application the user must be logged in.
+
+    Arguments:
+      APPLICATION_NAME  Name of the application to clone [required]
+
+    Options:
+      --help  Show this message and exit.
+
+    Example:
+      qne application fetch existing_application
 
 application delete
 ^^^^^^^^^^^^^^^^^^

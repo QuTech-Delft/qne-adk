@@ -327,7 +327,7 @@ class LocalApi:
         # write manifest
         self.set_application_data(application_path, application_data)
 
-        # add application to the administration
+        # add application to the local administration
         self.__config_manager.add_application(application_name=application_name,
                                               application_path=application_path)
 
@@ -374,6 +374,7 @@ class LocalApi:
         # reset remote
         application_data["remote"] = {}
         self.set_application_data(new_application_path, application_data)
+        # add application to the local administration
         self.__config_manager.add_application(application_name=new_application_name,
                                               application_path=new_application_path)
 
@@ -433,8 +434,8 @@ class LocalApi:
                                                                 })
 
         # Manifest.json configuration
-        utils.write_json_file(application_path / 'manifest.json', utils.get_default_manifest(application_name))
-
+        self.set_application_data(application_path, utils.get_default_manifest(application_name))
+        # add application to the local administration
         self.__config_manager.add_application(application_name=application_name, application_path=application_path)
 
     def list_applications(self) -> List[ApplicationType]:
