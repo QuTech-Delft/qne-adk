@@ -12,15 +12,13 @@ class TestRemoteApi(unittest.TestCase):
         self.app_path = Path("path/to/application")
         self.base_uri = 'base_uri.com'
         self.host = 'http://unittest_server/'
-        self.username = 'username'
+        self.email = 'test@email.com'
         self.password = 'password'
         self.token = 'token'
         self.application_data = {
             "application": {
                 "name": "test_app",
                 "description": "test_app description",
-                "author": "my name",
-                "email": "me@my.email",
                 "multi_round": False
             },
             "remote": {}
@@ -73,8 +71,6 @@ class TestRemoteApi(unittest.TestCase):
         self.application_data_uploaded = {
             'application': {'name': 'test_app',
                             'description': 'test_app description',
-                            'author': 'my name',
-                            'email': 'me@my.email',
                             'multi_round': False
                             },
             'remote': {'application': f'{self.host}application/42',
@@ -96,9 +92,7 @@ class TestRemoteApi(unittest.TestCase):
             "url": f"{self.host}application/42",
             "slug": "application_slug",
             "name": self.application_data["application"]["name"],
-            "description": self.application_data["application"]["description"],
-            "author": self.application_data["application"]["author"],
-            "email": self.application_data["application"]["email"]
+            "description": self.application_data["application"]["description"]
         }
 
         self.app_version = {
@@ -141,8 +135,9 @@ class TestRemoteApi(unittest.TestCase):
 
 class TestRemoteApiAuthentication(TestRemoteApi):
     def test_login(self):
-        self.remote_api.login(self.username, self.password, self.host)
-        self.remote_api.auth_manager.login.assert_called_once_with(self.username, self.password, self.host)
+        self.remote_api.login(self.email, self.password, self.host, use_username=False)
+        self.remote_api.auth_manager.login.assert_called_once_with(self.email, self.password,
+                                                                   self.host, False)
 
     def test_logout(self):
         self.remote_api._RemoteApi__qne_client.is_logged_in.return_value = False
@@ -192,8 +187,6 @@ class TestRemoteApiApplication(TestRemoteApi):
                 "application": {
                     "name": "new_app",
                     "description": "add description",
-                    "author": "add your name",
-                    "email": "add@your.email",
                     "multi_round": False
                 },
                 "remote": {}
@@ -262,9 +255,7 @@ class TestRemoteApiApplication(TestRemoteApi):
             "url": f"{self.host}application/42",
             "slug": "application_slug",
             "name": application_data["application"]["name"],
-            "description": application_data["application"]["description"],
-            "author": application_data["application"]["author"],
-            "email": application_data["application"]["email"]
+            "description": application_data["application"]["description"]
         }
 
         self.remote_api._RemoteApi__qne_client.create_application.return_value = application
@@ -414,9 +405,7 @@ class TestRemoteApiApplication(TestRemoteApi):
             "url": application_data["remote"]["application"],
             "slug": application_data["remote"]["slug"],
             "name": application_data["application"]["name"],
-            "description": application_data["application"]["description"],
-            "author": application_data["application"]["author"],
-            "email": application_data["application"]["email"]
+            "description": application_data["application"]["description"]
         }
         app_version = {
             "id": 42,

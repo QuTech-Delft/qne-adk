@@ -1,6 +1,6 @@
 import os.path
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from adk.exceptions import DirectoryIsFile
 from adk.type_aliases import (AuthType, FallbackFunctionType, LoginFunctionType, LogoutFunctionType,
@@ -27,26 +27,29 @@ class AuthManager:
         self.__logout_function = logout_function
         self.__active_host = self.__read_active_host()
 
-    def login(self, username: Optional[str], password: Optional[str], host: Optional[str]) -> None:
+    def login(self, email: Optional[str], password: Optional[str], host: Optional[str],
+              use_username: Optional[bool]) -> None:
         """
-        When a token is not found it tries to login
+        When a token is not found it tries to log in
         with basic authentication read from the environment variables QNE_EMAIL and QNE_PASSWORD. When the environment
         variables are not both set, email and password are read from standard input.
 
-        :param username: username (e-mail)
+        :param email: e-mail
         :param password: password
         :param host: the Quantum Network host for which we try to log in
+        :param use_username: use the username field to log in instead of email
 
         """
         if host is None:
             host = QNE_URL
-        if username is not None and password is not None and host is not None:
+        if email is not None and password is not None and host is not None:
             token = self.__fetch_token(self.__login_function,
-                                       {'username': username, 'password': password, 'host': host})
+                                       {'email': email, 'password': password,
+                                        'host': host, 'use_username': use_username})
         else:
             token = self.__fetch_token(self.__fallback_function, {'host': host})
 
-        self.__store_token(host, token, username, password)
+        self.__store_token(host, token, email, password, use_username)
         self.__set_active_host(host)
 
     def logout(self, host: Optional[str]) -> None:
@@ -64,7 +67,7 @@ class AuthManager:
         :return:
             The Quantum Network token or None when no token is found.
         """
-        token = self.__read_token(host)
+        token = self.get_token(host)
         # if token is None:
         #     token = self.__fetch_token(self.__fallback_function, {'host': host})
         return token
@@ -73,23 +76,19 @@ class AuthManager:
         """ Creates the authorization config file in the .qne/ root directory"""
         write_json_file(self.auth_config, {})
 
-    def __read_token(self, host: str) -> Optional[str]:
-        """ Try to read an earlier stored Quantum Network token from file for a certain host.
-
-        :param host: the Quantum Network host.
-        :return:
-            The Quantum Network token for this host or None when no token is found or token is empty.
-        """
-        return self.__get_item_from_host(host, "token")
-
-    def __store_token(self, host: str, token: str, username: Optional[str], password: Optional[str]) -> None:
-        """Save the token for a host to a file. Currently allowing one login at a time.
+    def __store_token(self, host: str, token: str, email: Optional[str], password: Optional[str],
+                      use_username: Optional[bool]) -> None:
+        """Save the token for a host to a file. Currently, allowing one login at a time.
 
         :param host: the Quantum Network host for which the token is saved.
         :param token: the Quantum Network token to save.
+        :param email: the email to save.
+        :param password: the password to save.
+        :param use_username: the flag to use email or username to save.
         """
         accounts = {}
-        accounts[host] = {"token": token, "username": username, "password": password}
+        accounts[host] = {"token": token, "email": email, "password": password,
+                          "use_username": None if use_username is None else use_username}
         write_json_file(self.auth_config, accounts)
 
     def set_token(self, host: str, token: str) -> None:
@@ -139,15 +138,49 @@ class AuthManager:
         """Get the active host"""
         return self.__active_host
 
-    def __get_item_from_host(self, host: str, item: str) -> Optional[str]:
+    def __get_item_from_host(self, host: str, item: str) -> Optional[Union[str, bool]]:
         accounts: AuthType = read_json_file(self.auth_config)
 
         if host in accounts:
-            return accounts[host][item]
+            return accounts[host].get(item)
         return None
 
-    def get_password(self, host: str) -> Optional[str]:
-        return self.__get_item_from_host(host, "password")
+    def get_email(self, host: str) -> Optional[str]:
+        """ Try to read an earlier stored email from file for a certain host.
 
-    def get_username(self, host: str) -> Optional[str]:
-        return self.__get_item_from_host(host, "username")
+        :param host: the Quantum Network host.
+        :return:
+            The stored email for this user or None when no email is found
+        """
+        email = self.__get_item_from_host(host, "email")
+        return None if email is None else str(email)
+
+    def get_password(self, host: str) -> Optional[str]:
+        """ Try to read an earlier stored password from file for a certain host.
+
+        :param host: the Quantum Network host.
+        :return:
+            The stored password for this user or None when no password is found
+        """
+        password = self.__get_item_from_host(host, "password")
+        return None if password is None else str(password)
+
+    def get_token(self, host: str) -> Optional[str]:
+        """ Try to read an earlier stored Quantum Network token from file for a certain host.
+
+        :param host: the Quantum Network host.
+        :return:
+            The Quantum Network token for this host or None when no token is found or token is empty.
+        """
+        token = self.__get_item_from_host(host, "token")
+        return None if token is None else str(token)
+
+    def get_use_username(self, host: str) -> Optional[bool]:
+        """ Try to read an earlier stored flag for using username or email to log in from file for a certain host.
+
+        :param host: the Quantum Network host.
+        :return:
+            The stored flag for using email or username to log in for this user or None when no flag is found
+        """
+        use_username = self.__get_item_from_host(host, "use_username")
+        return None if use_username is None else bool(use_username)

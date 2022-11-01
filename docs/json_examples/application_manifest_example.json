@@ -2,8 +2,6 @@
   "application": {
     "name": "teleport",
     "description": "The description of the teleport application",
-    "author": "Your name",
-    "email": "your.email@address.here",
     "multi_round": false
   },
   "remote": {

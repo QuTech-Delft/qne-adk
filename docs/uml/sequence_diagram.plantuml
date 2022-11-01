@@ -12,11 +12,11 @@ participant AuthManager
 participant RoundSetManager
 participant OutputConverter
 
-CommandList -> CommandProcessor : login(host, username, password)
-    CommandProcessor -> RemoteApi : login(username, password, host)
+CommandList -> CommandProcessor : login(host, email, password)
+    CommandProcessor -> RemoteApi : login(email, password, host)
         RemoteApi -> AuthManager : __init__(config_dir, login_function, anonymous_function)
         return auth_manager
-        RemoteApi -> AuthManager : login(username, password, host)
+        RemoteApi -> AuthManager : login(email, password, host)
             AuthManager -> AuthManager : fetch_token(payload)
             return token
             AuthManager -> AuthManager : store_token(token)
@@ -357,8 +357,8 @@ CommandList -> CommandProcessor : experiments_delete(name, application, local)
             end
         return token
         RemoteApi -> RemoteApi : action('delete_experiment')
-        return 
-    return 
+        return
+    return
     CommandProcessor -> LocalApi : delete_experiment(path)
     return
 return

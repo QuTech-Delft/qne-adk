@@ -158,10 +158,10 @@ def get_py_dummy() -> str:
 
 
 def get_default_manifest(application_name: str) -> Dict[str, Dict[str, Any]]:
+    """ Default (minimal) manifest structure is returned, that can be used for a (local) application.
+    """
     default_manifest: Dict[str, Dict[str, Any]] = {"application": {"name": f"{application_name}",
                                                                    "description": "add description",
-                                                                   "author": "add your name",
-                                                                   "email": "add@your.email",
                                                                    "multi_round": False},
                                                    "remote": {}}
     return default_manifest
@@ -179,7 +179,7 @@ def validate_path_name(obj: str, name: str) -> None:
 def copy_files(source_dir: Path, destination_dir: Path, files_list: Optional[List[str]] = None) -> None:
     """
     Copy all the files from source directory to destination directory.
-    No sub directories are copied.
+    No subdirectories are copied.
 
     Args:
         source_dir: directory from where files need to be copied
@@ -198,7 +198,7 @@ def copy_files(source_dir: Path, destination_dir: Path, files_list: Optional[Lis
 def move_files(source_dir: Path, destination_dir: Path, files_list: List[str]) -> None:
     """
     Move files from source directory to destination directory.
-    No sub directories are copied. Existing files will not be overwritten
+    No subdirectories are copied. Existing files will not be overwritten
 
     Args:
         source_dir: directory from where files need to be moved

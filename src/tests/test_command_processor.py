@@ -16,8 +16,9 @@ class TestCommandProcessor(unittest.TestCase):
         self.remote_api = MagicMock(config_manager=self.config_manager)
         self.processor = CommandProcessor(local_api=self.local_api, remote_api=self.remote_api)
         self.host = 'qutech.com'
-        self.username = 'test_username'
+        self.email = 'test@email.com'
         self.password = 'test_password'
+        self.use_username = True
         self.application = 'test_application'
         self.experiment = 'test_experiment'
         self.roles = ['role1', 'role2']
@@ -27,8 +28,9 @@ class TestCommandProcessor(unittest.TestCase):
         self.error_dict = {"error": [], "warning": [], "info": []}
 
     def test_login(self):
-        self.processor.login(host=self.host, username=self.username, password=self.password)
-        self.remote_api.login.assert_called_once_with(username=self.username, password=self.password, host=self.host)
+        self.processor.login(host=self.host, email=self.email, password=self.password, use_username=self.use_username)
+        self.remote_api.login.assert_called_once_with(email=self.email, password=self.password,
+                                                      host=self.host, use_username=self.use_username)
 
     def test_logout(self):
         self.processor.logout(host=self.host)

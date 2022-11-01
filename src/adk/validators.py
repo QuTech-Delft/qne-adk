@@ -2,7 +2,7 @@ import platform
 import os
 from pathlib import Path
 from typing import Tuple, Any
-from jsonschema import Draft7Validator, RefResolver, draft7_format_checker
+from jsonschema import Draft7Validator, RefResolver
 from jsonschema.exceptions import ValidationError
 
 from adk.exceptions import JsonFileNotFound, MalformedJsonFile, PackageNotComplete
@@ -62,7 +62,7 @@ def validate_json_schema(file_name: Path, schema_path: Path) -> Tuple[bool, Any]
         else:
             json_schema_full_path = os.path.realpath(schema_path)
             resolver = RefResolver(base_uri=f'file://{json_schema_full_path}', referrer=json_schema)
-        Draft7Validator(json_schema, resolver=resolver, format_checker=draft7_format_checker).validate(json_file)
+        Draft7Validator(json_schema, resolver=resolver).validate(json_file)
         return True, None
     except ValidationError as ve:
         return False, f'In file {file_name}: {ve.message}'

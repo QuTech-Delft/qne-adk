@@ -47,8 +47,6 @@ class AppValidate(unittest.TestCase):
             "application": {
                 "name": "killer_app",
                 "description": "add description",
-                "author": "add your name",
-                "email": "add@your.email",
                 "multi_round": False
             },
             "remote": {}
@@ -57,8 +55,6 @@ class AppValidate(unittest.TestCase):
             "application": {
                 "name": "remote_app",
                 "description": "add description",
-                "author": "add your name",
-                "email": "add@your.email",
                 "multi_round": False
             },
             "remote": {
@@ -421,8 +417,6 @@ class ApplicationValidate(AppValidate):
                 "application": {
                     "name": "test_application",
                     "description": "add description",
-                    "author": "add your name",
-                    "email": "add@your.email",
                     "multi_round": False
                 },
                 "remote": {}
@@ -488,8 +482,6 @@ class ApplicationValidate(AppValidate):
                 "application": {
                     "name": "new_app",
                     "description": "add description",
-                    "author": "add your name",
-                    "email": "add@your.email",
                     "multi_round": False
                 },
                 "remote": {}

@@ -3,13 +3,13 @@ The QNE-ADK is a Quantum Network Explorer - Application Development Kit that all
 
 With the ADK you can create your own application using the ``qne application create`` command (see Commands below). An application directory is generated for you with all the necessary files for you to configure and prepare for an experiment. When configuring an application, you specify the different roles and what types of inputs your application uses. In addition, you write the functionality of your application using the NetQASM library.
 
-After creating and configuring an application, you can create an experiment for it using the ``qne experiment create`` command. Also here an experiment directory is generated with all necessary files. When configuring your experiment you can give values to the inputs that were specified when creating your application. You also choose which channels and nodes you use in your network and which role is linked to which node. A network consists of channels and each channel consists of two nodes. The nodes can communicate with each other using the channel between them.
+After creating and configuring an application, you can create an experiment for it using the ``qne experiment create`` command. An experiment directory is generated with all necessary files. When configuring your experiment you can give values to the inputs that were specified when creating your application. You also choose which channels and nodes you use in your network and which role is linked to which node. A network consists of channels and each channel consists of two nodes. The nodes can communicate with each other using the channel between them.
 
 Once your experiment is configured you are ready to run it using the ``qne experiment run`` command. Your experiment is parsed and sent to the NetSquid simulator. After some time your experiment run will be finished and a results directory will be generated in which all the results of your experiment are stored.
 
 
 ## Prerequisites
-- A modern Linux or MacOS (10 or 11) 64-bit (x86_64) operating system. If you don’t have Linux or MacOS you could run it via virtualization, e.g. using VirtualBox. If you have Windows 10 or 11 you can also use the [Bash on Ubuntu](https://docs.microsoft.com/en-us/windows/wsl/) subsystem.
+- A modern Linux or macOS (10 or 11) 64-bit (x86_64) operating system. If you don’t have Linux or macOS you could run it via virtualization, e.g. using VirtualBox. If you have Windows 10 or 11 you can also use the [Bash on Ubuntu](https://docs.microsoft.com/en-us/windows/wsl/) subsystem.
 - A [virtual environment](https://docs.python.org/3/library/venv.html) should be created and activated before creating an application.
 - Python version 3.7 or higher and pip version 19 or higher.
 - NetQASM makes use of SquidASM for which you need credentials in order to use it. These credentials can be obtained by registering on the forum of [NetSquid](https://forum.netsquid.org/).
@@ -31,7 +31,7 @@ pip install squidasm --extra-index-url=https://{netsquid-user-name}:{netsquid-pa
 Now everything should be setup and ready in order to create your own applications and experiments and run them on the simulator!
 
 ## Commands
-The QNE-ADK uses various commands to create and run your applications and experiments. All of the commands are listed below:
+The QNE-ADK uses various commands to create and run your applications and experiments. All the commands are listed below:
 
 <!--- QNE APPLICATION LIST --->
 <details closed>
@@ -401,7 +401,7 @@ Example:
 <!--- QNE LOGIN --->
 <details closed>
 <summary><b>qne login</b></summary>
-Log in to a Quantum Network Explorer.
+Log in to a Quantum Network Explorer. For backwards compatibility reasons, email can be sent as username to log in.
 <br></br>
 
 ```
@@ -411,12 +411,14 @@ Arguments:
   [HOST]  Name of the host to log in to
 
 Options:
-  --username TEXT  Username of the remote user  [required]
+  --email TEXT     Email of the remote user  [required]
   --password TEXT  Password of the remote user  [required]
+  --username       Send email as username to log in [optional] [default:
+                   False]
   --help           Show this message and exit.
 
 Example:
-  qne login --username=my_user_name --password=my_password https://api.quantum-network.com
+  qne login --email=myemail@email.com --password=my_password --username https://api.quantum-network.com
 ```
 </details>
 

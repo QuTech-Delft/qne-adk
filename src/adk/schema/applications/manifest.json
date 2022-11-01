@@ -16,15 +16,6 @@
           "type": "string",
           "maxLength": 512
         },
-        "author": {
-          "type": "string",
-          "maxLength": 64
-        },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "maxLength": 254
-        },
         "multi_round": {
           "type": "boolean"
         }
@@ -32,8 +23,6 @@
       "required": [
         "name",
         "description",
-        "author",
-        "email",
         "multi_round"
       ],
       "additionalProperties": false
