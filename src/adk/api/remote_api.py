@@ -165,8 +165,6 @@ class RemoteApi:
         # update all application info
         application_data["application"]["name"] = application["name"]
         application_data["application"]["description"] = application["description"]
-        application_data["application"]["author"] = application["author"]
-        application_data["application"]["email"] = application["email"]
         application_data["application"]["multi_round"] = app_config["multi_round"]
         # update all remote info
         application_data["remote"] = utils.get_default_remote_data()
@@ -227,8 +225,6 @@ class RemoteApi:
 
         self.__get_remote_application(application, latest_app_version, new_application_path, application_data)
         application_data["application"]["name"] = new_application_name
-        application_data["application"]["author"] = "add your name"
-        application_data["application"]["email"] = "add@your.email"
         application_data["remote"] = {}
 
         # add application to the local administration
