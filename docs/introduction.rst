@@ -45,7 +45,7 @@ Prerequisites
   the `Bash on Ubuntu <https://docs.microsoft.com/en-us/windows/wsl/>`_ subsystem.
 * A `virtual environment <https://docs.python.org/3/library/venv.html>`_ should be created and activated before
   creating an application.
-* Python version 3.7 or higher and pip version 19 or higher.
+* Python version 3.8 or higher.
 * NetQASM makes use of SquidASM for which you need credentials in order to use it. These credentials can be obtained
   by registering on the forum of `NetSquid <https://forum.netsquid.org/>`_.
 
