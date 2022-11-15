@@ -1,6 +1,6 @@
 """ Quantum Network Explorer ADK
 
-Copyright (c) 2021 QuTech
+Copyright (c) 2022 QuTech
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -80,7 +80,7 @@ setup(
     ],
     license="MIT",
     packages=find_packages(where="src", exclude=["*tests*"]),
-    install_requires=["typer[all]", "netqasm==0.12.1", "pydantic", "tabulate", "jsonschema", "pyyaml",
+    install_requires=["typer[all]", "netqasm==0.12.2", "pydantic", "tabulate", "jsonschema", "pyyaml",
                       "typing-extensions", "apistar", "typesystem==0.2.4", "pyjwt"],
     extras_require={
         "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort", "types-tabulate", "types-PyYAML",

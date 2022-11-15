@@ -12,7 +12,8 @@ experiment.
 Create application
 ------------------
 
-Execute the following command to create an application in your current directory:
+Execute the command ``qne application create`` to create an application in your current directory. The
+command documentation is:
 
 .. code-block:: console
 
@@ -23,7 +24,8 @@ Execute the following command to create an application in your current directory
       ROLES            Names of the roles to be created [required]
 
 
-This could be an example of what this command could look like:
+This is an example of what this command could look like to create application named 'teleport' and
+define 2 roles for it, 'Sender' and 'Receiver':
 
 .. code-block:: console
 
