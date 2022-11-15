@@ -1,6 +1,6 @@
 """ Quantum Network Explorer ADK
 
-Copyright (c) 2021 QuTech
+Copyright (c) 2022 QuTech
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -52,7 +52,7 @@ setup(
     author="QuTech-Delft",
     author_email="support@quantum-network.com",
     url="https://github.com/QuTech-Delft/qne-adk",
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     package_dir={"": "src"},
     package_data={"": ["networks/*.json",
                        "schema/applications/*.json",
@@ -73,15 +73,15 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Scientific/Engineering",
     ],
     license="MIT",
     packages=find_packages(where="src", exclude=["*tests*"]),
-    install_requires=["typer[all]", "netqasm", "pydantic", "tabulate", "jsonschema", "pyyaml", "typing-extensions",
-                      "apistar", "typesystem==0.2.4", "pyjwt"],
+    install_requires=["typer[all]", "netqasm==0.12.2", "pydantic", "tabulate", "jsonschema", "pyyaml",
+                      "typing-extensions", "apistar", "typesystem==0.2.4", "pyjwt"],
     extras_require={
         "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort", "types-tabulate", "types-PyYAML",
                 "types-requests"],

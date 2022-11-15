@@ -517,10 +517,10 @@ def experiments_run(
 
     When experiment_name is given ./experiment_name is taken as experiment directory. When experiment_name is not
     given, the current directory is taken as experiment directory.
-    Block (remote only) waits for the experiment to finish before returning (and results are available). Local
-    experiment runs are blocked by default.
+    Block (remote experiment runs only) waits for the experiment to finish before returning (and results are available).
+    Local experiment runs are blocked by default.
     Timeout (optional) limits the wait (in seconds) for a blocked experiment to finish. In case of a local experiment,
-    a timeout will cancel the experiment run. A remote experiment is not canceled after a timeout and results can be
+    a timeout will cancel the experiment run. A remote experiment run is not canceled after a timeout and results can be
     fetched at a later moment.
     """
     experiment_path, _ = retrieve_experiment_name_and_path(experiment_name=experiment_name)

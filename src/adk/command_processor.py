@@ -242,11 +242,6 @@ class CommandProcessor:
         return self.__remote.validate_application(application_name)
 
     @log_function
-    def __is_application_local(self, application_name: str) -> bool:
-        # return config_manager.application_exists(application_name)
-        pass
-
-    @log_function
     def experiments_create(self, experiment_name: str, application_name: str, network_name: str, local: bool,
                            path: Path) -> None:
         """

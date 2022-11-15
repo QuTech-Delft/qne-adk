@@ -5,7 +5,6 @@
 # from the environment for the first two.
 SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
-SPHINXPROJ    = qne-adk
 SOURCEDIR     = .
 BUILDDIR      = _build
 

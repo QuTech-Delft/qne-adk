@@ -8,7 +8,8 @@ Local development
 -----------------
 
 With the ADK you can create your own application from scratch using the ``qne application create`` command
-(see Commands below). An application directory is created with all the necessary files for you to configure.
+(see section 'Commands' below for more information about the individual commands). An application directory is created
+with all the necessary files for you to configure.
 When configuring an application, you specify the different roles and what types of inputs your
 application uses. In addition, you write the functionality of your application using the NetQASM library.
 
@@ -23,16 +24,19 @@ is parsed and sent to the NetSquid simulator. After some time your experiment ru
 directory will be generated in which all the results of your experiment are stored. An alternative is to use the
 ``qne experiment results`` command to show the results on screen.
 
-Remote development
-------------------
+Publishing applications
+-----------------------
 
-Instead of starting from scratch an existing application can be cloned using the ``qne application clone`` command.
+When your application is finished and you want to share it with the world, an application can be uploaded and
+published after which it can be selected by other users on the QNE platform. After uploading the application
+``qne application upload`` a remote experiment must be created ``qne experiment create --remote`` and run
+``qne experiment run`` first on the QNE simulator backend successfully before the application can be
+published ``qne application publish``. After the application is published successfully, it can be used by others.
+For commands interacting with the remote QNE server you must log in first ``qne login``.
+
+Instead of starting from scratch an existing QNE application can be cloned using the ``qne application clone`` command.
 A copy of a working application is made to your application directory and can be used as starting point
 for application development.
-
-A tested application can be uploaded and published after which it can be selected by other users on the QNE
-website. After uploading the application ``qne application upload`` a remote experiment must be created and run on the
-QNE backends successfully before the application can be published ``qne application publish``.
 
 Prerequisites
 -------------
@@ -41,7 +45,7 @@ Prerequisites
   the `Bash on Ubuntu <https://docs.microsoft.com/en-us/windows/wsl/>`_ subsystem.
 * A `virtual environment <https://docs.python.org/3/library/venv.html>`_ should be created and activated before
   creating an application.
-* Python version 3.7 or higher and pip version 19 or higher.
+* Python version 3.8 or higher.
 * NetQASM makes use of SquidASM for which you need credentials in order to use it. These credentials can be obtained
   by registering on the forum of `NetSquid <https://forum.netsquid.org/>`_.
 
@@ -449,15 +453,15 @@ experiment run
 
 This command will parse all experiment files and run them on the NetSquid simulator.
 
-  When experiment_name is given ./experiment_name is taken as experiment directory.
-  When experiment_name is not given, the current directory is taken as experiment
-  directory.
-  Block (remote only) waits for the experiment to finish before returning (and
-  results are available). Local experiment runs are blocked by default.
-  Timeout (optional) limits the wait (in seconds) for a blocked experiment to finish.
-  In case of a local experiment, a timeout will cancel the experiment run. A remote
-  experiment is not canceled after a timeout and results can be fetched at a later
-  moment.
+When experiment_name is given ./experiment_name is taken as experiment directory.
+When experiment_name is not given, the current directory is taken as experiment
+directory.
+Block (remote experiment runs only) waits for the experiment to finish before
+returning (and results are available). Local experiment runs are blocked by default.
+Timeout (optional) limits the wait (in seconds) for a blocked experiment to finish.
+In case of a local experiment, a timeout will cancel the experiment run. A remote
+experiment run is not canceled after a timeout and results can be fetched at a later
+moment.
 
     Arguments:
       [EXPERIMENT_NAME]  Name of the experiment
@@ -508,7 +512,7 @@ login
 
     qne login [OPTIONS] [HOST]
 
-Log in to a Quantum Network Explorer. For backwards compatibility reasons, email can be sent as username to log in.
+Log in to a Quantum Network Explorer.
 
     Arguments:
       [HOST]  Name of the host to log in to
@@ -516,15 +520,13 @@ Log in to a Quantum Network Explorer. For backwards compatibility reasons, email
     Options:
       --email  TEXT Email of the remote user  [required]
       --password  TEXT Password of the remote user  [required]
-      --username  Send email as username to log in [optional] [default:
-                  False]
       --help  Show this message and exit.
 
 Example:
 
 .. code-block:: console
 
-    qne login --email=myemail@email.com --password=my_password --username https://api.quantum-network.com
+    qne login --email=myemail@email.com --password=my_password https://api.quantum-network.com
 
 logout
 ^^^^^^
