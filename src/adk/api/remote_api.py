@@ -73,7 +73,7 @@ class RemoteApi:
         return self.__refresh_token
 
     def __login_anonymous(self) -> str:
-        pass
+        return ""
 
     def login(self, email: str, password: str, host: str, use_username: bool) -> None:
         """
