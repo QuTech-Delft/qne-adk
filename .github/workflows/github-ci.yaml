@@ -7,9 +7,9 @@ jobs:
     name: Build and test Python 🐍
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v3
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: 3.8
     - name: Install dependencies
@@ -32,7 +32,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: 3.8
     - name: Install pypa/build
@@ -44,7 +44,7 @@ jobs:
     - name: Set outputs
       id: vars
       run: |
-        echo "::set-output name=package_version::$(cat ./src/adk/version.py | cut -d "'" -f2)"
+        echo "package_version=$(cat ./src/adk/version.py | cut -d "'" -f2)" >> $GITHUB_OUTPUT
     - name: Override package 📦 version
       if: startsWith(github.ref, 'refs/tags') == 0
       run: |
@@ -58,12 +58,12 @@ jobs:
         --outdir dist/
         .
     - name: Publish distribution 📦 to Test PyPI
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.TEST_PYPI_API_TOKEN }}
         repository_url: https://test.pypi.org/legacy/
     - name: Publish distribution 📦 to PyPI
       if: startsWith(github.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
