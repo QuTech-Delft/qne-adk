@@ -114,8 +114,6 @@ class RoundSetManager:
 
         subprocess.run(
             ["netqasm", "simulate", "--app-dir", self.__input_dir, "--log-dir", self.__log_dir],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
             check=True,
             timeout=timeout
         )
