@@ -350,7 +350,7 @@ class QneFrontendClient(QneClient):  # pylint: disable-msg=R0904
         the file that has to be uploaded.
         """
         app_source_url = urljoin(self.base_uri, 'app-sources/')
-        auth = HTTPBasicAuth(self.email, self.password)
+        auth = HTTPBasicAuth(self.email or "", self.password or "")
         response = self._client_post(url=app_source_url, files=app_source_files, auth=auth)
         return cast(AppSourceType, response.json())
 
