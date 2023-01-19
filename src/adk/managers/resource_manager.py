@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import tarfile
-from typing import cast, Tuple, List, Any
+from typing import cast, Tuple, List
 
 from adk.api.qne_client import QneFrontendClient
 from adk.exceptions import InvalidPath
@@ -88,7 +88,7 @@ class ResourceManager:
 
                     return prefix == abs_app_src_path
 
-                def safe_extract(tar: Any, app_src_path: str) -> None:
+                def safe_extract(tar: tarfile.TarFile, app_src_path: str) -> None:
                     """ Extract only when target path for all tar-files is in the application source directory. """
                     for member in tar.getmembers():
                         member_path = os.path.join(app_src_path, member.name)
