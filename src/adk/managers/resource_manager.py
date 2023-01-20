@@ -1,9 +1,10 @@
-from pathlib import Path
 import os
+from pathlib import Path
 import tarfile
 from typing import cast, Tuple, List
 
 from adk.api.qne_client import QneFrontendClient
+from adk.exceptions import InvalidPath
 from adk.type_aliases import ApplicationDataType, AppSourceType
 
 
@@ -77,7 +78,26 @@ class ResourceManager:
                 qne_client.download_source_files(source_file, app_src_path, file_name)
 
             with tarfile.open(file_path, "r:gz") as tar:
-                tar.extractall(app_src_path)
+
+                def is_within_directory(app_src_path: str, target: str) -> bool:
+                    """ Check if target path of tar-files is in the application source directory. """
+                    abs_app_src_path = os.path.abspath(app_src_path)
+                    abs_target = os.path.abspath(target)
+
+                    prefix = os.path.commonprefix([abs_app_src_path, abs_target])
+
+                    return prefix == abs_app_src_path
+
+                def safe_extract(tar: tarfile.TarFile, app_src_path: str) -> None:
+                    """ Extract only when target path for all tar-files is in the application source directory. """
+                    for member in tar.getmembers():
+                        member_path = os.path.join(app_src_path, member.name)
+                        if not is_within_directory(app_src_path, member_path):
+                            raise InvalidPath(member.name)
+
+                    tar.extractall(app_src_path)
+
+                safe_extract(tar, str(app_src_path))
 
             # delete it afterwards
             if file_path.is_file():
@@ -87,7 +107,7 @@ class ResourceManager:
     def __get_file_name(url: str) -> str:
         """Get the file name at the end of the URL.
 
-        An URL pointing to a file has the format of http://domain.tld/file_name.ext. This method will strip off
+        A URL pointing to a file has the format of http://domain.tld/file_name.ext. This method will strip off
         everything before the last slash and return only file_name.ext.
 
         Args:

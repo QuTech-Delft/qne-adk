@@ -132,6 +132,13 @@ class ExperimentValueError(QneAdkException):
         super().__init__(f"{message}")
 
 
+class InvalidPath(QneAdkException):
+    """Raised when an invalid path was found in the appsource tarball"""
+
+    def __init__(self, obj: str) -> None:
+        super().__init__(f"Invalid path in tar-file: {obj}")
+
+
 class InvalidPathName(QneAdkException):
     """Raised when one of the following characters are used in an input name ['/', '\', '*', ':', '?', '"', '<', '>',
     '|']"""
