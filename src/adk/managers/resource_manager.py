@@ -32,7 +32,7 @@ class ResourceManager:
             the full path to the tarball and the file name of the tarball
         """
         app_src_path = application_path / 'src'
-        app_file_name = (application_data["remote"]["slug"] + ".tar.gz")
+        app_file_name = application_data["remote"]["slug"] + ".tar.gz"
         app_file_path = app_src_path / app_file_name
         with tarfile.open(app_file_path, "w:gz") as tar:
             for arc_name in files_list:
@@ -49,7 +49,7 @@ class ResourceManager:
             application_path: path to application files (local)
         """
         app_src_path = application_path / 'src'
-        app_file_name = (application_data["remote"]["slug"] + ".tar.gz")
+        app_file_name = application_data["remote"]["slug"] + ".tar.gz"
         app_file_path = app_src_path / app_file_name
         if app_file_path.is_file():
             app_file_path.unlink()
