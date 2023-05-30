@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 from pathlib import Path
@@ -331,7 +332,7 @@ class TestRemoteApiApplication(TestRemoteApi):
         self.assertDictEqual(app_data_actual, self.application_data_uploaded)
 
     def test_upload_application_new_app_creation_fails(self):
-        application_data = self.application_data
+        application_data = copy.deepcopy(self.application_data)
         application_config = {"application": self.application_config, "network": self.network_config}
         application_source = ["application_source"]
         application_result = self.result
@@ -342,6 +343,7 @@ class TestRemoteApiApplication(TestRemoteApi):
                           application_config,
                           application_result,
                           application_source)
+        self.assertEqual(self.application_data, application_data)
 
     def test_upload_application_new_appversion_creation_fails(self):
         application_data = self.application_data
