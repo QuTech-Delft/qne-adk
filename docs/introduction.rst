@@ -14,7 +14,7 @@ When configuring an application, you specify the different roles and what types 
 application uses. In addition, you write the functionality of your application using the NetQASM library.
 
 After creating and configuring an application, you can create an experiment for it using the ``qne experiment create``
-command. A separate experiment directory is created with all the necessary files. When configuring your experiment
+command. Also, here an experiment directory is generated with all necessary files. When configuring your experiment
 you can give values to the inputs that were specified when creating your application. You also choose which channels
 and nodes you use in your network and which role is linked to which node. A network consists of channels and each
 channel consists of two nodes. The nodes can communicate with each other using the channel between them.
@@ -103,9 +103,22 @@ To build the 'readthedocs' documentation do:
 
 The documentation is then build in 'docs/_build/html' and can be viewed `here <index.html>`_.
 
+Troubleshooting
+---------------
+If you have any issues installing SquidASM (e.g. it only seems to use version 0.0.1), check the following:
+
+- Make sure you're using the latest version of `pip` (run: `python -m pip install --upgrade pip`)
+- Check you're using a supported Python version `here <https://pypi.netsquid.org/netsquid/>`_. In the wheel filenames,
+  cpXX indicates the version - so if you have Python 3.10, but there is no cp310 wheel, switch to a supported version
+  of Python. Check the OS is also compatible.
+- If `pydynaa` is failing, check the same as above `here <https://pypi.netsquid.org/pydynaa/>`_.
+- For help with Python versions, check out `pyenv <https://github.com/pyenv/pyenv>`_. You should probably be
+  using `virtualenv <https://virtualenv.pypa.io/en/latest/>`_
+  or `venv <https://docs.python.org/3/library/venv.html>`_ too.
+
 Commands
 --------
-The QNE-ADK uses various commands to create and run your applications and experiments. All the commands are
+The QNE-ADK uses various commands to create and run your applications and experiments. All commands are
 listed below:
 
 application list
