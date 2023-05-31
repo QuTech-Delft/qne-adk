@@ -40,6 +40,7 @@ for application development.
 
 Prerequisites
 -------------
+
 * A modern Linux or macOS (10 or 11) 64-bit (x86_64) operating system. If you don't have Linux or macOS you could run
   it via virtualization, e.g. using VirtualBox. If you have Windows 10 or 11 you can also use
   the `Bash on Ubuntu <https://docs.microsoft.com/en-us/windows/wsl/>`_ subsystem.
@@ -51,6 +52,7 @@ Prerequisites
 
 Installation
 ------------
+
 To install all the required packages, execute the following command:
 
 .. code-block:: console
@@ -88,6 +90,7 @@ If you want to install for development, install with:
 
 Installing for generating documentation
 ---------------------------------------
+
 To install the necessary packages to perform documentation activities for QNE-ADK do:
 
 .. code-block:: console
@@ -105,6 +108,7 @@ The documentation is then build in 'docs/_build/html' and can be viewed `here <i
 
 Troubleshooting
 ---------------
+
 If you have any issues installing SquidASM (e.g. it only seems to use version 0.0.1), check the following:
 
 - Make sure you're using the latest version of `pip` (run: `python -m pip install --upgrade pip`)
@@ -118,6 +122,7 @@ If you have any issues installing SquidASM (e.g. it only seems to use version 0.
 
 Commands
 --------
+
 The QNE-ADK uses various commands to create and run your applications and experiments. All commands are
 listed below:
 
@@ -604,6 +609,7 @@ Example:
 
 More documentation
 ------------------
+
 Following this step-by-step documentation, it will give you a better understanding of:
 
 * what each command implies
