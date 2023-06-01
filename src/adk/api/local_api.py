@@ -1276,7 +1276,7 @@ class LocalApi:
 
     def get_experiment_meta(self, experiment_path: Path) -> MetaType:
         """
-        Get the meta data for this experiment
+        Get the meta-data for this experiment
 
         Args:
             experiment_path: The location of the experiment
@@ -1447,7 +1447,7 @@ class LocalApi:
         When experiment name is None the current directory is taken as experiment path, the experiment files and
         directories are deleted but the current directory cannot be deleted, leaving a trace of the experiment.
         When experiment name is given ./experiment_name is taken as experiment path and the
-        experiment_name directory can also be deleted deleting the complete experiment.
+        experiment_name directory can also be deleted, deleting the complete experiment.
         Only files that belong to an experiment are deleted. When a directory is not empty it is not deleted.
 
         Args:
@@ -1496,21 +1496,23 @@ class LocalApi:
 
         return all_subdir_deleted and experiment_dir_deleted
 
-    def run_experiment(self, experiment_path: Path, timeout: Optional[int] = None) -> List[ResultType]:
+    def run_experiment(self, experiment_path: Path, update: bool, timeout: Optional[int] = None) -> List[ResultType]:
         """
         An experiment is run on the backend.
         The application input files are copied for each run, they may have changed
         - Refresh ["asset"]["application"] when application.json changed
-        Then the round set manager is setup and called to process the asset
+        Then the round set manager is set up and called to process the asset
 
         Args:
             experiment_path: The location of the experiment
+            update: Update the application files before running the experiment
             timeout: Limit the wait for result
 
         Returns:
             A list containing the results of the run
         """
-        self.__prepare_input_files(experiment_path)
+        if update:
+            self.__prepare_input_files(experiment_path)
         local_round_set: RoundSetType = {"url": "local"}
         round_set_manager = RoundSetManager(round_set=local_round_set, asset=self.get_experiment_asset(experiment_path),
                                             experiment_path=experiment_path)
@@ -1519,7 +1521,7 @@ class LocalApi:
 
     def __prepare_input_files(self, experiment_path: Path) -> None:
         """
-        The application config and src files are copied for each experiment run, they may have changed
+        The application config and src files are copied for the experiment run, they may have changed
         - Refresh ["asset"]["application"] in experiment.json when application.json changed
 
         Args:
