@@ -339,7 +339,7 @@ class CommandProcessor:
         return deleted_completely_local and deleted_remote
 
     @log_function
-    def experiments_run(self, experiment_path: Path, block: bool = True,
+    def experiments_run(self, experiment_path: Path, block: bool = True, update: bool = False,
                         timeout: Optional[int] = None) -> Optional[List[ResultType]]:
         """ Run the experiment and get the results. When running a remote experiment depending on the parameter block
         we wait for the results, otherwise None is returned (results not yet available).
@@ -348,6 +348,7 @@ class CommandProcessor:
         Args:
             experiment_path: location of experiment files
             block: do we wait for the result or not
+            update: update the application files before running the experiment
             timeout: Limit the wait for result
 
         Returns:
@@ -356,7 +357,7 @@ class CommandProcessor:
         results: Optional[List[ResultType]]
         local = self.__local.is_experiment_local(experiment_path=experiment_path)
         if local:
-            results = self.__local.run_experiment(experiment_path, timeout)
+            results = self.__local.run_experiment(experiment_path, update, timeout)
         else:
             experiment_data = self.__local.get_experiment_data(experiment_path)
             round_set, experiment_id = self.__remote.run_experiment(experiment_data)

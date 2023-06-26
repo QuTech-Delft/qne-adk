@@ -394,7 +394,7 @@ class TestCommandList(unittest.TestCase):
             validate_path_name_mock.assert_called_once_with("Application", self.application)
             get_application_path_mock.assert_called_once_with(self.application)
 
-            # Raise Raise ApplicationNotFound when application directory does not exist
+            # Raise ApplicationNotFound when application directory does not exist
             validate_path_name_mock.reset_mock()
             get_application_path_mock.reset_mock()
             is_dir_mock.reset_mock()
@@ -831,7 +831,7 @@ class TestCommandList(unittest.TestCase):
             self.assertIn(f"Remote experiment with experiment name or id 'exp_dir' deleted successfully",
                           experiment_delete_output.stdout)
 
-    def test_experiment_run(self):
+    def test_experiment_run_succeeds(self):
         with patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock, \
              patch.object(CommandProcessor, 'experiments_run') as exp_run_mock, \
              patch.object(LocalApi, "is_experiment_local") as exp_local_mock, \
@@ -843,7 +843,7 @@ class TestCommandList(unittest.TestCase):
             exp_run_output = self.runner.invoke(experiments_app, ['run'])
             exp_validate_mock.assert_called_once_with(experiment_path=self.path)
             retrieve_expname_and_path_mock.assert_called_once()
-            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=True, timeout=None)
+            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=True, update=False, timeout=None)
             self.assertEqual(exp_run_output.exit_code, 0)
             self.assertIn("Experiment is sent to the local server. Please wait until the results are received...",
                           exp_run_output.stdout)
@@ -855,7 +855,7 @@ class TestCommandList(unittest.TestCase):
             exp_run_mock.reset_mock()
             exp_run_mock.return_value = [{"round_result": "ok"}]
             exp_run_output = self.runner.invoke(experiments_app, ['run', '--timeout=30'])
-            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=False, timeout=30)
+            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=False, update=False, timeout=30)
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_run_output.exit_code, 0)
             self.assertNotIn("Experiment is sent to the remote server. Please wait until the results are received...",
@@ -868,7 +868,7 @@ class TestCommandList(unittest.TestCase):
             exp_run_mock.reset_mock()
             exp_run_mock.return_value = None
             exp_run_output = self.runner.invoke(experiments_app, ['run', '--timeout=30'])
-            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=False, timeout=30)
+            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=False, update=False, timeout=30)
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_run_output.exit_code, 0)
             self.assertNotIn("Experiment is sent to the remote server. Please wait until the results are received...",
@@ -904,12 +904,75 @@ class TestCommandList(unittest.TestCase):
             exp_run_mock.reset_mock()
             exp_run_mock.return_value = [{"round_result": {"error": "Just an error"}}]
             exp_run_output = self.runner.invoke(experiments_app, ['run', '--timeout=30'])
-            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=False, timeout=30)
+            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=False, update=False, timeout=30)
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_run_output.exit_code, 0)
             self.assertIn("Error encountered while running the experiment",
                              exp_run_output.stdout)
             self.assertIn("Just an error",
+                          exp_run_output.stdout)
+
+    def test_experiment_run_update_succeeds(self):
+        with patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock, \
+             patch.object(CommandProcessor, 'applications_validate') as app_validate_mock, \
+             patch.object(CommandProcessor, 'experiments_run') as exp_run_mock, \
+             patch.object(LocalApi, "is_experiment_local") as exp_local_mock, \
+             patch.object(LocalApi, "get_experiment_application") as exp_application_mock, \
+             patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \
+             patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
+
+            retrieve_expname_and_path_mock.return_value = self.path, None
+            exp_application_mock.return_value = self.application
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
+            exp_local_mock.return_value = True
+            exp_validate_mock.return_value = {"error": [], "warning": [], "info": []}
+            app_validate_mock.return_value = {"error": [], "warning": [], "info": []}
+
+            exp_run_output = self.runner.invoke(experiments_app, ['run', '--update'])
+            exp_validate_mock.assert_called_once_with(experiment_path=self.path)
+            retrieve_expname_and_path_mock.assert_called_once()
+            exp_run_mock.assert_called_once_with(experiment_path=self.path, block=True, update=True, timeout=None)
+            self.assertEqual(exp_run_output.exit_code, 0)
+            self.assertIn("Experiment is sent to the local server. Please wait until the results are received...",
+                          exp_run_output.stdout)
+            self.assertIn("Experiment run successfully. Check the results using command 'experiment results'",
+                          exp_run_output.stdout)
+
+    def test_experiment_run_update_fails(self):
+        with patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock, \
+             patch.object(CommandProcessor, 'applications_validate') as app_validate_mock, \
+             patch.object(CommandProcessor, 'experiments_run') as exp_run_mock, \
+             patch.object(LocalApi, "is_experiment_local") as exp_local_mock, \
+             patch.object(LocalApi, "get_experiment_application") as exp_application_mock, \
+             patch("adk.command_list.show_validation_messages") as show_validation_messages_mock, \
+             patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \
+             patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
+
+            retrieve_expname_and_path_mock.return_value = self.path, None
+            exp_validate_mock.return_value = {"error": [], "warning": [], "info": []}
+            exp_local_mock.return_value = False
+            exp_run_output = self.runner.invoke(experiments_app, ['run', '--timeout=30', '--update'])
+            exp_run_mock.assert_not_called()
+            retrieve_expname_and_path_mock.assert_called_once()
+            self.assertEqual(exp_run_output.exit_code, 0)
+            self.assertIn("Update only valid for local experiment runs.", exp_run_output.stdout)
+
+            exp_run_mock.reset_mock()
+            retrieve_expname_and_path_mock.reset_mock()
+            retrieve_expname_and_path_mock.return_value = self.path, None
+            exp_application_mock.return_value = self.application
+            retrieve_appname_and_path_mock.return_value = self.path, self.application
+            app_validate_mock.return_value = {"error": ["App-error occurred"], "warning": [], "info": []}
+            exp_validate_mock.return_value = {"error": [], "warning": [], "info": []}
+
+            exp_local_mock.return_value = True
+            exp_run_output = self.runner.invoke(experiments_app, ['run', '--timeout=30', '--update'])
+            exp_run_mock.assert_not_called()
+            show_validation_messages_mock.assert_called_once()
+            retrieve_expname_and_path_mock.assert_called_once()
+            retrieve_appname_and_path_mock.assert_called_once()
+            self.assertEqual(exp_run_output.exit_code, 0)
+            self.assertIn(f"Application '{self.application}' is invalid. Experiment cannot be updated.",
                           exp_run_output.stdout)
 
     def test_experiment_results(self):

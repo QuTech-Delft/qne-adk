@@ -510,6 +510,7 @@ def experiments_delete(
 def experiments_run(
     experiment_name: Optional[str] = typer.Argument(None, help="Name of the experiment"),
     block: bool = typer.Option(False, "--block", help="Wait for the (remote) experiment to finish"),
+    update: bool = typer.Option(False, "--update", help="Update the application files"),
     timeout: Optional[int] = typer.Option(None, "--timeout", help="Limit the wait for the experiment to finish")
 ) -> None:
     """
@@ -519,6 +520,7 @@ def experiments_run(
     given, the current directory is taken as experiment directory.
     Block (remote experiment runs only) waits for the experiment to finish before returning (and results are available).
     Local experiment runs are blocked by default.
+    Update (local experiment runs only) updates the application files for the experiment first.
     Timeout (optional) limits the wait (in seconds) for a blocked experiment to finish. In case of a local experiment,
     a timeout will cancel the experiment run. A remote experiment run is not canceled after a timeout and results can be
     fetched at a later moment.
@@ -534,10 +536,28 @@ def experiments_run(
         local = local_api.is_experiment_local(experiment_path=experiment_path)
         if local:
             block = True
+        if update:
+            if local:
+                # When updating the application files in the experiment, first validate the app again
+                application_name = local_api.get_experiment_application(experiment_path)
+                application_path, application_name = retrieve_application_name_and_path(
+                    application_name=application_name)
+
+                validate_dict = processor.applications_validate(application_name=application_name,
+                                                                application_path=application_path, local=local)
+                if validate_dict["error"] or validate_dict["warning"]:
+                    show_validation_messages(validate_dict)
+                    typer.echo(f"Application '{application_name}' is invalid. Experiment cannot be updated.")
+                    return
+            else:
+                typer.echo("Update only valid for local experiment runs.")
+                return
+
         if block:
             typer.echo(f"Experiment is sent to the {'local' if local else 'remote'} server. "
                        f"Please wait until the results are received...")
-        results = processor.experiments_run(experiment_path=experiment_path, block=block, timeout=timeout)
+        results = processor.experiments_run(experiment_path=experiment_path, block=block, update=update,
+                                            timeout=timeout)
         if results is not None:
             if results and "error" in results[0]["round_result"]:
                 typer.echo("Error encountered while running the experiment")

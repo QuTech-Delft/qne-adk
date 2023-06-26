@@ -342,29 +342,32 @@ class TestCommandProcessor(unittest.TestCase):
 
             # local
             results = ['foo']
+            run_update = False
             self.local_api.is_experiment_local.return_value = True
             self.local_api.run_experiment.return_value = results
-            self.processor.experiments_run(self.path, True, None)
+            self.processor.experiments_run(self.path, True, run_update, None)
 
             self.local_api.is_experiment_local.assert_called_once_with(experiment_path=self.path)
-            self.local_api.run_experiment.assert_called_once_with(self.path, None)
+            self.local_api.run_experiment.assert_called_once_with(self.path, run_update, None)
             mkdir_mock.assert_called_once_with(parents=True)
             write_json_mock.assert_called_once_with(self.path / 'results' / 'processed.json', results,
                                                     encoder_cls=utils.ComplexEncoder)
 
             mkdir_mock.reset_mock()
             write_json_mock.reset_mock()
+            run_update = True
             self.local_api.is_experiment_local.reset_mock()
             self.local_api.is_experiment_local.return_value = True
             self.local_api.run_experiment.reset_mock()
             self.local_api.run_experiment.return_value = None
-            self.processor.experiments_run(self.path, True, 30)
+            self.processor.experiments_run(self.path, True, run_update, 30)
             self.local_api.is_experiment_local.assert_called_once_with(experiment_path=self.path)
-            self.local_api.run_experiment.assert_called_once_with(self.path, 30)
+            self.local_api.run_experiment.assert_called_once_with(self.path, run_update, 30)
             mkdir_mock.assert_not_called()
             write_json_mock.assert_not_called()
 
             # remote
+            run_update = False
             mkdir_mock.reset_mock()
             write_json_mock.reset_mock()
             self.local_api.is_experiment_local.reset_mock()
@@ -376,7 +379,7 @@ class TestCommandProcessor(unittest.TestCase):
             self.remote_api.get_results.return_value = results
             self.local_api.get_experiment_data.return_value = experiment_data
             self.remote_api.run_experiment.return_value = (round_set, 12)
-            return_value = self.processor.experiments_run(self.path, True, 30)
+            return_value = self.processor.experiments_run(self.path, True, run_update, 30)
 
             self.local_api.get_experiment_data.assert_called_once_with(self.path)
             self.remote_api.run_experiment.assert_called_once_with(experiment_data)
