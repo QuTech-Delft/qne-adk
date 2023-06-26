@@ -288,10 +288,10 @@ class RemoteApi:
 
         if application is None:
             try:
-                # create application data structure for remote
-                application_data["remote"] = get_default_remote_data()
                 # create Application
                 application = self.__create_application(application_data)
+                # create application data structure for remote
+                application_data["remote"] = get_default_remote_data()
 
             except Exception as e:
                 # rethrow exception
