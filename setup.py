@@ -86,8 +86,8 @@ setup(
         "dev": ["pylint", "coverage>=4.5.1", "mypy", "pytest", "black", "isort", "types-tabulate", "types-PyYAML",
                 "types-requests"],
         "rtd": [
-            "sphinx==2.0.0",
-            "sphinx_rtd_theme",
+            "sphinx<7",
+            "sphinx_rtd_theme==1.2.2",
             "nbsphinx",
             "sphinx-automodapi",
             "recommonmark",
