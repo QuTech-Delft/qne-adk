@@ -1,6 +1,12 @@
-name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+name: Build and test ADK
 
-on: push
+on:
+  push:
+    branches:
+    - dev
+  pull_request:
+    branches:
+    - dev
 
 jobs:
   test:
@@ -24,46 +30,3 @@ jobs:
       run: MYPYPATH=./src mypy --strict --ignore-missing-imports -p adk
     - name: Run pylint
       run: pylint ./src/
-
-  publish:
-    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@master
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.8
-    - name: Install pypa/build
-      run: >-
-        python -m
-        pip install
-        build
-        --user
-    - name: Set outputs
-      id: vars
-      run: |
-        echo "package_version=$(cat ./src/adk/version.py | cut -d "'" -f2)" >> $GITHUB_OUTPUT
-    - name: Override package 📦 version
-      if: startsWith(github.ref, 'refs/tags') == 0
-      run: |
-        echo "__version__ = '${{ steps.vars.outputs.package_version }}a${{ github.run_id }}'" > ./src/adk/version.py
-    - name: Build a binary wheel and a source tarball
-      run: >-
-        python -m
-        build
-        --sdist
-        --wheel
-        --outdir dist/
-        .
-    - name: Publish distribution 📦 to Test PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        repository_url: https://test.pypi.org/legacy/
-    - name: Publish distribution 📦 to PyPI
-      if: startsWith(github.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.PYPI_API_TOKEN }}
