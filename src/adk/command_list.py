@@ -139,7 +139,7 @@ def applications_create(
     """
 
     # Check roles
-    if len(roles) <= 1:
+    if len(roles) == 0:
         raise NotEnoughRoles()
     # Lower case roles for testing for the same role
     lower_case_roles = [role.lower() for role in roles]

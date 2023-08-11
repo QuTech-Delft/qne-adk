@@ -189,10 +189,10 @@ class NoNetworkAvailable(QneAdkException):
 
 
 class NotEnoughRoles(QneAdkException):
-    """Raised when only one role is given"""
+    """Raised when no roles are given"""
 
     def __init__(self) -> None:
-        super().__init__("The number of roles must be higher than one")
+        super().__init__("The number of roles must be at least one")
 
 
 class NotLoggedIn(QneAdkException):
