@@ -71,23 +71,17 @@ class TestValidators(unittest.TestCase):
                           f"Extra data: line 1 column 1 (char 31)", error)
 
     def test_validate_json_schema(self):
-        with patch("adk.validators.read_json_file") as read_json_file_mock, \
-             patch("adk.validators.platform.system") as system_mock:
+        with patch("adk.validators.read_json_file") as read_json_file_mock:
 
             read_json_file_mock.side_effect = [self.json_file, self.schema_file]
 
             validate_json_schema(self.path, self.path)
             self.assertEqual(read_json_file_mock.call_count, 2)
-            system_mock.assert_called_once()
             read_json_file_mock.assert_called_with(self.path)
 
-            # If platform.system() equals windows
-            system_mock.reset_mock()
-            system_mock.return_value = "Windows"
             read_json_file_mock.reset_mock()
             read_json_file_mock.side_effect = [self.json_file, self.schema_file]
             validate_json_schema(self.path, self.path)
-            system_mock.assert_called_once()
             self.assertEqual(read_json_file_mock.call_count, 2)
             read_json_file_mock.assert_called_with(self.path)
 
@@ -101,13 +95,10 @@ class TestValidators(unittest.TestCase):
             }
 
             read_json_file_mock.reset_mock()
-            system_mock.reset_mock()
-            system_mock.return_value = "Windows"
             read_json_file_mock.side_effect = [wrong_json_file, self.schema_file]
             validate_json_schema(self.path, self.path)
             self.assertEqual(read_json_file_mock.call_count, 2)
             read_json_file_mock.assert_called_with(self.path)
-            system_mock.assert_called_once()
 
     def test_validate_json_file(self):
         with patch("adk.validators.read_json_file") as read_json_file_mock:
