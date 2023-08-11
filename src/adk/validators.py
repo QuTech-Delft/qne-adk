@@ -2,7 +2,9 @@ import platform
 import os
 from pathlib import Path
 from typing import Tuple, Any
-from jsonschema import Draft7Validator, RefResolver
+from referencing import Registry, Resource
+from referencing.jsonschema import DRAFT7
+from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError
 
 from adk.exceptions import JsonFileNotFound, MalformedJsonFile, PackageNotComplete
@@ -50,19 +52,23 @@ def validate_json_schema(file_name: Path, schema_path: Path) -> Tuple[bool, Any]
         return False, str(file_error)
     except MalformedJsonFile as malformed_json_error:
         return False, f"{malformed_json_error}"
+
     try:
         json_schema = read_json_file(schema_path)
     except JsonFileNotFound:
         raise PackageNotComplete(str(schema_path)) from None
+
+    resource = Resource(contents=json_schema, specification=DRAFT7)
     try:
         if platform.system() == 'Windows':
             path = os.path.dirname(schema_path)
             json_schema_full_path = os.path.realpath(path).replace('\\', '/')
-            resolver = RefResolver(base_uri=f'file:///{json_schema_full_path}/', referrer=json_schema)
+            registry = Registry().with_resource(uri=f'file:///{json_schema_full_path}/', resource=resource)
         else:
             json_schema_full_path = os.path.realpath(schema_path)
-            resolver = RefResolver(base_uri=f'file://{json_schema_full_path}', referrer=json_schema)
-        Draft7Validator(json_schema, resolver=resolver).validate(json_file)
+            registry = Registry().with_resource(uri=f'file://{json_schema_full_path}', resource=resource)
+
+        Draft7Validator(json_schema, registry=registry).validate(json_file)
         return True, None
     except ValidationError as ve:
         return False, f'In file {file_name}: {ve.message}'
