@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
