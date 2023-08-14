@@ -188,13 +188,6 @@ class NoNetworkAvailable(QneAdkException):
         super().__init__("No network available which contains enough nodes for all the roles")
 
 
-class NotEnoughRoles(QneAdkException):
-    """Raised when only one role is given"""
-
-    def __init__(self) -> None:
-        super().__init__("The number of roles must be higher than one")
-
-
 class NotLoggedIn(QneAdkException):
     """Raised when remote host api is called without being logged in"""
 

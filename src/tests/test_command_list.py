@@ -128,9 +128,9 @@ class TestCommandList(unittest.TestCase):
              patch.object(ConfigManager, "application_exists") as application_exists_mock:
 
             application_exists_mock.return_value = False, ""
-            # Raise NotEnoughRoles when only one or less roles are given
-            application_create_output = self.runner.invoke(applications_app, ['create', 'test_application', 'role1'])
-            self.assertIn('The number of roles must be higher than one', application_create_output.stdout)
+            # Raise error when no roles are given
+            application_create_output = self.runner.invoke(applications_app, ['create', 'test_application'])
+            self.assertIn("Missing argument 'ROLES...'", application_create_output.stdout)
 
             # Raise RolesNotUnique when roles are duplicated
             application_create_output = self.runner.invoke(applications_app, ['create', 'test_application', 'role1',

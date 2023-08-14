@@ -16,7 +16,7 @@ from adk.api.remote_api import RemoteApi
 from adk.command_processor import CommandProcessor
 from adk.decorators import catch_qne_adk_exceptions
 from adk.exceptions import (ApplicationAlreadyExists, ApplicationNotFound, ExperimentDirectoryNotValid,
-                            NotEnoughRoles, RolesNotUnique)
+                            RolesNotUnique)
 from adk.managers.config_manager import ConfigManager
 from adk.settings import Settings
 from adk.type_aliases import ErrorDictType
@@ -138,9 +138,6 @@ def applications_create(
     For example: qne application create application_name Alice Bob
     """
 
-    # Check roles
-    if len(roles) <= 1:
-        raise NotEnoughRoles()
     # Lower case roles for testing for the same role
     lower_case_roles = [role.lower() for role in roles]
     if not all(lower_case_roles.count(role) == 1 for role in lower_case_roles):
