@@ -88,7 +88,7 @@ setup(
                 "types-requests"],
         "rtd": [
             "sphinx<7",
-            "sphinx_rtd_theme==1.2.2",
+            "sphinx_rtd_theme==1.3.0",
             "nbsphinx",
             "sphinx-automodapi",
             "recommonmark",
