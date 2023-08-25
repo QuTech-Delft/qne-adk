@@ -15,12 +15,12 @@
       "readOnly": true
     },
     "network": {
-      "$ref": "file:../networks/network_asset.json"
+      "$ref": "file:/networks/network_asset.json"
     },
     "application": {
       "type": "array",
       "items": {
-        "$ref": "file:../networks/roletemplate.json"
+        "$ref": "file:/networks/roletemplate.json"
       }
     },
     "experiment": {
