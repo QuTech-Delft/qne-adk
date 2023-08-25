@@ -228,7 +228,7 @@ def applications_clone(
         validate_dict = processor.applications_validate(application_name=application_name,
                                                         application_path=application_path)
         if validate_dict["error"] or validate_dict["warning"]:
-            typer.echo("Local application cannot be cloned.")
+            typer.echo("Local application was not cloned")
             validation_messages = format_validation_messages(validate_dict)
             raise ApplicationFailedValidation(application_name, validation_messages)
 
@@ -258,12 +258,12 @@ def applications_delete(
     deleted_completely = processor.applications_delete(application_name=application_name,
                                                        application_path=application_path)
     if deleted_completely:
-        typer.echo("Application deleted successfully.")
+        typer.echo("Application deleted successfully")
     else:
         if application_name is None:
-            typer.echo("Application files deleted.")
+            typer.echo("Application files deleted")
         else:
-            typer.echo("Application files deleted, directory not empty.")
+            typer.echo("Application files deleted, directory not empty")
 
 
 @applications_app.command("upload")
@@ -285,15 +285,15 @@ def applications_upload(
     validation_messages = format_validation_messages(validate_dict)
 
     if validate_dict["error"] or validate_dict["warning"]:
-        typer.echo("Application could not be uploaded.")
+        typer.echo("Application was not uploaded")
         raise ApplicationFailedValidation(application_name, validation_messages)
 
     uploaded_success = processor.applications_upload(application_name=application_name,
                                                      application_path=application_path)
     if uploaded_success:
-        typer.echo(f"Application '{application_name}' uploaded successfully.")
+        typer.echo(f"Application '{application_name}' uploaded successfully")
     else:
-        typer.echo(f"Application '{application_name}' not uploaded.")
+        typer.echo(f"Application '{application_name}' not uploaded")
 
 
 @applications_app.command("publish")
@@ -315,14 +315,14 @@ def applications_publish(
     validation_messages = format_validation_messages(validate_dict)
 
     if validate_dict["error"] or validate_dict["warning"]:
-        typer.echo("Application could not be published.")
+        typer.echo("Application was not published")
         raise ApplicationFailedValidation(application_name, validation_messages)
 
     publish_success = processor.applications_publish(application_path=application_path)
     if publish_success:
-        typer.echo(f"Application '{application_name}' published successfully.")
+        typer.echo(f"Application '{application_name}' published successfully")
     else:
-        typer.echo(f"Application '{application_name}' not published.")
+        typer.echo(f"Application '{application_name}' not published")
 
 
 @applications_app.command("list")
@@ -391,7 +391,7 @@ def applications_validate(
     if validate_dict["error"] or validate_dict["warning"]:
         raise ApplicationFailedValidation(application_name, validation_messages)
 
-    typer.echo(f"Application '{application_name}' is valid.")
+    typer.echo(f"Application '{application_name}' is valid")
     if validation_messages:
         typer.echo(f"{validation_messages}")
 
@@ -420,7 +420,7 @@ def experiments_create(
     validate_dict = processor.applications_validate(application_name=application_name,
                                                     application_path=application_path, local=local)
     if validate_dict["error"] or validate_dict["warning"]:
-        typer.echo("Experiment was not created.")
+        typer.echo("Experiment was not created")
         validation_messages = format_validation_messages(validate_dict)
         raise ExperimentFailedValidation(validation_messages)
 
@@ -537,7 +537,7 @@ def experiments_run(
     validate_dict = processor.experiments_validate(experiment_path=experiment_path)
 
     if validate_dict["error"] or validate_dict["warning"]:
-        typer.echo("Experiment did not run.")
+        typer.echo("Experiment did not run")
         validation_messages = format_validation_messages(validate_dict)
         raise ExperimentFailedValidation(validation_messages)
 
@@ -554,11 +554,11 @@ def experiments_run(
             validate_dict = processor.applications_validate(application_name=application_name,
                                                             application_path=application_path, local=local)
             if validate_dict["error"] or validate_dict["warning"]:
-                typer.echo("Experiment cannot be updated.")
+                typer.echo("Experiment cannot be updated")
                 validation_messages = format_validation_messages(validate_dict)
                 raise ApplicationFailedValidation(application_name, validation_messages)
         else:
-            typer.echo("Update only valid for local experiment runs.")
+            typer.echo("Update only valid for local experiment runs")
             return
 
     if block:
@@ -570,9 +570,9 @@ def experiments_run(
         if results and "error" in results[0]["round_result"]:
             raise ExperimentExecutionError(results[0]["round_result"]["error"])
 
-        typer.echo("Experiment run successfully. Check the results using command 'experiment results'.")
+        typer.echo("Experiment run successfully. Check the results using command 'experiment results'")
     else:
-        typer.echo("Experiment sent successfully to server. Check the results using command 'experiment results'.")
+        typer.echo("Experiment sent successfully to server. Check the results using command 'experiment results'")
 
 
 @experiments_app.command("validate")
@@ -594,7 +594,7 @@ def experiments_validate(
     if validate_dict["error"] or validate_dict["warning"]:
         raise ExperimentFailedValidation(validation_messages)
 
-    typer.echo("Experiment is valid.")
+    typer.echo("Experiment is valid")
     if validation_messages:
         typer.echo(f"{validation_messages}")
 
@@ -621,7 +621,7 @@ def experiments_results(
             result_noun = "Results are" if all_results else "Result is"
             typer.echo(f"{result_noun} stored at location '{experiment_path / 'results' / 'processed.json'}'")
     else:
-        typer.echo("No results received from backend yet. Check again later using command 'experiment results'.")
+        typer.echo("No results received from backend yet. Check again later using command 'experiment results'")
 
 
 @networks_app.command("list")
@@ -676,6 +676,6 @@ def networks_update(
     """
     updated = processor.networks_update(overwrite=overwrite)
     if updated:
-        typer.echo("The local networks are updated.")
+        typer.echo("The local networks are updated")
     else:
-        typer.echo("The local networks are not updated completely.")
+        typer.echo("The local networks are not updated completely")
