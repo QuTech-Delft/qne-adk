@@ -194,8 +194,6 @@ class TestCommandList(unittest.TestCase):
 
             application_exists_mock.return_value = False, ""
             retrieve_appname_and_path_mock.return_value = self.path, self.application
-            # When application is valid (no items in error, warning and info)
-            applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
             application_fetch_output = self.runner.invoke(applications_app,
                                                           ['fetch', self.application])
             mock_cwd.assert_called_once()
@@ -213,13 +211,11 @@ class TestCommandList(unittest.TestCase):
         with patch("adk.command_list.Path.cwd", return_value=self.path) as mock_cwd, \
              patch.object(ConfigManager, "application_exists") as application_exists_mock, \
              patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \
-             patch.object(CommandProcessor, 'applications_validate') as applications_validate_mock, \
              patch.object(CommandProcessor, 'applications_fetch') as application_fetch_mock:
 
             application_exists_mock.return_value = False, ""
             retrieve_appname_and_path_mock.return_value = self.path, self.application
             # When application is valid (no items in error, warning and info)
-            applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
             application_fetch_output = self.runner.invoke(applications_app,
                                                           ['fetch', 'fetch*app'])
 
@@ -244,7 +240,7 @@ class TestCommandList(unittest.TestCase):
             application_exists_mock.return_value = False, ""
             retrieve_appname_and_path_mock.return_value = self.path, self.application
             # When application is valid (no items in error, warning and info)
-            applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
+            applications_validate_mock.return_value = {"error": [], "warning": [], "info": []}
             application_clone_output = self.runner.invoke(applications_app,
                                                           ['clone', self.application, 'new_app'])
             mock_cwd.assert_called_once()
@@ -270,7 +266,7 @@ class TestCommandList(unittest.TestCase):
             application_exists_mock.return_value = False, ""
             retrieve_appname_and_path_mock.return_value = self.path, self.application
             # When application is valid (no items in error, warning and info)
-            applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
+            applications_validate_mock.return_value = {"error": [], "warning": [], "info": []}
             application_clone_output = self.runner.invoke(applications_app,
                                                           ['clone', self.application, '--remote'])
             mock_cwd.assert_called_once()
@@ -295,7 +291,7 @@ class TestCommandList(unittest.TestCase):
             application_exists_mock.return_value = False, ""
             retrieve_appname_and_path_mock.return_value = self.path, self.application
             # When application is valid (no items in error, warning and info)
-            applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
+            applications_validate_mock.return_value = {"error": [], "warning": [], "info": []}
             application_clone_output = self.runner.invoke(applications_app,
                                                           ['clone', self.application, 'new*app'])
 
@@ -312,10 +308,12 @@ class TestCommandList(unittest.TestCase):
             application_exists_mock.return_value = False, ""
             retrieve_appname_and_path_mock.return_value = self.path, self.application
             # When application is valid (no items in error, warning and info)
-            applications_validate_mock.return_value = {"error": {"an_error"}, "warning": {}, "info": {}}
+            applications_validate_mock.return_value = {"error": ["an_error"], "warning": [], "info": []}
             application_clone_output = self.runner.invoke(applications_app,
                                                           ['clone', self.application, 'new_app'])
-            self.assertIn(f"Local application '{self.application}' is invalid. Application not cloned",
+            self.assertIn(f"Local application was not cloned",
+                          application_clone_output.stdout)
+            self.assertIn(f"Application '{self.application}' failed validation.",
                           application_clone_output.stdout)
 
             application_clone_output = self.runner.invoke(applications_app,
@@ -423,7 +421,7 @@ class TestCommandList(unittest.TestCase):
             # When application is valid with item in in 'info'
             retrieve_appname_and_path_mock.reset_mock()
             applications_validate_mock.reset_mock()
-            applications_validate_mock.return_value = {"error": {}, "warning": {}, "info": {"info"}}
+            applications_validate_mock.return_value = {"error": [], "warning": [], "info": ["info"]}
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
             applications_validate_mock.assert_called_once_with(application_name=self.application,
@@ -446,24 +444,24 @@ class TestCommandList(unittest.TestCase):
              patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock:
 
             retrieve_appname_and_path_mock.return_value = self.path, self.application
-            applications_validate_mock.return_value = {"error": {"error"}, "warning": {"warning"}, "info": {"info"}}
+            applications_validate_mock.return_value = {"error": ["error"], "warning": ["warning"], "info": ["info"]}
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
             applications_validate_mock.assert_called_once_with(application_name=self.application,
                                                                application_path=self.path)
             retrieve_appname_and_path_mock.assert_called_once()
-            self.assertIn(f"Application '{self.application}' is invalid", application_validate_output.stdout)
+            self.assertIn(f"Application '{self.application}' failed validation.", application_validate_output.stdout)
 
             # When only 'error' has items
             retrieve_appname_and_path_mock.reset_mock()
             applications_validate_mock.reset_mock()
-            applications_validate_mock.return_value = {"error": {"error"}, "warning": {}, "info": {}}
+            applications_validate_mock.return_value = {"error": ["error"], "warning": [], "info": []}
 
             application_validate_output = self.runner.invoke(applications_app, ['validate'])
             applications_validate_mock.assert_called_once_with(application_name=self.application,
                                                                application_path=self.path)
             retrieve_appname_and_path_mock.assert_called_once()
-            self.assertIn(f"Application '{self.application}' is invalid", application_validate_output.stdout)
+            self.assertIn(f"Application '{self.application}' failed validation.", application_validate_output.stdout)
 
     def test_applications_upload_success(self):
         with patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \
@@ -504,19 +502,21 @@ class TestCommandList(unittest.TestCase):
     def test_applications_upload_validation_error(self):
         with patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \
              patch.object(CommandProcessor, 'applications_validate') as app_validate_mock, \
-             patch("adk.command_list.show_validation_messages") as show_validation_messages_mock, \
+             patch("adk.command_list.format_validation_messages") as format_validation_messages_mock, \
              patch.object(CommandProcessor, 'applications_upload') as application_upload_mock:
 
             retrieve_appname_and_path_mock.return_value = self.path, self.application
-            app_validate_mock.return_value = {"error": ['Error'], "warning": [], "info": []}
+            app_validate_mock.return_value = {"error": [ 'Error' ], "warning": [], "info": []}
             application_upload_mock.return_value = True
 
             application_upload_output = self.runner.invoke(applications_app,
                                                            ['upload', 'test_application'])
             self.assertEqual(retrieve_appname_and_path_mock.call_count, 1)
-            show_validation_messages_mock.assert_called_once()
+            format_validation_messages_mock.assert_called_once()
             application_upload_mock.assert_not_called()
-            self.assertIn(f"Application '{self.application}' is invalid. Application not uploaded",
+            self.assertIn(f"Application was not uploaded",
+                          application_upload_output.stdout)
+            self.assertIn(f"Application '{self.application}' failed validation.",
                           application_upload_output.stdout)
 
     def test_applications_publish_success(self):
@@ -556,7 +556,7 @@ class TestCommandList(unittest.TestCase):
     def test_applications_publish_validation_error(self):
         with patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \
              patch.object(CommandProcessor, 'applications_validate') as app_validate_mock, \
-             patch("adk.command_list.show_validation_messages") as show_validation_messages_mock, \
+             patch("adk.command_list.format_validation_messages") as format_validation_messages_mock, \
              patch.object(CommandProcessor, 'applications_publish') as application_publish_mock:
 
             retrieve_appname_and_path_mock.return_value = self.path, self.application
@@ -566,9 +566,11 @@ class TestCommandList(unittest.TestCase):
             application_publish_output = self.runner.invoke(applications_app,
                                                             ['publish', 'test_application'])
             self.assertEqual(retrieve_appname_and_path_mock.call_count, 1)
-            show_validation_messages_mock.assert_called_once()
+            format_validation_messages_mock.assert_called_once()
             application_publish_mock.assert_not_called()
-            self.assertIn(f"Application '{self.application}' is invalid. Application not published",
+            self.assertIn(f"Application was not published",
+                          application_publish_output.stdout)
+            self.assertIn(f"Application '{self.application}' failed validation.",
                           application_publish_output.stdout)
 
     def test_applications_list(self):
@@ -676,7 +678,7 @@ class TestCommandList(unittest.TestCase):
         with patch("adk.command_list.Path.cwd") as mock_cwd, \
              patch.object(CommandProcessor, 'experiments_create') as experiment_create_mock, \
              patch.object(CommandProcessor, 'applications_validate') as app_validate_mock, \
-             patch("adk.command_list.show_validation_messages") as show_validation_messages_mock, \
+             patch("adk.command_list.format_validation_messages") as format_validation_messages_mock, \
              patch("adk.command_list.validate_path_name") as mock_validate_path, \
              patch("adk.command_list.retrieve_application_name_and_path") as retrieve_application_name_and_path_mock:
 
@@ -688,11 +690,13 @@ class TestCommandList(unittest.TestCase):
             experiment_create_output = self.runner.invoke(experiments_app, ['create', 'test_exp', 'app_name',
                                                                             'network_1'])
             mock_validate_path.assert_called_once_with('Experiment', 'test_exp')
-            show_validation_messages_mock.assert_called_once()
+            format_validation_messages_mock.assert_called_once()
 
             retrieve_application_name_and_path_mock.assert_called_once_with(application_name="app_name")
-            self.assertEqual(experiment_create_output.exit_code, 0)
-            self.assertIn("Application 'app_name' is invalid. Experiment not created.",
+            self.assertEqual(experiment_create_output.exit_code, 1)
+            self.assertIn("Experiment was not created",
+                          experiment_create_output.stdout)
+            self.assertIn("Experiment failed validation",
                           experiment_create_output.stdout)
             experiment_create_mock.assert_not_called()
 
@@ -735,51 +739,49 @@ class TestCommandList(unittest.TestCase):
     def test_experiment_validate(self):
         with patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_experiment_name_and_path_mock, \
              patch.object(CommandProcessor, 'experiments_validate') as experiments_validate_mock, \
-             patch("adk.command_list.show_validation_messages") as show_validation_messages_mock:
+             patch("adk.command_list.format_validation_messages") as format_validation_messages_mock:
 
-            experiments_validate_mock.return_value = {"error": {"error"}, "warning": {"warning"}, "info": {"info"}}
+            experiments_validate_mock.return_value = {"error": ["error"], "warning": ["warning"], "info": ["info"]}
             retrieve_experiment_name_and_path_mock.return_value = (self.path, self.experiment_name)
 
             experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
             retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
             experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
-            show_validation_messages_mock.assert_called_once()
-            self.assertIn("Experiment is invalid", experiment_validate_output.stdout)
+            format_validation_messages_mock.assert_called_once()
+            self.assertIn("Experiment failed validation", experiment_validate_output.stdout)
 
             # When only 'error' has items
             experiments_validate_mock.reset_mock()
             retrieve_experiment_name_and_path_mock.reset_mock()
-            show_validation_messages_mock.reset_mock()
-            experiments_validate_mock.return_value = {"error": {"error"}, "warning": {}, "info": {}}
+            format_validation_messages_mock.reset_mock()
+            experiments_validate_mock.return_value = {"error": ["error"], "warning": [], "info": []}
 
             experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
             retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
             experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
-            show_validation_messages_mock.assert_called_once()
-            self.assertIn("Experiment is invalid", experiment_validate_output.stdout)
+            format_validation_messages_mock.assert_called_once()
+            self.assertIn("Experiment failed validation", experiment_validate_output.stdout)
 
             # When application is valid (no items in error, warning and info)
             experiments_validate_mock.reset_mock()
             retrieve_experiment_name_and_path_mock.reset_mock()
-            show_validation_messages_mock.reset_mock()
-            experiments_validate_mock.return_value = {"error": {}, "warning": {}, "info": {}}
+            format_validation_messages_mock.reset_mock()
+            experiments_validate_mock.return_value = {"error": [], "warning": [], "info": []}
 
             experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
             retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
             experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
-            show_validation_messages_mock.assert_called_once()
             self.assertIn("Experiment is valid", experiment_validate_output.stdout)
 
             # When application is valid with item in in 'info'
             experiments_validate_mock.reset_mock()
             retrieve_experiment_name_and_path_mock.reset_mock()
-            show_validation_messages_mock.reset_mock()
-            experiments_validate_mock.return_value = {"error": {}, "warning": {}, "info": {"info"}}
+            format_validation_messages_mock.reset_mock()
+            experiments_validate_mock.return_value = {"error": [], "warning": [], "info": ["info"]}
 
             experiment_validate_output = self.runner.invoke(experiments_app, ['validate'])
             retrieve_experiment_name_and_path_mock.assert_called_once_with(experiment_name=None)
             experiments_validate_mock.assert_called_once_with(experiment_path=self.path)
-            show_validation_messages_mock.assert_called_once()
             self.assertIn("Experiment is valid", experiment_validate_output.stdout)
 
     def test_experiment_delete_no_experiment_dir(self):
@@ -881,7 +883,7 @@ class TestCommandList(unittest.TestCase):
         with patch.object(CommandProcessor, 'experiments_validate') as exp_validate_mock, \
              patch.object(CommandProcessor, 'experiments_run') as exp_run_mock, \
              patch.object(LocalApi, "is_experiment_local") as exp_local_mock, \
-             patch("adk.command_list.show_validation_messages") as show_validation_messages_mock, \
+             patch("adk.command_list.format_validation_messages") as format_validation_messages_mock, \
              patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
 
             retrieve_expname_and_path_mock.return_value = self.path, None
@@ -889,13 +891,13 @@ class TestCommandList(unittest.TestCase):
             exp_validate_mock.return_value = {"error": ["Error occurred"], "warning": [], "info": []}
             exp_run_output = self.runner.invoke(experiments_app, ['run'])
 
-            show_validation_messages_mock.assert_called_once()
+            format_validation_messages_mock.assert_called_once()
             exp_local_mock.assert_not_called()
             exp_validate_mock.assert_called_once_with(experiment_path=self.path)
             retrieve_expname_and_path_mock.assert_called_once_with(experiment_name=None)
             exp_run_mock.assert_not_called()
-            self.assertEqual(exp_run_output.exit_code, 0)
-            self.assertIn("Experiment is invalid. Please resolve the issues and then run the experiment.",
+            self.assertEqual(exp_run_output.exit_code, 1)
+            self.assertIn("Experiment failed validation.",
                           exp_run_output.stdout)
 
             exp_validate_mock.return_value = {"error": [], "warning": [], "info": []}
@@ -906,8 +908,8 @@ class TestCommandList(unittest.TestCase):
             exp_run_output = self.runner.invoke(experiments_app, ['run', '--timeout=30'])
             exp_run_mock.assert_called_once_with(experiment_path=self.path, block=False, update=False, timeout=30)
             retrieve_expname_and_path_mock.assert_called_once()
-            self.assertEqual(exp_run_output.exit_code, 0)
-            self.assertIn("Error encountered while running the experiment",
+            self.assertEqual(exp_run_output.exit_code, 1)
+            self.assertIn("Experiment encountered an error while running:",
                              exp_run_output.stdout)
             self.assertIn("Just an error",
                           exp_run_output.stdout)
@@ -944,7 +946,7 @@ class TestCommandList(unittest.TestCase):
              patch.object(CommandProcessor, 'experiments_run') as exp_run_mock, \
              patch.object(LocalApi, "is_experiment_local") as exp_local_mock, \
              patch.object(LocalApi, "get_experiment_application") as exp_application_mock, \
-             patch("adk.command_list.show_validation_messages") as show_validation_messages_mock, \
+             patch("adk.command_list.format_validation_messages") as format_validation_messages_mock, \
              patch("adk.command_list.retrieve_application_name_and_path") as retrieve_appname_and_path_mock, \
              patch("adk.command_list.retrieve_experiment_name_and_path") as retrieve_expname_and_path_mock:
 
@@ -955,7 +957,7 @@ class TestCommandList(unittest.TestCase):
             exp_run_mock.assert_not_called()
             retrieve_expname_and_path_mock.assert_called_once()
             self.assertEqual(exp_run_output.exit_code, 0)
-            self.assertIn("Update only valid for local experiment runs.", exp_run_output.stdout)
+            self.assertIn("Update only valid for local experiment runs", exp_run_output.stdout)
 
             exp_run_mock.reset_mock()
             retrieve_expname_and_path_mock.reset_mock()
@@ -968,12 +970,12 @@ class TestCommandList(unittest.TestCase):
             exp_local_mock.return_value = True
             exp_run_output = self.runner.invoke(experiments_app, ['run', '--timeout=30', '--update'])
             exp_run_mock.assert_not_called()
-            show_validation_messages_mock.assert_called_once()
+            format_validation_messages_mock.assert_called_once()
             retrieve_expname_and_path_mock.assert_called_once()
             retrieve_appname_and_path_mock.assert_called_once()
-            self.assertEqual(exp_run_output.exit_code, 0)
-            self.assertIn(f"Application '{self.application}' is invalid. Experiment cannot be updated.",
-                          exp_run_output.stdout)
+            self.assertEqual(exp_run_output.exit_code, 1)
+            self.assertIn(f"Experiment cannot be updated", exp_run_output.stdout)
+            self.assertIn(f"Application '{self.application}' failed validation.", exp_run_output.stdout)
 
     def test_experiment_results(self):
         with patch.object(CommandProcessor, 'experiments_results') as exp_results_mock, \

@@ -1,3 +1,4 @@
+import sys
 import functools
 import logging
 from typing import Any, Callable
@@ -14,11 +15,11 @@ def catch_qne_adk_exceptions(func: Callable[..., Any]) -> Any:
         try:
             func(*args, **kwargs)
         except QneAdkException as qne_adk_exception:
-            message = f"Error: {str(qne_adk_exception)}"
-            typer.echo(message)
+            typer.echo(f"Error: {str(qne_adk_exception)}")
+            sys.exit(1)
         except Exception as exception:
-            message = f"Unhandled exception: {repr(exception)}"
-            typer.echo(message)
+            typer.echo(f"Unhandled exception: {repr(exception)}")
+            sys.exit(13)
 
     return catch_exceptions
 
