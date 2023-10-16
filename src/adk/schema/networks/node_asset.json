@@ -27,13 +27,13 @@
     "node_parameters": {
       "type": "array",
       "items": {
-        "$ref": "file:template.json"
+        "$ref": "file:/networks/template.json"
       }
     },
     "qubits": {
       "type": "array",
       "items": {
-        "$ref": "file:qubit.json"
+        "$ref": "file:/networks/qubit.json"
       }
     }
   },

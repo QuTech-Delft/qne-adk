@@ -24,13 +24,13 @@
     "nodes": {
       "type": "array",
       "items": {
-        "$ref": "file:node_asset.json"
+        "$ref": "file:/networks/node_asset.json"
       }
     },
     "channels": {
       "type": "array",
       "items": {
-        "$ref": "file:channel_asset.json"
+        "$ref": "file:/networks/channel_asset.json"
       }
     }
   },

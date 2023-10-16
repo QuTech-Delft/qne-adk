@@ -19,7 +19,7 @@
     "parameters": {
       "type": "array",
       "items": {
-        "$ref": "file:template.json"
+        "$ref": "file:/networks/template.json"
       }
     }
   },
