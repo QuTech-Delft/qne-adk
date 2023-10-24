@@ -145,6 +145,7 @@ class QneClient:
         self._set_open_api_client(auth_mech)
 
     def login(self, email: str, password: str, host: str, use_username: bool) -> str:
+        # pylint: disable=R0801
         self.__refresh_token = None
         self.__base_uri = host
         self.__email = email
