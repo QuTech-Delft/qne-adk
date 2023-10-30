@@ -1,11 +1,13 @@
-import platform
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 from typing import Tuple, Any
-from jsonschema import Draft7Validator, RefResolver
+from referencing import Registry, Resource
+from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError
 
 from adk.exceptions import JsonFileNotFound, MalformedJsonFile, PackageNotComplete
+from adk.settings import BASE_DIR
 from adk.utils import read_json_file
 
 
@@ -45,24 +47,27 @@ def validate_json_schema(file_name: Path, schema_path: Path) -> Tuple[bool, Any]
         PackageNotComplete when the schema is not found
     """
     try:
-        json_file = read_json_file(file_name)
-    except JsonFileNotFound as file_error:
-        return False, str(file_error)
-    except MalformedJsonFile as malformed_json_error:
-        return False, f"{malformed_json_error}"
+        json_to_validate = read_json_file(file_name)
+    except JsonFileNotFound as e:
+        return False, str(e)
+    except MalformedJsonFile as e:
+        return False, f"{e}"
+
     try:
-        json_schema = read_json_file(schema_path)
+        schema = read_json_file(schema_path)
     except JsonFileNotFound:
         raise PackageNotComplete(str(schema_path)) from None
+
+    schema_base_path = Path(os.path.join(BASE_DIR, 'schema'))
+
+    def retrieve_schema(uri: str): # type: ignore
+        path = schema_base_path / urlparse(uri).path[1:]
+        contents = read_json_file(path)
+        return Resource.from_contents(contents)
+
     try:
-        if platform.system() == 'Windows':
-            path = os.path.dirname(schema_path)
-            json_schema_full_path = os.path.realpath(path).replace('\\', '/')
-            resolver = RefResolver(base_uri=f'file:///{json_schema_full_path}/', referrer=json_schema)
-        else:
-            json_schema_full_path = os.path.realpath(schema_path)
-            resolver = RefResolver(base_uri=f'file://{json_schema_full_path}', referrer=json_schema)
-        Draft7Validator(json_schema, resolver=resolver).validate(json_file)
+        registry = Registry(retrieve=retrieve_schema) # type: ignore
+        Draft7Validator(schema, registry=registry).validate(json_to_validate)
         return True, None
     except ValidationError as ve:
         return False, f'In file {file_name}: {ve.message}'

@@ -75,7 +75,7 @@
       ]
     },
     "asset": {
-      "$ref": "file:asset.json"
+      "$ref": "file:/experiments/asset.json"
     },
     "experiment": {
       "type": "string",
